@@ -191,10 +191,12 @@ def prepare():
             mcdc['tally'][name] = input_card.tally[name]
     
     # Set mesh
-    mcdc['tally']['mesh']['x'] = input_card.tally['mesh']['x']
-    mcdc['tally']['mesh']['y'] = input_card.tally['mesh']['y']
-    mcdc['tally']['mesh']['z'] = input_card.tally['mesh']['z']
-    mcdc['tally']['mesh']['t'] = input_card.tally['mesh']['t']
+    mcdc['tally']['mesh']['x']   = input_card.tally['mesh']['x']
+    mcdc['tally']['mesh']['y']   = input_card.tally['mesh']['y']
+    mcdc['tally']['mesh']['z']   = input_card.tally['mesh']['z']
+    mcdc['tally']['mesh']['t']   = input_card.tally['mesh']['t']
+    mcdc['tally']['mesh']['mu']  = input_card.tally['mesh']['mu']
+    mcdc['tally']['mesh']['azi'] = input_card.tally['mesh']['azi']
 
     # =========================================================================
     # Setting
@@ -216,7 +218,8 @@ def prepare():
                         'census_idx',
                         'IC_bank_neutron', 'IC_bank_precursor',
                         'IC_bank_neutron_local', 'IC_bank_precursor_local',
-                        'IC_tally_n', 'IC_tally_C', 'IC_n_eff', 'IC_C_eff']:
+                        'IC_tally_n', 'IC_tally_C', 'IC_n_eff', 'IC_C_eff',
+                        'IC_Pmax_n', 'IC_Pmax_C', 'IC_resample']:
             mcdc['technique'][name] = input_card.technique[name]
 
     # Set time census parameter
@@ -225,10 +228,13 @@ def prepare():
 
     # Set weight window mesh
     if input_card.technique['weight_window']:
-        mcdc['technique']['ww_mesh']['x'] = input_card.technique['ww_mesh']['x']
-        mcdc['technique']['ww_mesh']['y'] = input_card.technique['ww_mesh']['y']
-        mcdc['technique']['ww_mesh']['z'] = input_card.technique['ww_mesh']['z']
-        mcdc['technique']['ww_mesh']['t'] = input_card.technique['ww_mesh']['t']
+        name = 'ww_mesh'
+        mcdc['technique'][name]['x']   = input_card.technique[name]['x']
+        mcdc['technique'][name]['y']   = input_card.technique[name]['y']
+        mcdc['technique'][name]['z']   = input_card.technique[name]['z']
+        mcdc['technique'][name]['t']   = input_card.technique[name]['t']
+        mcdc['technique'][name]['mu']  = input_card.technique[name]['mu']
+        mcdc['technique'][name]['azi'] = input_card.technique[name]['azi']
 
     # =========================================================================
     # Global tally
@@ -275,14 +281,15 @@ def prepare():
         mcdc['cycle_active'] = True
 
 def generate_hdf5():
-    # TODO: Gather and reduce IC bank
     if mcdc['mpi_master']:
         if mcdc['setting']['progress_bar']: print_msg('')
         print_msg(" Generating output HDF5 files...")
 
         with h5py.File(mcdc['setting']['output']+'.h5', 'w') as f:
             # Runtime
-            f.create_dataset("runtime",data=np.array([mcdc['runtime_total']]))
+            for name in ['total', 'bank_management']:
+                f.create_dataset("runtime_"+name,
+                                 data=np.array([mcdc['runtime_'+name]]))
 
             # Tally
             T = mcdc['tally']
@@ -290,6 +297,8 @@ def generate_hdf5():
             f.create_dataset("tally/grid/x", data=T['mesh']['x'])
             f.create_dataset("tally/grid/y", data=T['mesh']['y'])
             f.create_dataset("tally/grid/z", data=T['mesh']['z'])
+            f.create_dataset("tally/grid/mu", data=T['mesh']['mu'])
+            f.create_dataset("tally/grid/azi", data=T['mesh']['azi'])
             
             # Scores
             for name in T['score'].dtype.names:
@@ -302,15 +311,16 @@ def generate_hdf5():
                 
             # Eigenvalues
             if mcdc['setting']['mode_eigenvalue']:
-                f.create_dataset("k_cycle",data=mcdc['k_cycle'])
+                N_cycle = mcdc['setting']['N_cycle']
+                f.create_dataset("k_cycle",data=mcdc['k_cycle'][:N_cycle])
                 f.create_dataset("k_mean",data=mcdc['k_avg_running'])
                 f.create_dataset("k_sdev",data=mcdc['k_sdv_running'])
                 if mcdc['setting']['gyration_radius']:
-                    f.create_dataset("gyration_radius",data=mcdc['gyration_radius'])
+                    f.create_dataset("gyration_radius",data=mcdc['gyration_radius'][:N_cycle])
 
             # IC generator
             if mcdc['technique']['IC_generator']:
                 Nn = mcdc['technique']['IC_bank_neutron']['size']
-                Np = mcdc['technique']['IC_bank_neutron']['size']
+                Np = mcdc['technique']['IC_bank_precursor']['size']
                 f.create_dataset("IC/neutron",data=mcdc['technique']['IC_bank_neutron']['content'][:Nn])
                 f.create_dataset("IC/precursor",data=mcdc['technique']['IC_bank_precursor']['content'][:Np])
