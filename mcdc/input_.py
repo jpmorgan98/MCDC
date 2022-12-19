@@ -14,7 +14,7 @@ import mcdc.global_ as mcdc
 # Material
 # ==============================================================================
 
-def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None, 
+def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
              chi_p=None, chi_d=None, nu_s=None, speed=None, decay=None):
     """
     Arguments
@@ -24,8 +24,8 @@ def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
     scatter : numpy.ndarray (2D)
         Differential scattering cross-section [gout][gin] [/cm].
     fission : numpy.ndarray (1D)
-        Fission cross-section [/cm]. 
-    *At least capture, scatter, or fission cross-section needs to be 
+        Fission cross-section [/cm].
+    *At least capture, scatter, or fission cross-section needs to be
     provided.
 
     nu_s : numpy.ndarray (1D)
@@ -35,7 +35,7 @@ def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
     nu_d : numpy.ndarray (2D)
         Delayed neutron precursor yield [dg][gin].
     *nu_p or nu_d is needed if fission is provided.
-    
+
     chi_p : numpy.ndarray (2D)
         Prompt fission spectrum [gout][gin]
     chi_d : numpy.ndarray (2D)
@@ -46,8 +46,8 @@ def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
         Energy group speed
     decay : numpy.ndarray (1D)
         Precursor group decay constant [/s]
-    *speed and decay are optional. By default, values for speed and decay 
-    are one and infinite, respectively. Universal speed and decay can be 
+    *speed and decay are optional. By default, values for speed and decay
+    are one and infinite, respectively. Universal speed and decay can be
     provided through mcdc.set_universal_speed and mcdc.set_universal_decay.
     """
 
@@ -66,7 +66,7 @@ def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
     J = 0
     if nu_d is not None:
         J = len(nu_d)
-    
+
     # Set default card values (c.f. type_.py)
     card            = {}
     card['tag']     = 'Material'
@@ -103,10 +103,10 @@ def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
     if fission is not None:
         card['fission'][:] = fission[:]
     card['total'][:] = card['capture'] + card['scatter'] + card['fission']
-    
+
     # Scattering multiplication
     if nu_s is not None:
-        card['nu_s'][:,:] = nu_s[:,:]
+        card['nu_s'][:] = nu_s[:]
 
     # Fission productions
     if fission is not None:
@@ -124,7 +124,7 @@ def material(capture=None, scatter=None, fission=None, nu_p=None, nu_d=None,
     # Scattering spectrum
     if scatter is not None:
         card['chi_s'][:,:] = np.swapaxes(scatter, 0, 1)[:,:] # [gout,gin] -> [gin,gout]
-        for g in range(G): 
+        for g in range(G):
             if card['scatter'][g] > 0.0:
                 card['chi_s'][g,:] /= card['scatter'][g]
 
@@ -187,16 +187,17 @@ def surface(type_, **kw):
     # Boundary condition
     bc = kw.get('bc')
     if bc is not None:
+        bc = bc.lower()
         if bc == 'vacuum':
             card['vacuum'] = True
         elif bc == 'reflective':
             card['reflective'] = True
         else:
-            print_error("Unsupported surface boundary condition: "+bc)
-
+            print_error("Unsupported surface boundary condition: "+bc+ '; Supported options are "vacuum" or "reflective"')
     # Surface type
     # Axx + Byy + Czz + Dxy + Exz + Fyz + Gx + Hy + Iz + J(t) = 0
     #   J(t) = J0_i + J1_i*t for t in [t_{i-1}, t_i), t_0 = 0
+    type_ = type_.replace('_','-').replace(' ','-').lower()
     if type_ == 'plane-x':
         card['G']      = 1.0
         card['linear'] = True
@@ -282,7 +283,7 @@ def surface(type_, **kw):
         card['nx'] = nx/norm
         card['ny'] = ny/norm
         card['nz'] = nz/norm
-    
+
     # Push card
     mcdc.input_card.surfaces.append(card)
     return SurfaceHandle(card)
@@ -303,7 +304,7 @@ def set_J(x, t, card):
         # Skip if step
         if t[i] == t[i+1]:
             continue
-        
+
         # Calculate constants
         J0 = x[i]
         J1 = (x[i+1]-x[i])/(t[i+1]-t[i])
@@ -345,11 +346,11 @@ def cell(surfaces_flags, fill, lattice_center=None):
         card['lattice_ID'] = fill['ID']
         if lattice_center is not None:
             card['lattice_center'] = np.array(lattice_center)
-    
+
     # Material cell
     else:
         card['material_ID'] = fill['ID']
-    
+
     # Push card
     mcdc.input_card.cells.append(card)
     return card
@@ -394,23 +395,23 @@ def lattice(x=None, y=None, z=None, universes=None):
                             'y0' : -INF, 'dy' : 2*INF, 'Ny' : 1,
                             'z0' : -INF, 'dz' : 2*INF, 'Nz' : 1}
     card['universe_IDs'] = np.array([[[[0]]]])
-        
+
     # Set mesh
-    if x is not None: 
+    if x is not None:
         card['mesh']['x0'] = x[0]
         card['mesh']['dx'] = x[1]
         card['mesh']['Nx'] = x[2]
-    if y is not None: 
+    if y is not None:
         card['mesh']['y0'] = y[0]
         card['mesh']['dy'] = y[1]
         card['mesh']['Ny'] = y[2]
-    if z is not None: 
+    if z is not None:
         card['mesh']['z0'] = z[0]
         card['mesh']['dz'] = z[1]
         card['mesh']['Nz'] = z[2]
 
     # Set universe IDs
-    universe_IDs = np.array(universes, dtype=np.int64) 
+    universe_IDs = np.array(universes, dtype=np.int64)
     ax_expand = []
     if x is None:
         ax_expand.append(2)
@@ -442,16 +443,17 @@ def source(**kw):
     z         = kw.get('z')
     isotropic = kw.get('isotropic')
     direction = kw.get('direction')
+    white     = kw.get('white_direction')
     energy    = kw.get('energy')
     time      = kw.get('time')
     prob      = kw.get('prob')
-        
     # Set default card values (c.f. type_.py)
     card              = {}
     card['tag']       = 'Source'
     card['ID']        = len(mcdc.input_card.sources)
     card['box']       = False
     card['isotropic'] = True
+    card['white']     = False
     card['x']         = 0.0
     card['y']         = 0.0
     card['z']         = 0.0
@@ -461,10 +463,12 @@ def source(**kw):
     card['ux']        = 0.0
     card['uy']        = 0.0
     card['uz']        = 0.0
+    card['white_x']   = 0.0
+    card['white_y']   = 0.0
+    card['white_z']   = 0.0
     card['group']     = np.array([1.0])
     card['time']      = np.array([0.0, 0.0])
     card['prob']      = 1.0
-    
     # Set position
     if point is not None:
         card['x'] = point[0]
@@ -480,7 +484,18 @@ def source(**kw):
             card['box_z'] = np.array(z)
 
     # Set direction
-    if direction is not None:
+    if white is not None:
+        card['isotropic'] = False
+        card['white']     = True
+        ux = white[0]
+        uy = white[1]
+        uz = white[2]
+        # Normalize
+        norm = (ux**2 + uy**2 + uz**2)**0.5
+        card['white_x'] = ux/norm
+        card['white_y'] = uy/norm
+        card['white_z'] = uz/norm
+    elif direction is not None:
         card['isotropic'] = False
         ux = direction[0]
         uy = direction[1]
@@ -513,15 +528,20 @@ def source(**kw):
 # Tally
 #==============================================================================
 
-def tally(scores, x=None, y=None, z=None, t=None):
-    # Check if tally card has been initialized
+def tally(scores, x=np.array([-INF, INF]), y=np.array([-INF, INF]), 
+          z=np.array([-INF, INF]), t=np.array([-INF, INF]), 
+          mu=np.array([-1.0, 1.0]), azi=np.array([-PI, PI])):
+
+    # Get tally card
     card = mcdc.input_card.tally
 
     # Set mesh
-    if x is not None: card['mesh']['x'] = x
-    if y is not None: card['mesh']['y'] = y
-    if z is not None: card['mesh']['z'] = z
-    if t is not None: card['mesh']['t'] = t
+    card['mesh']['x']   = x
+    card['mesh']['y']   = y
+    card['mesh']['z']   = z
+    card['mesh']['t']   = t
+    card['mesh']['mu']  = mu
+    card['mesh']['azi'] = azi
 
     # Set score flags
     for s in scores:
@@ -543,6 +563,16 @@ def tally(scores, x=None, y=None, z=None, t=None):
         if card[score_name]:
             card['crossing'] = True
             card['crossing_x'] = True
+            break
+    for score_name in type_.score_y_list:
+        if card[score_name]:
+            card['crossing'] = True
+            card['crossing_y'] = True
+            break
+    for score_name in type_.score_z_list:
+        if card[score_name]:
+            card['crossing'] = True
+            card['crossing_z'] = True
             break
     for score_name in type_.score_t_list:
         if card[score_name]:
@@ -606,21 +636,8 @@ def setting(**kw):
     if bank_census_buff is not None:
         card['bank_census_buff'] = int(bank_census_buff)
 
-    # TODO: IC source?
-    '''
-    if source_file is not None:
-        card['filed_source'] = True
-        card['source_file']  = source_file
-
-        # Set N_particle
-        with h5py.File('IC.h5', 'r') as f:
-            Np = f['IC/N_prompt'][0]
-            Nd = f['IC/N_delayed'][0]
-            N_partice = Np + np.sum(Nd)
-        card['N_particle'] = N_particle
-    '''
-
-def eigenmode(N_inactive=0, N_active=0, k_init=1.0, gyration_radius=None):
+def eigenmode(N_inactive=0, N_active=0, k_init=1.0, gyration_radius=None,
+              N_cycle_buff=0):
     # Update setting card
     card                    = mcdc.input_card.setting
     card['N_inactive']      = N_inactive
@@ -628,6 +645,7 @@ def eigenmode(N_inactive=0, N_active=0, k_init=1.0, gyration_radius=None):
     card['N_cycle']         = N_inactive + N_active
     card['mode_eigenvalue'] = True
     card['k_init']          = k_init
+    card['N_cycle_buff']    = N_cycle_buff
 
     # Gyration radius setup
     if gyration_radius is not None:
@@ -718,9 +736,10 @@ def weight_window(x=None, y=None, z=None, t=None, window=None):
 
 def IC_generator(N_neutron=0, N_precursor=0):
     card = mcdc.input_card.technique
-    card['IC_generator'] = True
-    card['IC_Nn']        = int(N_neutron)
-    card['IC_Np']        = int(N_precursor)
+    card['IC_generator']   = True
+    card['IC_N_neutron']   = int(N_neutron)
+    card['IC_N_precursor'] = int(N_precursor)
+
 
 # ==============================================================================
 # Util

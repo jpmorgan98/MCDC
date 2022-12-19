@@ -27,6 +27,35 @@ def sample_isotropic_direction(mcdc):
     return x, y, z
 
 @njit
+def sample_white_direction(nx, ny, nz, mcdc):
+    # Sample polar cosine
+    mu = math.sqrt(rng(mcdc))
+    
+    # Sample azimuthal direction
+    azi     = 2.0*PI*rng(mcdc)
+    cos_azi = math.cos(azi)
+    sin_azi = math.sin(azi)
+    Ac      = (1.0 - mu**2)**0.5
+    
+    if nz != 1.0:
+        B = (1.0 - nz**2)**0.5
+        C = Ac/B
+        
+        x = nx*mu + (nx*nz*cos_azi - ny*sin_azi)*C
+        y = ny*mu + (ny*nz*cos_azi + nx*sin_azi)*C
+        z = nz*mu - cos_azi*Ac*B
+    
+    # If dir = 0i + 0j + k, interchange z and y in the formula
+    else:
+        B = (1.0 - ny**2)**0.5
+        C = Ac/B
+        
+        x = nx*mu + (nx*ny*cos_azi - nz*sin_azi)*C
+        y = nz*mu + (nz*ny*cos_azi + nx*sin_azi)*C
+        z = ny*mu - cos_azi*Ac*B
+    return x, y, z
+
+@njit
 def sample_uniform(a, b, mcdc):
     return a + rng(mcdc) * (b - a)
 
@@ -110,6 +139,10 @@ def source_particle(source, rng):
     # Direction
     if source['isotropic']:
         ux, uy, uz = sample_isotropic_direction(rng)
+    elif source['white']:
+        ux, uy, uz = sample_white_direction(source['white_x'], 
+                                            source['white_y'], 
+                                            source['white_z'], rng)
     else:
         ux = source['ux']
         uy = source['uy']
@@ -185,6 +218,11 @@ def get_particle(bank):
 
 @njit
 def manage_particle_banks(mcdc):
+    # Record time
+    if mcdc['mpi_master']:
+        with objmode(time_start='float64'):
+            time_start = MPI.Wtime()
+
     if mcdc['setting']['mode_eigenvalue']:
         # Normalize weight
         normalize_weight(mcdc['bank_census'], mcdc['setting']['N_particle'])
@@ -214,13 +252,63 @@ def manage_particle_banks(mcdc):
     # Manage IC bank
     if mcdc['technique']['IC_generator'] and mcdc['cycle_active']:
         manage_IC_bank(mcdc)
+    
+    # Accumulate time
+    if mcdc['mpi_master']:
+        with objmode(time_end='float64'):
+            time_end = MPI.Wtime()
+        mcdc['runtime_bank_management'] += time_end - time_start
 
 @njit
 def manage_IC_bank(mcdc):
+    # Buffer bank
     buff_n = np.zeros(mcdc['technique']['IC_bank_neutron_local']['content'].shape[0], 
                       dtype=type_.neutron)
     buff_p = np.zeros(mcdc['technique']['IC_bank_precursor_local']['content'].shape[0], 
                       dtype=type_.precursor)
+
+    # Resample?
+    if mcdc['technique']['IC_resample']:
+        size_n = mcdc['technique']['IC_bank_neutron_local']['size']
+        size_C = mcdc['technique']['IC_bank_precursor_local']['size']
+        Pmax_n = mcdc['technique']['IC_Pmax_n']
+        Pmax_C = mcdc['technique']['IC_Pmax_C']
+
+        print(size_n, size_C)
+
+        # Neutron
+        Nn = 0
+        # Sample and store to buffer
+        for i in range(size_n):
+            P = mcdc['technique']['IC_bank_neutron_local']['content'][i]
+            if rng(mcdc) < Pmax_n*P['w']:
+                P['w']      = 1.0/Pmax_n
+                buff_n[Nn]  = P
+                Nn         += 1
+        # Set actual bank
+        for i in range(Nn):
+            mcdc['technique']['IC_bank_neutron_local']['content'][i] = buff_n[i]
+        mcdc['technique']['IC_bank_neutron_local']['size'] = Nn
+        
+        # Precursor
+        Np = 0
+        # Sample and store to buffer
+        for i in range(size_C):
+            P = mcdc['technique']['IC_bank_precursor_local']['content'][i]
+            if rng(mcdc) < Pmax_C*P['w']:
+                P['w']      = 1.0/Pmax_C
+                buff_p[Np]  = P
+                Np         += 1
+        # Set actual bank
+        for i in range(Np):
+            mcdc['technique']['IC_bank_precursor_local']['content'][i] = buff_p[i]
+        mcdc['technique']['IC_bank_precursor_local']['size'] = Np
+
+        # Reset parameters
+        mcdc['technique']['IC_Pmax_n'] = 0.0
+        mcdc['technique']['IC_Pmax_C'] = 0.0
+        
+        print(Nn, Np)
 
     with objmode(Nn='int64', Np='int64'):
         # Create MPI-supported numpy object
@@ -258,82 +346,6 @@ def manage_IC_bank(mcdc):
     # Reset local banks
     mcdc['technique']['IC_bank_neutron_local']['size'] = 0
     mcdc['technique']['IC_bank_precursor_local']['size'] = 0
-
-@njit
-def population_control(mcdc):
-    if mcdc['technique']['pct'] == PCT_COMBING:
-        pct_combing(mcdc)
-        rng_rebase(mcdc)
-    elif mcdc['technique']['pct'] == PCT_COMBING_WEIGHT:
-        pct_combing_weight(mcdc)
-        rng_rebase(mcdc)
-
-@njit
-def pct_combing(mcdc):
-    bank_census = mcdc['bank_census']
-    M           = mcdc['setting']['N_particle']
-    bank_source = mcdc['bank_source']
-    
-    # Scan the bank
-    idx_start, N_local, N = bank_scanning(bank_census, mcdc)
-    idx_end = idx_start + N_local
-
-    # Teeth distance
-    td = N/M
-
-    # Tooth offset
-    xi     = rng(mcdc)
-    offset = xi*td
-
-    # First hiting tooth
-    tooth_start = math.ceil((idx_start-offset)/td)
-
-    # Last hiting tooth
-    tooth_end = math.floor((idx_end-offset)/td) + 1
-
-    # Locally sample particles from census bank
-    bank_source['size'] = 0
-    for i in range(tooth_start, tooth_end):
-        tooth = i*td+offset
-        idx   = math.floor(tooth) - idx_start
-        P = copy_particle(bank_census['particles'][idx])
-        # Set weight
-        P['w'] *= td
-        add_particle(P, bank_source)
-
-@njit
-def pct_combing_weight(mcdc):
-    bank_census = mcdc['bank_census']
-    M           = mcdc['setting']['N_particle']
-    bank_source = mcdc['bank_source']
-    
-    # Scan the bank based on weight
-    w_start, w_cdf, W = bank_scanning_weight(bank_census, mcdc)
-    w_end = w_cdf[-1]
-
-    # Teeth distance
-    td = W/M
-
-    # Tooth offset
-    xi     = rng(mcdc)
-    offset = xi*td
-
-    # First hiting tooth
-    tooth_start = math.ceil((w_start-offset)/td)
-
-    # Last hiting tooth
-    tooth_end = math.floor((w_end-offset)/td) + 1
-
-    # Locally sample particles from census bank
-    bank_source['size'] = 0
-    idx = 0
-    for i in range(tooth_start, tooth_end):
-        tooth  = i*td+offset
-        idx   += binary_search(tooth,w_cdf[idx:])
-        P = copy_particle(bank_census['particles'][idx])
-        # Set weight
-        P['w'] = td
-        add_particle(P, bank_source)
 
 @njit
 def bank_scanning(bank, mcdc):
@@ -500,9 +512,13 @@ def distribute_work(N, mcdc):
     mcdc['mpi_work_size']       = work_size
     mcdc['mpi_work_size_total'] = work_size_total
 
+# =============================================================================
+# IC generator
+# =============================================================================
+
 @njit
 def bank_IC(P, mcdc):
-    material = mcdc['materials'][P['material_ID']]
+    material = mcdc['materials'][P['material_ID']] 
 
     #==========================================================================
     # Neutron
@@ -513,19 +529,24 @@ def bank_IC(P, mcdc):
     SigmaT = material['total'][g]
     weight = P['w']
     flux   = weight/SigmaT
-    v      = get_particle_speed(P, mcdc)
+    v      = material['speed'][g]
     wn     = flux/v
 
     # Neutron target weight
-    Nn       = mcdc['technique']['IC_Nn']
+    Nn       = mcdc['technique']['IC_N_neutron']
     tally_n  = mcdc['technique']['IC_n_eff']
-    wn_prime = tally_n/Nn
+    N_cycle  = mcdc['setting']['N_active']
+    wn_prime = tally_n*N_cycle/Nn
     
     # Sampling probability
-    N  = mcdc['setting']['N_active']
-    Pn = wn/wn_prime/N
+    Pn = wn/wn_prime
     
     # Sample neutron
+    if Pn > 1.0:
+        wn_prime = wn
+        if Pn > mcdc['technique']['IC_Pmax_n']:
+            mcdc['technique']['IC_Pmax_n'] = Pn
+
     if rng(mcdc) < Pn:
         idx     = mcdc['technique']['IC_bank_neutron_local']['size']
         neutron = mcdc['technique']['IC_bank_neutron_local']['content'][idx]
@@ -544,7 +565,7 @@ def bank_IC(P, mcdc):
     #==========================================================================
 
     # Sample precursor?
-    Np = mcdc['technique']['IC_Np']
+    Np = mcdc['technique']['IC_N_precursor']
     if Np == 0:
         return
 
@@ -555,36 +576,157 @@ def bank_IC(P, mcdc):
     decay  = material['decay']
     total  = 0.0
     for j in range(J):
-        total += nu_d[j]*SigmaF/decay[j]/mcdc['k_eff']
-    wp = flux*total
+        total += nu_d[j]/decay[j]
+    wp = flux*total*SigmaF/mcdc['k_eff']
 
     # Precursor target weight
     tally_C  = mcdc['technique']['IC_C_eff']
-    wp_prime = tally_C/Np
+    wp_prime = tally_C*N_cycle/Np
 
     # Sampling probability
-    Pp = wp/wp_prime/N
+    Pp = wp/wp_prime
 
     # Sample precursor
+    if Pp > 1.0:
+        wp_prime = wp
+        if Pp > mcdc['technique']['IC_Pmax_C']:
+            mcdc['technique']['IC_Pmax_C'] = Pp
+
     if rng(mcdc) < Pp:
         idx       = mcdc['technique']['IC_bank_precursor_local']['size']
         precursor = mcdc['technique']['IC_bank_precursor_local']['content'][idx]
-        precursor['x']      = P['x']
-        precursor['y']      = P['y']
-        precursor['z']      = P['z']
+        precursor['x'] = P['x']
+        precursor['y'] = P['y']
+        precursor['z'] = P['z']
         precursor['w'] = wp_prime
+        mcdc['technique']['IC_bank_precursor_local']['size'] += 1
 
         # Sample group
         xi    = rng(mcdc)*total
         total = 0.0
         for j in range(J):
-            total += nu_d[j]*SigmaF/decay[j]/mcdc['k_eff']
+            total += nu_d[j]/decay[j]
             if total > xi:
                 break
         precursor['g'] = j
 
-        mcdc['technique']['IC_bank_precursor_local']['size'] += 1
+# =============================================================================
+# Population control techniques
+# =============================================================================
+# TODO: Make it a stand-alone function that takes (bank_init, bank_final, M).
+#       The challenge is in the use of type-dependent copy_particle which is 
+#       required due to pure-Python behavior of taking things by reference.
 
+@njit
+def population_control(mcdc):
+    if mcdc['technique']['pct'] == PCT_COMBING:
+        pct_combing(mcdc)
+        rng_rebase(mcdc)
+    elif mcdc['technique']['pct'] == PCT_COMBING_WEIGHT:
+        pct_combing_weight(mcdc)
+        rng_rebase(mcdc)
+
+@njit
+def pct_combing(mcdc):
+    bank_census = mcdc['bank_census']
+    M           = mcdc['setting']['N_particle']
+    bank_source = mcdc['bank_source']
+    
+    # Scan the bank
+    idx_start, N_local, N = bank_scanning(bank_census, mcdc)
+    idx_end = idx_start + N_local
+
+    # Teeth distance
+    td = N/M
+
+    # Tooth offset
+    xi     = rng(mcdc)
+    offset = xi*td
+
+    # First hiting tooth
+    tooth_start = math.ceil((idx_start-offset)/td)
+
+    # Last hiting tooth
+    tooth_end = math.floor((idx_end-offset)/td) + 1
+
+    # Locally sample particles from census bank
+    bank_source['size'] = 0
+    for i in range(tooth_start, tooth_end):
+        tooth = i*td+offset
+        idx   = math.floor(tooth) - idx_start
+        P = copy_particle(bank_census['particles'][idx])
+        # Set weight
+        P['w'] *= td
+        add_particle(P, bank_source)
+
+@njit
+def pct_combing_weight(mcdc):
+    bank_census = mcdc['bank_census']
+    M           = mcdc['setting']['N_particle']
+    bank_source = mcdc['bank_source']
+    
+    # Scan the bank based on weight
+    w_start, w_cdf, W = bank_scanning_weight(bank_census, mcdc)
+    w_end = w_cdf[-1]
+
+    # Teeth distance
+    td = W/M
+
+    # Tooth offset
+    xi     = rng(mcdc)
+    offset = xi*td
+
+    # First hiting tooth
+    tooth_start = math.ceil((w_start-offset)/td)
+
+    # Last hiting tooth
+    tooth_end = math.floor((w_end-offset)/td) + 1
+
+    # Locally sample particles from census bank
+    bank_source['size'] = 0
+    idx = 0
+    for i in range(tooth_start, tooth_end):
+        tooth  = i*td+offset
+        idx   += binary_search(tooth,w_cdf[idx:])
+        P = copy_particle(bank_census['particles'][idx])
+        # Set weight
+        P['w'] = td
+        add_particle(P, bank_source)
+'''
+@njit
+def pct_IC_neutron(mcdc):
+    bank_census = mcdc['bank_census']
+    M           = mcdc['setting']['N_particle']
+    bank_source = mcdc['bank_source']
+    
+    # Scan the bank based on weight
+    w_start, w_cdf, W = bank_scanning_weight(bank_census, mcdc)
+    w_end = w_cdf[-1]
+
+    # Teeth distance
+    td = W/M
+
+    # Tooth offset
+    xi     = rng(mcdc)
+    offset = xi*td
+
+    # First hiting tooth
+    tooth_start = math.ceil((w_start-offset)/td)
+
+    # Last hiting tooth
+    tooth_end = math.floor((w_end-offset)/td) + 1
+
+    # Locally sample particles from census bank
+    bank_source['size'] = 0
+    idx = 0
+    for i in range(tooth_start, tooth_end):
+        tooth  = i*td+offset
+        idx   += binary_search(tooth,w_cdf[idx:])
+        P = copy_particle(bank_census['particles'][idx])
+        # Set weight
+        P['w'] = td
+        add_particle(P, bank_source)
+'''
 #==============================================================================
 # Particle operations
 #==============================================================================
@@ -913,6 +1055,21 @@ def mesh_get_index(P, mesh):
     return t, x, y, z, outside
 
 @njit
+def mesh_get_angular_index(P, mesh):
+    ux = P['ux']
+    uy = P['uy']
+    uz = P['uz']
+
+    P_mu  = uz
+    P_azi = math.acos(ux/math.sqrt(ux*ux + uy*uy))
+    if uy < 0.0: 
+        P_azi *= -1
+
+    mu  = binary_search(P_mu, mesh['mu'])
+    azi = binary_search(P_azi, mesh['azi'])
+    return mu, azi
+
+@njit
 def mesh_uniform_get_index(P, mesh, trans):
     Px = P['x'] + trans[0]
     Py = P['y'] + trans[1]
@@ -957,6 +1114,7 @@ def score_tracklength(P, distance, mcdc):
     # Get indices
     g = P['g']
     t, x, y, z, outside = mesh_get_index(P, tally['mesh'])
+    mu, azi = mesh_get_angular_index(P, tally['mesh'])
 
     # Outside grid?
     if outside:
@@ -965,16 +1123,16 @@ def score_tracklength(P, distance, mcdc):
     # Score
     flux = distance*P['w']
     if tally['flux']:
-        score_flux(g, t, x, y, z, flux, tally['score']['flux'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['flux'])
     if tally['density']:
         flux /= material['speed'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['density'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['density'])
     if tally['fission']:
         flux *= material['fission'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['fission'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['fission'])
     if tally['total']:
         flux *= material['total'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['total'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['total'])
     if tally['current']:
         score_current(g, t, x, y, z, flux, P, tally['score']['current'])
     if tally['eddington']:
@@ -989,20 +1147,21 @@ def score_crossing_x(P, t, x, y, z, mcdc):
     g = P['g']
     if P['ux'] > 0.0:
         x += 1
+    mu, azi = mesh_get_angular_index(P, tally['mesh'])
 
     # Score
     flux = P['w']/abs(P['ux'])
     if tally['flux_x']:
-        score_flux(g, t, x, y, z, flux, tally['score']['flux_x'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['flux_x'])
     if tally['density_x']:
         flux /= material['speed'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['density_x'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['density_x'])
     if tally['fission_x']:
         flux *= material['fission'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['fission_x'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['fission_x'])
     if tally['total_x']:
         flux *= material['total'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['total_x'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['total_x'])
     if tally['current_x']:
         score_current(g, t, x, y, z, flux, P, tally['score']['current_x'])
     if tally['eddington_x']:
@@ -1017,20 +1176,21 @@ def score_crossing_y(P, t, x, y, z, mcdc):
     g = P['g']
     if P['uy'] > 0.0:
         y += 1
+    mu, azi = mesh_get_angular_index(P, tally['mesh'])
 
     # Score
     flux = P['w']/abs(P['uy'])
     if tally['flux_y']:
-        score_flux(g, t, x, y, z, flux, tally['score']['flux_y'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['flux_y'])
     if tally['density_y']:
         flux /= material['speed'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['density_y'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['density_y'])
     if tally['fission_y']:
         flux *= material['fission'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['fission_y'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['fission_y'])
     if tally['total_y']:
         flux *= material['total'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['total_y'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['total_y'])
     if tally['current_y']:
         score_current(g, t, x, y, z, flux, P, tally['score']['current_y'])
     if tally['eddington_y']:
@@ -1045,20 +1205,21 @@ def score_crossing_z(P, t, x, y, z, mcdc):
     g = P['g']
     if P['uz'] > 0.0:
         z += 1
+    mu, azi = mesh_get_angular_index(P, tally['mesh'])
 
     # Score
     flux = P['w']/abs(P['uz'])
     if tally['flux_z']:
-        score_flux(g, t, x, y, z, flux, tally['score']['flux_z'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['flux_z'])
     if tally['density_z']:
         flux /= material['speed'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['density_z'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['density_z'])
     if tally['fission_z']:
         flux *= material['fission'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['fission_z'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['fission_z'])
     if tally['total_z']:
         flux *= material['total'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['total_z'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['total_z'])
     if tally['current_z']:
         score_current(g, t, x, y, z, flux, P, tally['score']['current_z'])
     if tally['eddington_z']:
@@ -1072,28 +1233,29 @@ def score_crossing_t(P, t, x, y, z, mcdc):
     # Get indices
     g  = P['g']
     t += 1
+    mu, azi = mesh_get_angular_index(P, tally['mesh'])
 
     # Score
     flux = P['w']*material['speed'][g]
     if tally['flux_t']:
-        score_flux(g, t, x, y, z, flux, tally['score']['flux_t'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['flux_t'])
     if tally['density_t']:
         flux /= material['speed'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['density_t'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['density_t'])
     if tally['fission_t']:
         flux *= material['fission'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['fission_t'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['fission_t'])
     if tally['total_t']:
         flux *= material['total'][g]
-        score_flux(g, t, x, y, z, flux, tally['score']['total_t'])
+        score_flux(g, t, x, y, z, mu, azi, flux, tally['score']['total_t'])
     if tally['current_t']:
         score_current(g, t, x, y, z, flux, P, tally['score']['current_t'])
     if tally['eddington_t']:
         score_eddington(g, t, x, y, z, flux, P, tally['score']['eddington_t'])
 
 @njit
-def score_flux(g, t, x, y, z, flux, score):
-    score['bin'][g, t, x, y, z] += flux
+def score_flux(g, t, x, y, z, mu, azi, flux, score):
+    score['bin'][g, t, x, y, z, mu, azi] += flux
 
 @njit
 def score_current(g, t, x, y, z, flux, P, score):
@@ -1192,7 +1354,7 @@ def global_tally(P, distance, mcdc):
     # IC generator tally
     if mcdc['technique']['IC_generator']:
         # Neutron
-        v     = get_particle_speed(P, mcdc)
+        v = get_particle_speed(P, mcdc)
         mcdc['technique']['IC_tally_n'] += flux/v
 
         # Precursor
@@ -1201,8 +1363,8 @@ def global_tally(P, distance, mcdc):
         decay = material['decay']
         total = 0.0
         for j in range(J):
-            total += nu_d[j]*SigmaF/decay[j]/mcdc['k_eff']
-        mcdc['technique']['IC_tally_C'] += flux*total
+            total += nu_d[j]/decay[j]
+        mcdc['technique']['IC_tally_C'] += flux*total*SigmaF/mcdc['k_eff']
 
 @njit
 def global_tally_closeout_history(mcdc):
@@ -1212,14 +1374,43 @@ def global_tally_closeout_history(mcdc):
 
     # MPI Allreduce
     buff_nuSigmaF = np.zeros(1, np.float64)
-    buff_IC_n = np.zeros(1, np.float64)
-    buff_IC_C = np.zeros(1, np.float64)
+    buff_IC_n     = np.zeros(1, np.float64)
+    buff_IC_C     = np.zeros(1, np.float64)
+    buff_Pmax_n   = np.zeros(1, np.float64)
+    buff_Pmax_C   = np.zeros(1, np.float64)
     with objmode():
         MPI.COMM_WORLD.Allreduce(np.array([mcdc['global_tally_nuSigmaF']]), buff_nuSigmaF, MPI.SUM)
         if mcdc['technique']['IC_generator']:
             MPI.COMM_WORLD.Allreduce(np.array([mcdc['technique']['IC_tally_n']]), buff_IC_n, MPI.SUM)
             MPI.COMM_WORLD.Allreduce(np.array([mcdc['technique']['IC_tally_C']]), buff_IC_C, MPI.SUM)
+            MPI.COMM_WORLD.Allreduce(np.array([mcdc['technique']['IC_Pmax_n']]), buff_Pmax_n, MPI.MAX)
+            MPI.COMM_WORLD.Allreduce(np.array([mcdc['technique']['IC_Pmax_C']]), buff_Pmax_C, MPI.MAX)
     
+    # IC generator: Increase number of active cycles?
+    if mcdc['technique']['IC_generator']:
+        Pmax_n     = buff_Pmax_n[0]
+        Pmax_C     = buff_Pmax_C[0]
+        Pmax       = max(Pmax_n, Pmax_C)
+        N_inactive = mcdc['setting']['N_inactive']
+        N_active   = mcdc['setting']['N_active']
+
+        N_active_new = math.ceil(Pmax*N_active)
+        if N_active_new > N_active:
+            mcdc['technique']['IC_resample'] = True
+            mcdc['setting']['N_active']      = N_active_new
+            mcdc['setting']['N_cycle']       = N_inactive + N_active_new
+            # Now the Pmax hold 1/w_prime (or P/w) for resampling
+            Nn = mcdc['technique']['IC_N_neutron']
+            Np = mcdc['technique']['IC_N_precursor']
+            n  = mcdc['technique']['IC_n_eff'] # NOT using the new value
+            p  = mcdc['technique']['IC_C_eff']
+            mcdc['technique']['IC_Pmax_n'] = Nn/N_active_new/n
+            mcdc['technique']['IC_Pmax_C'] = Np/N_active_new/p
+        else:
+            mcdc['technique']['IC_resample'] = False
+            mcdc['technique']['IC_Pmax_n']   = 0.0
+            mcdc['technique']['IC_Pmax_C']   = 0.0
+
     # Update and store k_eff
     mcdc['k_eff'] = buff_nuSigmaF[0]/N_particle
     mcdc['k_cycle'][i_cycle] = mcdc['k_eff']
@@ -1241,7 +1432,7 @@ def global_tally_closeout_history(mcdc):
                     /(N-1))
 
     # Reset accumulators
-    mcdc['global_tally_nuSigmaF']   = 0.0
+    mcdc['global_tally_nuSigmaF'] = 0.0
     mcdc['technique']['IC_tally_n'] = 0.0
     mcdc['technique']['IC_tally_C'] = 0.0
 
@@ -1329,7 +1520,9 @@ def move_to_event(P, mcdc):
     d_boundary, event_boundary = distance_to_boundary(P, mcdc)
 
     # Distance to tally mesh
-    d_mesh = distance_to_mesh(P, mcdc['tally']['mesh'], mcdc)
+    d_mesh = INF
+    if mcdc['cycle_active']:
+        d_mesh = distance_to_mesh(P, mcdc['tally']['mesh'], mcdc)
 
     # Distance to time boundary
     speed = get_particle_speed(P, mcdc)
@@ -1369,8 +1562,9 @@ def move_to_event(P, mcdc):
         # Surface and mesh?
         if event == EVENT_SURFACE:
             surface = mcdc['surfaces'][P['surface_ID']]
-            if not surface['reflective']:
-                event = EVENT_SURFACE_N_MESH
+            event = EVENT_SURFACE_N_MESH
+            #if not surface['reflective']:
+            #    event = EVENT_SURFACE_N_MESH
         elif event == EVENT_SURFACE_MOVE:
             event = EVENT_SURFACE_MOVE_N_MESH
         # Lattice and mesh?
@@ -1385,8 +1579,8 @@ def move_to_event(P, mcdc):
     P['event'] = event
 
     # Return if particle is already beyond current census time
-    if event == EVENT_CENSUS and distance < 0.0:
-        return
+    #if event == EVENT_CENSUS and distance < 0.0:
+    #    return
 
     # =========================================================================
     # Move particle
@@ -1550,6 +1744,10 @@ def surface_crossing(P, mcdc):
     # Implement BC
     surface = mcdc['surfaces'][P['surface_ID']]
     surface_bc(P, surface, trans)
+
+    # Trigger mesh crossing?
+    if surface['reflective'] and P['event'] == EVENT_SURFACE_N_MESH:
+        mesh_crossing(P, mcdc)
 
     # Small shift to ensure crossing
     surface_shift(P, surface, trans, mcdc)
