@@ -1,6 +1,6 @@
 import numpy as np
 
-from numba import njit, objmode
+from numba import njit, objmode, prange, jit
 
 import mcdc.kernel as kernel
 
@@ -70,7 +70,7 @@ def loop_source(mcdc):
     N_prog = 0
     
     # Loop over particle sources
-    for work_idx in range(mcdc['mpi_work_size']):
+    for work_idx in nb.prange(mcdc['mpi_work_size']):
         # Initialize RNG wrt work index
         kernel.rng_skip_ahead_strides(work_idx, mcdc)
 
@@ -228,3 +228,5 @@ def loop_particle(P, mcdc):
         # Apply weight window
         if mcdc['technique']['weight_window']:
             kernel.weight_window(P, mcdc)
+
+

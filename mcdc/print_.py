@@ -50,7 +50,7 @@ def print_progress(percent, mcdc):
                 N   = len(mcdc['technique']['census_time'])
                 sys.stdout.write(" Census %i/%i: [%-28s] %d%%" % (idx, N, '='*int(percent*28), percent*100.0))
         else:
-            if mcdc['setting']['gyration_radius']:
+            if mcdc['setting']['']:
                 sys.stdout.write(" [%-40s] %d%%" % ('='*int(percent*40), percent*100.0))
             else:
                 sys.stdout.write(" [%-32s] %d%%" % ('='*int(percent*32), percent*100.0))

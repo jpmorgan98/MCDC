@@ -613,6 +613,9 @@ def setting(**kw):
     bank_active_buff = kw.get('active_bank_buff')
     bank_census_buff = kw.get('census_bank_buff')
     source_file      = kw.get('source_file')
+    gpu_mode         = kw.get('gpu_mode')
+    float_data_type  = kw.get('float_data_type')
+    int_data_type    = kw.get('int_data_type')
 
     # Check if setting card has been initialized
     card = mcdc.input_card.setting
@@ -650,6 +653,11 @@ def setting(**kw):
     # Census bank size multiplier
     if bank_census_buff is not None:
         card['bank_census_buff'] = int(bank_census_buff)
+
+    if gpu_mode is not None:
+        if gpu_mode == True:
+            print('WARNING GPU MODE ENABLED')
+        card['gpu_mode'] = gpu_mode
 
 def eigenmode(N_inactive=0, N_active=0, k_init=1.0, gyration_radius=None,
               N_cycle_buff=0):

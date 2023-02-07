@@ -85,7 +85,9 @@ class InputCard:
                         'gyration_radius'      : False,
                         'gyration_radius_type' : GR_ALL,
                         'filed_source'         : False,
-                        'source_file'          : ''}
+                        'source_file'          : '',
+                        'gpu_mode'             : False,
+                        'delta_tracking'       : False}
 
         self.technique = {'tag'                  : 'Technique', 
 
