@@ -3,9 +3,11 @@ import numpy as np
 from numba import njit, objmode, prange, jit
 
 import mcdc.kernel as kernel
+import mcdc.adapter as adapter
 
 from mcdc.constant import *
 from mcdc.print_   import print_progress, print_progress_eigenvalue
+
 
 # =========================================================================
 # Main loop
@@ -230,3 +232,56 @@ def loop_particle(P, mcdc):
             kernel.weight_window(P, mcdc)
 
 
+def EVENT_simulation(mcdc, hostco):
+    # =========================================================================
+    # Initialize simulation
+    # =========================================================================
+    
+    #kernel.initialize_stack(mcdc, hostco)
+    kernel.initialize_stack[adapter.gpu_config(mcdc['N_particle'], hostco)](mcdc, hostco)
+        
+    # =========================================================================
+    # Simulation loop
+    # =========================================================================
+    print('To simulation')
+    it = 0
+    while np.max(hostco['stack_size'][1:]) > 0:
+        it += 1
+        # =====================================================================
+        # Initialize event
+        # =====================================================================
+    
+        # Determine next event executed based on the longest stack
+        stack = np.argmax(hostco['stack_size'][1:]) + 1 # Offset for EVENT_NONE
+        event = hostco['event_idx'][stack]
+
+        print(event)
+
+        # =================================================================
+        # Event loop
+        # =================================================================
+        #cuda.syncthreads()
+        if event == EVENT_SOURCE:
+            kernel.source(mcdc, hostco, event)
+        elif event == EVENT_MOVE:
+            kernel.move(mcdc, hostco, event)
+        elif event == EVENT_SCATTERING:
+            kernel.scattering(mcdc, hostco, event)
+        elif event == EVENT_FISSION:
+            kernel.fission(mcdc, hostco, event)
+        elif event == EVENT_LEAKAGE:
+            kernel.leakage(mcdc, hostco, event)
+        elif event == EVENT_BRANCHLESS_COLLISION:
+            kernel.branchless_collision(mcdc, hostco, event)
+    
+
+# =============================================================================
+# Factory
+# =============================================================================
+
+def make_loops(alg, target):
+    global simulation
+    if alg == 'history':
+        simulation = adapter.loop(HISTORY_simulation, target)
+    else:
+        simulation = adapter.loop(EVENT_simulation, target)

@@ -614,6 +614,7 @@ def setting(**kw):
     bank_census_buff = kw.get('census_bank_buff')
     source_file      = kw.get('source_file')
     gpu_mode         = kw.get('gpu_mode')
+    primary_alg      = kw.get('primary_algorithm')
     float_data_type  = kw.get('float_data_type')
     int_data_type    = kw.get('int_data_type')
 
@@ -658,6 +659,14 @@ def setting(**kw):
         if gpu_mode == True:
             print('WARNING GPU MODE ENABLED')
         card['gpu_mode'] = gpu_mode
+
+    if primary_alg is None: #history or event
+        card['primary_alg'] = 'history'
+    else:
+        card['primary_alg'] = primary_alg
+
+        if 
+        print_error("Unknown gyration radius type")
 
 def eigenmode(N_inactive=0, N_active=0, k_init=1.0, gyration_radius=None,
               N_cycle_buff=0):
