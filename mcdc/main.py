@@ -3,6 +3,8 @@ import numpy as np
 
 from mpi4py import MPI
 
+print('poopo')
+
 import mcdc.kernel as kernel
 import mcdc.type_ as type_
 
