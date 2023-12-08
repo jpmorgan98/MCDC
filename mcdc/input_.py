@@ -7,6 +7,7 @@ import h5py, math, mpi4py
 import numpy as np
 
 import mcdc.type_ as type_
+#import type_ as type_
 
 from mcdc.card import (
     SurfaceHandle,
@@ -34,6 +35,7 @@ from mcdc.constant import (
     SHIFT,
 )
 from mcdc.print_ import print_error
+#from print_ import print_error
 
 # Get and rename mcdc global variables
 import mcdc.global_ as mcdc
@@ -305,6 +307,11 @@ def material(
     card = make_card_material(N_nuclide, G, J)
     card["ID"] = len(mcdc.input_deck.materials)
 
+    if name is not None:
+        card["name"] = name
+    else:
+        card["name"] = card["ID"]
+
     # Calculate basic XS and determine sensitivity flag
     for i in range(N_nuclide):
         nuc = nuclides[i][0]
@@ -476,6 +483,7 @@ def surface(type_, bc="interface", sensitivity=False, dsm_Np=1.0, **kw):
     #   J(t) = J0_i + J1_i*t for t in [t_{i-1}, t_i), t_0 = 0
 
     # Set up surface attributes
+
     if type_ == "plane-x":
         check_requirement("surface plane-x", kw, ["x"])
         card["G"] = 1.0
@@ -581,7 +589,6 @@ def _set_J(x, t, card):
     t[0] = -SHIFT
     t = np.append(t, INF)
     x = np.append(x, x[-1])
-
     # Reset the constants
     card["J"] = np.zeros([0, 2])
     card["t"] = np.array([-SHIFT])

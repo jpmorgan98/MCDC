@@ -122,6 +122,7 @@ class InputDeck:
 class SurfaceHandle:
     def __init__(self, card):
         self.card = card
+    
 
     def __pos__(self):
         return [self.card, True]
