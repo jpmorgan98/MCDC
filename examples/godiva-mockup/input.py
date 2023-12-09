@@ -5,8 +5,8 @@ import mcdc, h5py
 # Materials
 # =============================================================================
 
-m_abs = mcdc.material(capture=np.array([1E5]), speed=np.array([1E3]), name = "water")
-m_void = mcdc.material(capture=np.array([5e-5]), scatter=np.array([[5e-5]]), speed=np.array([1E3]), name = "source")
+m_abs = mcdc.material(capture=np.array([1E5]), speed=np.array([1E3]), name="water")
+m_void = mcdc.material(capture=np.array([5e-5]), scatter=np.array([[5e-5]]), speed=np.array([1E3]), name="source")
 
 # =============================================================================
 # Set surfaces

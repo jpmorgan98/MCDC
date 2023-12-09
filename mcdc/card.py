@@ -5,6 +5,7 @@ from mcdc.constant import INF, GYRATION_RADIUS_ALL, PCT_NONE, PI, SHIFT
 
 class InputDeck:
     def __init__(self):
+        print('InputDeck Init')
         self.reset()
 
     def reset(self):
@@ -176,6 +177,7 @@ def make_card_material(N_nuclide, G, J):
     card["nu_f"] = np.zeros(G)
     card["chi_s"] = np.zeros([G, G])
     card["chi_p"] = np.zeros([G, G])
+    card["name"] = None
     card["sensitivity"] = False
     return card
 
@@ -205,6 +207,7 @@ def make_card_surface():
     card["sensitivity"] = False
     card["sensitivity_ID"] = 0
     card["dsm_Np"] = 1.0
+    card["type"] = " "
     return card
 
 
@@ -216,6 +219,7 @@ def make_card_cell(N_surface):
     card["surface_IDs"] = np.zeros(N_surface, dtype=int)
     card["positive_flags"] = np.zeros(N_surface, dtype=bool)
     card["material_ID"] = 0
+    card["material_name"] = None
     card["lattice"] = False
     card["lattice_ID"] = 0
     card["lattice_center"] = np.array([0.0, 0.0, 0.0])

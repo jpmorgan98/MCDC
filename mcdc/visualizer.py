@@ -13,9 +13,9 @@ import distinctipy #creates unlimited visually distinct colors for visualization
 
 
 # Get input_card and set global variables as "mcdc_"
-import mcdc.global_ as mcdc_
 
-input_card = mcdc_.input_card
+import mcdc.global_ as mcdc_
+input_card = mcdc_.input_deck
 
 #get a point on the plane based on the current time in the system
 #start and end times are zero by default
@@ -36,7 +36,6 @@ def get_plane_current_position(surface, current_time, start_time, end_time):
 
     return current_position
 
-    
 #create the CSG geometry for a cell
 #called by draw_geometry()
 def create_cell_geometry(cell, current_time, surface_list, start_time, end_time):
@@ -45,7 +44,8 @@ def create_cell_geometry(cell, current_time, surface_list, start_time, end_time)
 
         surface_ID = cell["surface_IDs"][i]
 
-        # Check type of shape    
+        ## Check type of shape    
+
         if (surface_list[surface_ID]["type"] == "plane-x"):
 
             #get reference point from the surface card
@@ -199,8 +199,9 @@ def create_cell_geometry(cell, current_time, surface_list, start_time, end_time)
 def draw_Geometry(current_time, start_time, end_time):
 
     #create lists that contain all cells and surfaces
-    cell_list = input_card.cells
     surface_list = input_card.surfaces
+    cell_list = input_card.cells
+    #surface_list = input_card.surfaces
 
     #make water blue and the source green
     water_rgb = [0,0,1]
@@ -317,10 +318,9 @@ def create_time_slider(root, start_time, end_time):
 #start and end times are default zero
 #called in input file
 def visualize(start_time = 0, end_time = 0):
-    
+
     color_key_list = draw_Geometry(current_time=0, start_time=start_time, end_time=end_time)
     
-
     #Set up tkinter window
     root = Tk()
     if (start_time != end_time):

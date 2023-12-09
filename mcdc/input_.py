@@ -230,6 +230,7 @@ def material(
     chi_d=None,
     speed=None,
     decay=None,
+    name="P",
     sensitivity=False,
     dsm_Np=1.0,
 ):
@@ -263,6 +264,8 @@ def material(
         Energy group speed [cm/s]
     decay : numpy.ndarray (1D), optional
         Precursor group decay constant [/s]
+    name : str, optional
+        Name of material (for use in visulaizer)
     sensitivity : bool, optional
         Set to `True` to calculate sensitivities to the material
         (only relevant for single-nuclide material)
@@ -294,7 +297,7 @@ def material(
             speed,
             decay,
             sensitivity,
-            dsm_Np,
+            dsm_Np
         )
         nuclides = [[card_nuclide, 1.0]]
 
@@ -307,6 +310,7 @@ def material(
     card = make_card_material(N_nuclide, G, J)
     card["ID"] = len(mcdc.input_deck.materials)
 
+    print(name)
     if name is not None:
         card["name"] = name
     else:
@@ -483,6 +487,7 @@ def surface(type_, bc="interface", sensitivity=False, dsm_Np=1.0, **kw):
     #   J(t) = J0_i + J1_i*t for t in [t_{i-1}, t_i), t_0 = 0
 
     # Set up surface attributes
+    card["type"] = type_
 
     if type_ == "plane-x":
         check_requirement("surface plane-x", kw, ["x"])
@@ -634,6 +639,8 @@ def cell(surfaces_flags, fill, lattice_center=None):
     # Material cell
     else:
         card["material_ID"] = fill["ID"]
+    
+    card["material_name"] = fill["name"]
 
     # Push card
     mcdc.input_deck.cells.append(card)

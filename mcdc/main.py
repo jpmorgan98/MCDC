@@ -665,6 +665,7 @@ def generate_hdf5(mcdc):
 
 
 def closeout(mcdc):
+    print('What le fuck')
     # Runtime
     if mcdc["mpi_master"]:
         with h5py.File(mcdc["setting"]["output_name"] + ".h5", "a") as f:

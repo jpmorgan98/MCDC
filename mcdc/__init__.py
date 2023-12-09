@@ -24,3 +24,4 @@ from mcdc.input_ import (
     reset_cards,
 )
 from mcdc.main import run, prepare
+from mcdc.visualizer import visualize
