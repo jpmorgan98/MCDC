@@ -28,7 +28,8 @@ text = ax.text(0.02, 1.02, "", transform=ax.transAxes)
 ax.set_aspect("equal", "box")
 ax.set_xlabel("$y$ [cm]")
 ax.set_ylabel("$x$ [cm]")
-ax.set_aspect('equal')
+ax.set_aspect("equal")
+
 
 def animate(i):
     cax.set_array(phi[i])

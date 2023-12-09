@@ -61,7 +61,7 @@ mcdc.visualize()
 # =============================================================================
 
 # Tally: z-integrated flux (X-Y section view)
-'''
+"""
 mcdc.tally(
     scores=["flux"],
     x=np.linspace(0.0, 60.0, 61),
@@ -75,4 +75,4 @@ mcdc.implicit_capture()
 
 # Run
 mcdc.run()
-'''
+"""

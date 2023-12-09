@@ -7,7 +7,8 @@ import h5py, math, mpi4py
 import numpy as np
 
 import mcdc.type_ as type_
-#import type_ as type_
+
+# import type_ as type_
 
 from mcdc.card import (
     SurfaceHandle,
@@ -36,7 +37,8 @@ from mcdc.constant import (
     SHIFT,
 )
 from mcdc.print_ import print_error
-#from print_ import print_error
+
+# from print_ import print_error
 
 # Get and rename mcdc global variables
 import mcdc.global_ as mcdc
@@ -298,7 +300,7 @@ def material(
             speed,
             decay,
             sensitivity,
-            dsm_Np
+            dsm_Np,
         )
         nuclides = [[card_nuclide, 1.0]]
 
@@ -640,7 +642,7 @@ def cell(surfaces_flags, fill, lattice_center=None):
     # Material cell
     else:
         card["material_ID"] = fill["ID"]
-    
+
     card["material_name"] = fill["name"]
 
     # Push card
