@@ -5,7 +5,6 @@ from mcdc.constant import INF, GYRATION_RADIUS_ALL, PCT_NONE, PI, SHIFT
 
 class InputDeck:
     def __init__(self):
-        print('InputDeck Init')
         self.reset()
 
     def reset(self):
