@@ -1,16 +1,9 @@
-# Visualization imports
-import netgen.gui  # launches visualiztation window
-
-from ngsolve import Draw, Redraw  # just for visualization
-
 from netgen.meshing import *
 from netgen.csg import *
-
-import math
-
+from ngsolve import Draw, Redraw  # just for visualization
 from tkinter import *  # Tkinter is used to create the window for the time slider and color key
 import distinctipy  # creates unlimited visually distinct colors for visualization
-
+import math
 
 # Get input_card and set global variables as "mcdc_"
 
@@ -396,6 +389,8 @@ def create_time_slider(root, start_time, end_time):
 # start and end times are default zero
 # called in input file
 def visualize(start_time=0, end_time=0):
+    import netgen.gui  # launches visualiztation window
+
     color_key_list = draw_Geometry(
         current_time=0, start_time=start_time, end_time=end_time
     )

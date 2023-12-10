@@ -1,10 +1,11 @@
-# import mcdc.visualizer
+import mcdc.visualizer
 import numpy as np
 
 """
+
 def generate_test_input():
     # testing ability to make a box
-    m1 = m = mcdc.material(
+    m1 = m = mcdc.material( 
         capture=np.array([0.05]), scatter=np.array([[0.05]]), name="test material 1"
     )
 
