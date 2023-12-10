@@ -1,7 +1,7 @@
 import mcdc.visualizer
 import numpy as np
 
-
+'''
 def generate_test_input():
     # testing ability to make a box
     m1 = m = mcdc.material(
@@ -54,3 +54,4 @@ def generate_test_input():
 #    assert color_key_list [0][0] != color_key_list[1][0]
 #    assert color_key_list [1][0] != color_key_list[2][0]
 #    assert color_key_list [2][0] != color_key_list[0][0]
+'''
