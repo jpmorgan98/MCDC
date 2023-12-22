@@ -8,8 +8,6 @@ import numpy as np
 
 import mcdc.type_ as type_
 
-# import type_ as type_
-
 from mcdc.card import (
     SurfaceHandle,
     make_card_nuclide,
@@ -37,8 +35,6 @@ from mcdc.constant import (
     SHIFT,
 )
 from mcdc.print_ import print_error
-
-# from print_ import print_error
 
 # Get and rename mcdc global variables
 import mcdc.global_ as mcdc
@@ -312,8 +308,7 @@ def material(
     # Make material card
     card = make_card_material(N_nuclide, G, J)
     card["ID"] = len(mcdc.input_deck.materials)
-
-    print(name)
+    
     if name is not None:
         card["name"] = name
     else:
