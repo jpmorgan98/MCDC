@@ -18,6 +18,7 @@ from mcdc.print_ import (
     print_iqmc_eigenvalue_exit_code,
 )
 
+caching = True  # mcdc["setting"]["caching"]
 
 # =========================================================================
 # Fixed-source loop
@@ -29,7 +30,7 @@ from mcdc.print_ import (
 #     see more about cacheing here https://numba.readthedocs.io/en/stable/developer/caching.html
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def loop_fixed_source(mcdc):
     # Loop over batches
     for idx_batch in range(mcdc["setting"]["N_batch"]):
@@ -94,7 +95,7 @@ def loop_fixed_source(mcdc):
 # =========================================================================
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def loop_eigenvalue(mcdc):
     # Loop over power iteration cycles
     for idx_cycle in range(mcdc["setting"]["N_cycle"]):
@@ -133,7 +134,7 @@ def loop_eigenvalue(mcdc):
 # =============================================================================
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def loop_source(seed, mcdc):
     # Progress bar indicator
     N_prog = 0
@@ -165,10 +166,22 @@ def loop_source(seed, mcdc):
         # Check if it is beyond current census index
         idx_census = mcdc["idx_census"]
         if P["t"] > mcdc["setting"]["census_time"][idx_census]:
-            kernel.add_particle(P, mcdc["bank_census"])
+            if mcdc["technique"]["domain_decomposition"]:
+                if mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]] > 0:
+                    P["w"] /= mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]]
+                if kernel.particle_in_domain(P, mcdc):
+                    kernel.add_particle(P, mcdc["bank_census"])
+            else:
+                kernel.add_particle(P, mcdc["bank_census"])
         else:
             # Add the source particle into the active bank
-            kernel.add_particle(P, mcdc["bank_active"])
+            if mcdc["technique"]["domain_decomposition"]:
+                if mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]] > 0:
+                    P["w"] /= mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]]
+                if kernel.particle_in_domain(P, mcdc):
+                    kernel.add_particle(P, mcdc["bank_active"])
+            else:
+                kernel.add_particle(P, mcdc["bank_active"])
 
         # =====================================================================
         # Run the source particle and its secondaries
@@ -209,13 +222,66 @@ def loop_source(seed, mcdc):
             with objmode():
                 print_progress(percent, mcdc)
 
+    if mcdc["technique"]["domain_decomposition"]:
+        kernel.dd_particle_send(mcdc)
+        terminated = False
+        max_work = 1
+        kernel.dd_particle_receive(mcdc)
+        while not terminated:
+            if mcdc["bank_active"]["size"] > 0:
+                # Loop until active bank is exhausted
+                while mcdc["bank_active"]["size"] > 0:
+
+                    P = kernel.get_particle(mcdc["bank_active"], mcdc)
+                    if not kernel.particle_in_domain(P, mcdc) and P["alive"] == True:
+                        print("recieved particle not in domain, position:")
+
+                    # Apply weight window
+                    if mcdc["technique"]["weight_window"]:
+                        kernel.weight_window(P, mcdc)
+
+                    # Particle tracker
+                    if mcdc["setting"]["track_particle"]:
+                        mcdc["particle_track_particle_ID"] += 1
+
+                    # Particle loop
+                    loop_particle(P, mcdc)
+
+                    # Tally history closeout for one-batch fixed-source simulation
+                    if (
+                        not mcdc["setting"]["mode_eigenvalue"]
+                        and mcdc["setting"]["N_batch"] == 1
+                    ):
+                        kernel.tally_closeout_history(mcdc)
+
+                # Send all domain particle banks
+                kernel.dd_particle_send(mcdc)
+
+            # Check for incoming particles
+            kernel.dd_particle_receive(mcdc)
+            work_remaining = int(kernel.allreduce(mcdc["bank_active"]["size"]))
+            total_sent = int(kernel.allreduce(mcdc["technique"]["dd_sent"]))
+            if work_remaining > max_work:
+                max_work = work_remaining
+
+            # Progress printout
+            """
+            percent = 1 - work_remaining / max_work
+            if mcdc["setting"]["progress_bar"] and int(percent * 100.0) > N_prog:
+                N_prog += 1
+                with objmode():
+                    print_progress(percent, mcdc)
+            """
+            if work_remaining + total_sent == 0:
+                terminated = True
+
 
 # =========================================================================
 # Particle loop
 # =========================================================================
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def loop_particle(P, mcdc):
     # Particle tracker
     if mcdc["setting"]["track_particle"]:
@@ -268,10 +334,18 @@ def loop_particle(P, mcdc):
         # Surface crossing
         if event & EVENT_SURFACE:
             kernel.surface_crossing(P, mcdc)
+            if event & EVENT_DOMAIN:
+                if not (
+                    mcdc["surfaces"][P["surface_ID"]]["reflective"]
+                    or mcdc["surfaces"][P["surface_ID"]]["vacuum"]
+                ):
+                    kernel.domain_crossing(P, mcdc)
 
         # Lattice or mesh crossing (skipped if surface crossing)
         elif event & EVENT_LATTICE or event & EVENT_MESH:
             kernel.shift_particle(P, SHIFT)
+            if event & EVENT_DOMAIN:
+                kernel.domain_crossing(P, mcdc)
 
         # Moving surface transition
         if event & EVENT_SURFACE_MOVE:
@@ -308,7 +382,7 @@ def loop_particle(P, mcdc):
 # =============================================================================
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def loop_iqmc(mcdc):
     # function calls from specified solvers
     iqmc = mcdc["technique"]["iqmc"]
@@ -325,7 +399,7 @@ def loop_iqmc(mcdc):
             gmres(mcdc)
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def source_iteration(mcdc):
     simulation_end = False
     iqmc = mcdc["technique"]["iqmc"]
@@ -363,7 +437,7 @@ def source_iteration(mcdc):
         total_source_old = iqmc["total_source"].copy()
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def gmres(mcdc):
     """
     GMRES solver.
@@ -518,7 +592,7 @@ def gmres(mcdc):
             return
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def power_iteration(mcdc):
     simulation_end = False
     iqmc = mcdc["technique"]["iqmc"]
@@ -564,7 +638,7 @@ def power_iteration(mcdc):
                 print_iqmc_eigenvalue_exit_code(mcdc)
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def davidson(mcdc):
     """
     The generalized Davidson method is a Krylov subspace method for solving
@@ -674,7 +748,7 @@ def davidson(mcdc):
 # =============================================================================
 
 
-@njit(cache=True)
+@njit(cache=caching)
 def loop_source_precursor(seed, mcdc):
     # TODO: censussed neutrons seeding is still not reproducible
 
