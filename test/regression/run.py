@@ -9,6 +9,7 @@ parser.add_argument("--mpiexec", type=int, default=0)
 parser.add_argument("--srun", type=int, default=0)
 parser.add_argument("--name", type=str, default="ALL")
 parser.add_argument("--skip", type=str, default="NONE")
+parser.add_argument("--target", type=str, choices=["gpu", "cpu"], default="cpu")
 args, unargs = parser.parse_known_args()
 
 # Parse
@@ -17,6 +18,15 @@ mpiexec = args.mpiexec
 srun = args.srun
 name = args.name
 skip = args.skip
+target = args.target
+
+if target == 'gpu':
+    if mpiexec > 1:
+        print('GPU mode not supported in MPI mode')
+    if srun > 1:
+        print('GPU mode not supported in MPI mode')
+    if mode == 'python':
+        print('GPU mode only supported in Numba mode')
 
 # Get test names
 if name == "ALL":
@@ -91,7 +101,7 @@ for i, name in enumerate(names):
         )
     else:
         os.system(
-            "python input.py --mode=%s --output=output --no-progress-bar > tmp 2>&1"
+            "python input.py --mode=%s --target=%s --output=output --no-progress-bar > tmp 2>&1"
             % (mode)
         )
     with open("tmp") as f:
