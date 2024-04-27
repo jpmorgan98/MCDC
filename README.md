@@ -121,9 +121,8 @@ To provide proper attribution to MC/DC, please cite
         doi = {10.21105/joss.06415},
     }
 ```
-which should render something like this
-
-Morgan et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
+which for an exhaustive list of formal publications describing algorithms and features of MC/DC please see our
+documentation cite.
 
 ## License
 
