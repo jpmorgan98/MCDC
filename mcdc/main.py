@@ -1033,6 +1033,9 @@ def generate_hdf5(mcdc):
                 f.create_dataset("particles_size", data=len(neutrons[:]))
 
 
+def remove_cache():
+    
+
 def closeout(mcdc):
     # Runtime
     if mcdc["mpi_master"]:

@@ -45,6 +45,7 @@ MC/DC has a visualizer built from the [netgen package](https://ngsolve.org/). Th
 ```bash
 pip install mcdc['viz']
 ```
+or `pip install 'mcdc[viz]` on macs
 
 ## Running
 

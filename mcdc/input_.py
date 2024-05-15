@@ -1549,6 +1549,10 @@ def iQMC(
     Returns
     -------
         None (in-place card alterations).
+
+    Notes
+    -----
+        See :ref:`iQMC`
     """
 
     card = mcdc.input_deck.technique

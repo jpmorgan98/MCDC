@@ -132,3 +132,25 @@ or run the script after instillation as a stand alone operation with
 
 Both these operations will clone the internal directory to your MCDC directory, untar the compressed folder, then set an environment variable in your bash script.
 NOTE: this does assume you are using bash shell.
+
+-----------------
+GPU Configuration
+-----------------
+
+MC/DC uses the `Harmonize async GPU scheduler <https://github.com/CEMeNT-PSAAP/harmonize>`_ to perfromantly run on Nivdia GPUs.
+Users can expect that 1 GPU runing a Monte Carlo problem is eqivalent to about 200-400 x86 Intel Xeon CPU cores.
+To configure MC/DC with this oparbility,
+
+#. Install MC/DC as normal
+#. clone harmonize: ``git clone `https://github.com/CEMeNT-PSAAP/harmonize.git``
+#. Ensure you have satisfied the minimum requirements (``nvcc`` (we've validated as low as v11.5) and the CUDA runtime (host and device))
+#. Run harmonize install script ``bash install.sh``
+#. When exectuing on GPUs append your launch comannd with ``--target=gpu`` (e.g. ``python input.py --mode=numba --target=gpu``)
+
+Please note that GPU mode is experemental.
+Feel free to ask on our issues page if you require assistance.
+MC/DC functinoality in GPU mode is not currently supporting
+
+#. MPI mode
+#. Domain decompisition
+#. iQMC algorithms
