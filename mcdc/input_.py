@@ -1046,6 +1046,9 @@ def setting(**kw):
         The time edge of the problem, after which all particles will be killed.
     progress_bar : bool
         Whether to display the progress bar (default True; disable when running MC/DC in a loop).
+    caching : bool
+        Whether to store or delete compiled Numba kernels (default True will store; False will delete existing __pycache__ folder).
+        see :ref:`Caching`.
     output_name : str
         Name of the output file MC/DC should save data in (default "output.h5").
     save_input_deck : bool
@@ -1149,8 +1152,8 @@ def setting(**kw):
         card["bank_census_buff"] = int(bank_census_buff)
 
     # caching is normally enabled
-    if caching in None:
-        card["caching"] = True
+    if caching is not None:
+        card["caching"] = caching
 
     # Particle tracker
     if particle_tracker is not None:
@@ -1398,15 +1401,33 @@ def domain_decomposition(
     x=None,
     y=None,
     z=None,
-    t=None,
-    exchange_rate=100,
-    bank_size=1e5,
+    exchange_rate=100000,
     work_ratio=None,
     repro=True,
 ):
+    """
+    Activate domain decomposition.
+
+    Parameters
+    ----------
+    x : array_like[float], optional
+        Location of subdomain boundaries in x (default None).
+    y : array_like[float], optional
+        Location of subdomain boundaries in y (default None).
+    z : array_like[float], optional
+        Location of subdomain boundaries in z (default None).
+    exchange_rate : float, optional
+        Number of particles to acumulate in the domain banks before sending.
+    work_ratio : array_like[integer], optional
+        Number of processors in each domain
+
+    Returns
+    -------
+        A domain decomposition card.
+
+    """
     card = mcdc.input_deck.technique
     card["domain_decomposition"] = True
-    card["domain_bank_size"] = int(1e5)
     card["dd_exchange_rate"] = int(exchange_rate)
     card["dd_repro"] = repro
     dom_num = 1
@@ -1420,9 +1441,6 @@ def domain_decomposition(
     if z is not None:
         card["dd_mesh"]["z"] = z
         dom_num += len(z)
-    if t is not None:
-        card["dd_mesh"]["t"] = t
-        dom_num += len(t)
     # Set work ratio
     if work_ratio is None:
         card["dd_work_ratio"] = None
@@ -1449,11 +1467,6 @@ def iQMC(
     source_x0=None,
     source_y0=None,
     source_z0=None,
-    source_xy0=None,
-    source_xz0=None,
-    source_yz0=None,
-    source_xyz0=None,
-    fission_source0=None,
     krylov_restart=None,
     fixed_source=None,
     scramble=False,
@@ -1492,16 +1505,6 @@ def iQMC(
         Initial source for tilt-y (default None).
     source_z0 : array_like[float], optional
         Initial source for tilt-z (default None).
-    source_xy0 : array_like[float], optional
-        Initial source for tilt-xy (default None).
-    source_xz0 : array_like[float], optional
-        Initial source for tilt-xz (default None).
-    source_yz0 : array_like[float], optional
-        Initial source for tilt-yz (default None).
-    source_xyz0 : array_like[float], optional
-        Initial source for tilt-xyz (default None).
-    fission_source0 : array_like[float], optional
-        Initial fission source (default None).
     krylov_restart : int, optional
         Max number of iterations for Krylov iteration (default same as maxitt).
     fixed_source : array_like[float], optional
@@ -1577,9 +1580,6 @@ def iQMC(
     if source0 is None:
         source0 = np.zeros_like(phi0)
 
-    if eigenmode_solver == "davidson":
-        card["iqmc"]["krylov_vector_size"] += 1
-
     score_list = card["iqmc"]["score_list"]
     for name in score:
         score_list[name] = True
@@ -1599,31 +1599,10 @@ def iQMC(
         if source_z0 is None:
             source_z0 = np.zeros_like(phi0)
 
-    if score_list["tilt-xy"]:
-        card["iqmc"]["krylov_vector_size"] += 1
-        if source_xy0 is None:
-            source_xy0 = np.zeros_like(phi0)
-
-    if score_list["tilt-xz"]:
-        card["iqmc"]["krylov_vector_size"] += 1
-        if source_xz0 is None:
-            source_xz0 = np.zeros_like(phi0)
-
-    if score_list["tilt-yz"]:
-        card["iqmc"]["krylov_vector_size"] += 1
-        if source_yz0 is None:
-            source_yz0 = np.zeros_like(phi0)
-
-    if fission_source0 is not None:
-        card["iqmc"]["score"]["fission-source"] = fission_source0
-
     card["iqmc"]["score"]["flux"] = phi0
     card["iqmc"]["score"]["tilt-x"] = source_x0
     card["iqmc"]["score"]["tilt-y"] = source_y0
     card["iqmc"]["score"]["tilt-z"] = source_z0
-    card["iqmc"]["score"]["tilt-xy"] = source_xy0
-    card["iqmc"]["score"]["tilt-xz"] = source_xz0
-    card["iqmc"]["score"]["tilt-yz"] = source_yz0
     card["iqmc"]["source"] = source0
     card["iqmc"]["fixed_source"] = fixed_source
     card["iqmc"]["fixed_source_solver"] = fixed_source_solver
