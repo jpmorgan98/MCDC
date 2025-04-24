@@ -434,7 +434,6 @@ def loop_source(seed, data, mcdc):
     for idx_work in range(work_size):
         generate_source_particle(work_start, idx_work, seed, mcdc)
 
-        # Run the source particle and its secondaries
         exhaust_active_bank(data, mcdc)
 
         source_closeout(mcdc, idx_work, N_prog, data)
@@ -566,7 +565,6 @@ def gpu_loop_source(seed, data, mcdc):
 def loop_particle(P_arr, data, prog):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
-
     while P["alive"]:
         step_particle(P_arr, data, prog)
 
@@ -581,6 +579,7 @@ def step_particle(P_arr, data, prog):
 
     # Execute events
     if P["event"] == EVENT_LOST:
+        P["alive"] = False
         return
 
     # Collision
@@ -607,6 +606,10 @@ def step_particle(P_arr, data, prog):
 
             elif P["event"] & EVENT_FISSION:
                 kernel.fission(P_arr, prog)
+
+    if P["event"] & EVENT_PHANTOM_COLLISION:
+        # delta tracking
+        P["alive"] = True
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
