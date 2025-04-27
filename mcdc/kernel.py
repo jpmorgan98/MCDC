@@ -2856,10 +2856,6 @@ def move_to_event(P_arr, data, mcdc):
             # don't delta track if in excluded material
             if P["material_ID"] == mcdc["technique"]["dt_material_exclusion"]:
                 P["delta_tracking"] = False
-
-                # but complete rejection sampleing process before switching
-                if P["event"] & EVENT_PHANTOM_COLLISION:
-                    P["delta_tracking"] = True
     else:
         P["delta_tracking"] = False
 
@@ -2998,8 +2994,7 @@ def move_to_event(P_arr, data, mcdc):
             # Mesh tallies
             # use a collision estimator for currently undefined tallies
             for tally in mcdc["mesh_tallies"]:
-                if tally is not SCORE_FLUX:
-                    score_mesh_collision_tally(P_arr, tally, data, mcdc)
+                score_mesh_collision_tally(P_arr, tally, data, mcdc)
 
 
 @njit
