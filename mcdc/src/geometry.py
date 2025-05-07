@@ -152,7 +152,13 @@ def inspect_geometry(particle_container, mcdc):
 
     # Report lost particle
     if event == EVENT_LOST:
-        report_lost(particle_container)
+        # Cheaper then keeping track of vac bounds
+        # reflecting boundaries are still tracked
+        # needed in this function for hybrid methods
+        if mcdc["technique"]["delta_tracking"]:
+            particle["alive"] = False
+        else:
+            report_lost(particle_container)
 
     # Assign particle event
     particle["event"] = event
@@ -258,7 +264,7 @@ def locate_particle(particle_container, mcdc):
     if particle_is_lost:
         # Cheaper then keeping track of vac bounds
         #       reflecting boundaries are still tracked
-        if particle["delta_tracking"]:
+        if mcdc["technique"]["delta_tracking"]:
             particle["alive"] = False
         else:
             report_lost(particle_container)
