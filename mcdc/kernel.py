@@ -1851,7 +1851,7 @@ def mesh_get_energy_index(P_arr, mesh, mode_MG):
 
 @njit
 def score_mesh_collision_tally(P_arr, tally, data, mcdc):
-    """Scoring tallies with a collision estimator,"""
+    """Scoring tallies with a collision estimator"""
     P = P_arr[0]
     tally_bin = data[TALLY]
     material = mcdc["materials"][P["material_ID"]]
@@ -1913,10 +1913,6 @@ def score_mesh_collision_tally(P_arr, tally, data, mcdc):
         #     score = flux * mu * mu * (t - (mesh["t"][it - 1] + mesh["t"][it]) / 2)
         # elif score_type == SCORE_SPACE_MOMENT_MU_SQ:
         #     score = flux * mu * mu * (x - (mesh["x"][ix + 1] + mesh["x"][ix]) / 2)
-        adapt.global_add(tally_bin, (TALLY_SCORE, idx + i), round(score))
-
-        SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
-        score = 1.0 / SigmaT
         adapt.global_add(tally_bin, (TALLY_SCORE, idx + i), round(score))
 
     return
@@ -2990,7 +2986,7 @@ def move_to_event(P_arr, data, mcdc):
         rejection_sample(P_arr, mcdc)
 
     if mcdc["technique"]["collision_estimator"]:
-        if P["event"] == EVENT_COLLISION and mcdc["cycle_active"]:
+        if (P["event"] == EVENT_COLLISION or P["event"]== EVENT_PHANTOM_COLLISION) and mcdc["cycle_active"]:
             # Mesh tallies
             # use a collision estimator for currently undefined tallies
             for tally in mcdc["mesh_tallies"]:
