@@ -1,0 +1,33 @@
+name: MPI CI Error
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+        fail-fast: false
+        matrix:
+            os: ["ubuntu-22.04"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+    - name: debug
+      run: |
+        pwd
+        ls
+    - uses: mpi4py/setup-mpi@v1
+    - name: Install dependencies
+      run: |
+        pip install mpi4py
+    - name: Run MPI
+      run : |
+        lscpu
+        mpirun -n 2 python -m mpi4py.bench helloworld
+        echo " "
+        mpirun -n 4 python -m mpi4py.bench helloworld
+        mpirun -n 4 python test_mpi.py
+        mpirun -n 2 python test_mpi.py
