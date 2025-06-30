@@ -1850,10 +1850,9 @@ def mesh_get_energy_index(P_arr, mesh, mode_MG):
 
 
 @njit
-def score_mesh_collision_tally(P_arr, tally, data, mcdc):
+def score_mesh_collision_tally(P_arr, tally, data_tally, mcdc):
     """Scoring tallies with a collision estimator"""
     P = P_arr[0]
-    tally_bin = data[TALLY]
     material = mcdc["materials"][P["material_ID"]]
     mesh = tally["filter"]
     stride = tally["stride"]
@@ -1893,7 +1892,7 @@ def score_mesh_collision_tally(P_arr, tally, data, mcdc):
             ut = 1.0 / physics.get_speed(P_arr, mcdc)
             score = flux * ut
         elif score_type == SCORE_TOTAL:
-            score = flux * SigmaT
+            score = 1.0
         elif score_type == SCORE_FISSION:
             SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
             score = flux * SigmaF
@@ -1913,7 +1912,7 @@ def score_mesh_collision_tally(P_arr, tally, data, mcdc):
         #     score = flux * mu * mu * (t - (mesh["t"][it - 1] + mesh["t"][it]) / 2)
         # elif score_type == SCORE_SPACE_MOMENT_MU_SQ:
         #     score = flux * mu * mu * (x - (mesh["x"][ix + 1] + mesh["x"][ix]) / 2)
-        adapt.global_add(tally_bin, (TALLY_SCORE, idx + i), round(score))
+        adapt.global_add(data_tally, (TALLY_SCORE, idx + i), round(score))
 
     return
 
@@ -2939,18 +2938,18 @@ def move_to_event(P_arr, data_tally, mcdc):
         if mcdc["cycle_active"]:
             # Mesh tallies
             for tally in mcdc["mesh_tallies"]:
-                score_mesh_tally(P_arr, distance, tally, data, mcdc)
+                score_mesh_tally(P_arr, distance, tally, data_tally, mcdc)
 
             # Cell tallies
             cell = mcdc["cells"][P["cell_ID"]]
             for i in range(cell["N_tally"]):
                 ID = cell["tally_IDs"][i]
                 tally = mcdc["cell_tallies"][ID]
-                score_cell_tally(P_arr, distance, tally, data, mcdc)
+                score_cell_tally(P_arr, distance, tally, data_tally, mcdc)
 
             # CS tallies
             for tally in mcdc["cs_tallies"]:
-                score_cs_tally(P_arr, distance, tally, data, mcdc)
+                score_cs_tally(P_arr, distance, tally, data_tally, mcdc)
 
     if mcdc["setting"]["mode_eigenvalue"] and not P["delta_tracking"]:
         eigenvalue_tally(P_arr, distance, mcdc)
@@ -2975,11 +2974,11 @@ def move_to_event(P_arr, data_tally, mcdc):
         rejection_sample(P_arr, mcdc)
 
     if mcdc["technique"]["collision_estimator"]:
-        if (P["event"] == EVENT_COLLISION or P["event"]== EVENT_PHANTOM_COLLISION) and mcdc["cycle_active"]:
+        if (P["event"] == EVENT_COLLISION) and mcdc["cycle_active"]:
             # Mesh tallies
             # use a collision estimator for currently undefined tallies
             for tally in mcdc["mesh_tallies"]:
-                score_mesh_collision_tally(P_arr, tally, data, mcdc)
+                score_mesh_collision_tally(P_arr, tally, data_tally, mcdc)
 
 
 @njit
