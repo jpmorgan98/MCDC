@@ -1,4 +1,3 @@
-
 ####
 
 import mcdc.code_factory as code_factory
@@ -105,8 +104,7 @@ def run():
     if settings.eigenvalue_mode:
         loop_eigenvalue(data_tally, mcdc_arr)
     else:
-        print_msg("Starting fixed source")
-        loop_fixed_source(data_tally, mcdc_arr)
+        loop_fixed_source(data_tally, mcdc_arr, data, mcdc_new)
 
     # Timer: simulation
     time_simulation_end = MPI.Wtime()
@@ -114,7 +112,7 @@ def run():
     # ==================================================================================
     # Working on the output
     # ==================================================================================
-   
+
     # Timer: output
     time_output_start = MPI.Wtime()
 
@@ -132,7 +130,7 @@ def run():
     # ==================================================================================
     # Finalizing
     # ==================================================================================
-    
+
     # Final barrier
     MPI.COMM_WORLD.Barrier()
 
@@ -505,7 +503,7 @@ def prepare():
       (2) Make types
       (3) Create and set up global variable container `mcdc`
     """
-    
+
     # Generate Numba-supported "Objects"
     data_new, mcdc_new = code_factory.generate_numba_objects(
         objects.materials + objects.nuclides + objects.reactions + [objects.settings]
@@ -1805,8 +1803,8 @@ def generate_hdf5(data_tally, mcdc):
             # Input deck
             if objects.settings.save_input_deck:
                 input_group = f.create_group("input_deck")
-                #cardlist_to_h5group(objects.nuclides, input_group, "nuclide")
-                #cardlist_to_h5group(objects.materials, input_group, "material")
+                # cardlist_to_h5group(objects.nuclides, input_group, "nuclide")
+                # cardlist_to_h5group(objects.materials, input_group, "material")
                 cardlist_to_h5group(input_deck.surfaces, input_group, "surface")
                 cardlist_to_h5group(input_deck.cells, input_group, "cell")
                 cardlist_to_h5group(input_deck.universes, input_group, "universe")
@@ -2354,7 +2352,6 @@ def save_runtime(mcdc):
                     "bank_management",
                 ]:
                     f.create_dataset(name, data=np.array([mcdc["runtime_" + name]]))
-
 
 
 # ======================================================================================
