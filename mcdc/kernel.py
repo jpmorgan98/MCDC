@@ -2546,7 +2546,7 @@ def tally_closeout(data_tally, mcdc):
         N_history = N_batch
 
     elif mcdc['settings']['eigenvalue_mode']:
-        N_history = mcdc['settings'].N_active
+        N_history = mcdc['settings']['N_active']
 
     elif not mcdc["technique"]["domain_decomposition"]:
         # MPI Reduce
@@ -2596,9 +2596,7 @@ def eigenvalue_tally(P_arr, distance, mcdc, data):
     flux = distance * P["w"]
 
     # Get nu-fission
-    nu = physics.production_xs(REACTION_FISSION, material, P_arr, mcdc, data)
-    SigmaF = physics.macro_xs(REACTION_FISSION, material, P_arr, mcdc, data)
-    nuSigmaF = nu * SigmaF
+    nuSigmaF = physics.production_xs(REACTION_FISSION, material, P_arr, mcdc, data)
 
     # Fission production (needed even during inactive cycle)
     # mcdc["eigenvalue_tally_nuSigmaF"][0] += flux * nuSigmaF
@@ -2700,7 +2698,7 @@ def eigenvalue_tally_closeout_history(mcdc):
         mcdc["C_avg"] += tally_C
         mcdc["C_sdv"] += tally_C * tally_C
 
-        N = 1 + mcdc["idx_cycle"] - mcdc['settings'].N_inactive
+        N = 1 + mcdc["idx_cycle"] - mcdc['settings']['N_inactive']
         mcdc["k_avg_running"] = mcdc["k_avg"] / N
         if N == 1:
             mcdc["k_sdv_running"] = 0.0
@@ -2790,7 +2788,7 @@ def eigenvalue_tally_closeout_history(mcdc):
 
 @njit
 def eigenvalue_tally_closeout(mcdc):
-    N = mcdc['settings'].N_active
+    N = mcdc['settings']['N_active']
     mcdc["n_avg"] /= N
     mcdc["C_avg"] /= N
     if N > 1:
