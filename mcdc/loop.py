@@ -7,7 +7,7 @@ from numba.misc.special import literally
 
 import mcdc.config as config
 import mcdc.adapt as adapt
-import mcdc.geometry.common as geometry
+import mcdc.geometry.interface as geometry
 import mcdc.kernel as kernel
 import mcdc.print_ as print_module
 import mcdc.type_ as type_
