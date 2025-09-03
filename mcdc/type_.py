@@ -290,18 +290,6 @@ def make_type_particle_record(input_deck):
     particle_record_mpi.Commit()
 
 
-precursor = into_dtype(
-    [
-        ("x", float64),
-        ("y", float64),
-        ("z", float64),
-        ("g", uint64),
-        ("n_g", uint64),
-        ("w", float64),
-    ]
-)
-
-
 # ==============================================================================
 # Particle bank
 # ==============================================================================
@@ -324,12 +312,6 @@ def particle_bank(max_size):
             ("size", int64, (1,)),
             ("tag", str_),
         ]
-    )
-
-
-def precursor_bank(max_size):
-    return into_dtype(
-        [("precursors", precursor, (max_size,)), ("size", int64, (1,)), ("tag", str_)]
     )
 
 
@@ -886,7 +868,6 @@ def make_type_technique(input_deck):
         ("weight_window", bool_),
         ("weight_roulette", bool_),
         ("iQMC", bool_),
-        ("IC_generator", bool_),
         ("branchless_collision", bool_),
         ("domain_decomposition", bool_),
         ("uq", bool_),
@@ -1031,45 +1012,6 @@ def make_type_technique(input_deck):
     ]
 
     struct += [("iqmc", into_dtype(iqmc_list))]
-
-    # =========================================================================
-    # IC generator
-    # =========================================================================
-
-    # Create bank types
-    #   We need local banks to ensure reproducibility regardless of # of MPIs
-    #   TODO: Having smaller bank buffer (~N_target/MPI_size) and even smaller
-    #         local bank would be more efficient.
-    if card["IC_generator"]:
-        Nn = int(card["IC_N_neutron"] * 1.2)
-        Np = int(card["IC_N_precursor"] * 1.2)
-        Nn_local = Nn
-        Np_local = Np
-    else:
-        Nn = 0
-        Np = 0
-        Nn_local = 0
-        Np_local = 0
-    bank_neutron = particle_bank(Nn)
-    bank_neutron_local = particle_bank(Nn_local)
-    bank_precursor = precursor_bank(Np)
-    bank_precursor_local = precursor_bank(Np_local)
-
-    # The parameters
-    struct += [
-        ("IC_N_neutron", int64),
-        ("IC_N_precursor", int64),
-        ("IC_neutron_density", float64),
-        ("IC_neutron_density_max", float64),
-        ("IC_precursor_density", float64),
-        ("IC_precursor_density_max", float64),
-        ("IC_bank_neutron_local", bank_neutron_local),
-        ("IC_bank_precursor_local", bank_precursor_local),
-        ("IC_bank_neutron", bank_neutron),
-        ("IC_bank_precursor", bank_precursor),
-        ("IC_fission_score", float64, (1,)),
-        ("IC_fission", float64),
-    ]
 
     # =========================================================================
     # Variance Deconvolution
@@ -1270,7 +1212,6 @@ def make_type_global(input_deck, structures, records):
     # Simulation parameters
     settings = objects.settings
     N_particle = settings.N_particle
-    N_precursor = settings.N_precursor
     N_cycle = settings.N_inactive + settings.N_active
 
     # Particle bank buffers
@@ -1287,7 +1228,6 @@ def make_type_global(input_deck, structures, records):
 
     # Number of work
     N_work = math.ceil(N_particle / MPI.COMM_WORLD.Get_size())
-    N_work_precursor = math.ceil(N_precursor / MPI.COMM_WORLD.Get_size())
 
     # Particle bank types
     bank_active = particle_bank(1 + bank_active_buff)
@@ -1299,7 +1239,6 @@ def make_type_global(input_deck, structures, records):
         bank_census = particle_bank(0)
         bank_source = particle_bank(0)
         bank_future = particle_bank(0)
-    bank_precursor = precursor_bank(0)
 
     # iQMC bank adjustment
     if input_deck.technique["iQMC"]:
@@ -1312,9 +1251,6 @@ def make_type_global(input_deck, structures, records):
     if not settings.eigenvalue_mode:
         if settings.use_source_file:
             bank_source = particle_bank(N_work)
-        if settings.use_IC_file:
-            bank_source = particle_bank(N_work)
-            bank_precursor = precursor_bank(N_precursor)
 
     if (
         settings.use_source_file and not settings.eigenvalue_mode
@@ -1349,7 +1285,6 @@ def make_type_global(input_deck, structures, records):
         ("bank_census", bank_census),
         ("bank_source", bank_source),
         ("bank_future", bank_future),
-        ("bank_precursor", bank_precursor),
         ("rng_seed_base", uint64),
         ("rng_seed", uint64),
         ("rng_stride", int64),
@@ -1382,19 +1317,14 @@ def make_type_global(input_deck, structures, records):
         ("mpi_work_start", int64),
         ("mpi_work_size", int64),
         ("mpi_work_size_total", int64),
-        ("mpi_work_start_precursor", int64),
-        ("mpi_work_size_precursor", int64),
-        ("mpi_work_size_total_precursor", int64),
         ("runtime_total", float64),
         ("runtime_preparation", float64),
         ("runtime_simulation", float64),
         ("runtime_output", float64),
         ("runtime_bank_management", float64),
-        ("precursor_strength", float64),
         ("mpi_work_iter", int64, (1,)),
         ("gpu_state_pointer", uintp),
         ("source_program_pointer", uintp),
-        ("precursor_program_pointer", uintp),
         ("source_seed", uint64),
     ]
 
