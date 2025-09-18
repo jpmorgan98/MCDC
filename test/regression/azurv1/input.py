@@ -17,11 +17,21 @@ m = mcdc.MaterialMG(
 )
 
 # Set surfaces
-s1 = mcdc.surface("plane-x", x=-1e10, bc="reflective")
-s2 = mcdc.surface("plane-x", x=1e10, bc="reflective")
+s1 = mcdc.Surface.PlaneX(x=-1e10, boundary_condition="reflective")
+s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition="reflective")
+
+r1 = +s1
+r2 = -s2
+r3 = +s1 & -s2
+r4 = r1 & r2
+print(r1)
+print(r2)
+print(r3)
+print(r4)
+exit()
 
 # Set cells
-mcdc.cell(+s1 & -s2, m)
+c = mcdc.cell(+s1 & -s2, m)
 
 # =============================================================================
 # Set source
