@@ -25,5 +25,11 @@ from mcdc.main import (
     recombine_tallies,
 )
 
+
+# ======================================================================================
+# Model building blocks
+# ======================================================================================
+
 from mcdc.material import Material, MaterialMG
+from mcdc.surface import Surface
 from mcdc.settings import Settings

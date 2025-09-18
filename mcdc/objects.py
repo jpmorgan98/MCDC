@@ -28,11 +28,12 @@ class ObjectOverriding(ObjectPolymorphic):
 
 
 # The objects
-settings = None  # Singleton
 materials = []  # Overriding-polymorphic
 nuclides = []  # Non-singleton
 reactions = []  # Polymorphic
 data_containers = []  # Polymorphic
+surfaces = []  # Non-singleton
+settings = None  # Singleton
 
 
 # Helper functions
@@ -41,6 +42,7 @@ def register_object(object_):
     from mcdc.material import MaterialBase
     from mcdc.nuclide import Nuclide
     from mcdc.reaction import ReactionBase
+    from mcdc.surface import Surface
 
     global materials, nuclides, reactions, data_containers
 
@@ -52,6 +54,8 @@ def register_object(object_):
         object_list = reactions
     elif isinstance(object_, DataContainer):
         object_list = data_containers
+    elif isinstance(object_, Surface):
+        object_list = surfaces
 
     if isinstance(object_, ObjectSingleton):
         object_list = object_
