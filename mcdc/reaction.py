@@ -14,6 +14,33 @@ from mcdc.prints import print_1d_array
 
 
 class ReactionBase(ObjectPolymorphic):
+    """
+    Base class for particle reaction cross sections.
+
+    Parameters
+    ----------
+    label : str
+        Descriptive label for the reaction.
+    type_ : int
+        Reaction type code (e.g. `REACTION_NEUTRON_CAPTURE`).
+    xs : numpy.ndarray
+        Microscopic reaction cross section values (in barns).
+
+    Attributes
+    ----------
+    ID : int
+        Internal identifier from :class:`ObjectPolymorphic`.
+    type : int
+        Reaction type code.
+    xs : numpy.ndarray
+        Cross section values (in barns), defined on a shared energy grid.
+
+    See Also
+    --------
+    Nuclide
+        Container class that aggregates reactions for a nuclide.
+    """
+
     def __init__(self, label, type_, xs):
         super().__init__(label, type_)
         self.xs = xs
@@ -41,6 +68,27 @@ def decode_type(type_):
 
 
 class ReactionNeutronCapture(ReactionBase):
+    """
+    Neutron capture (n,γ) reaction.
+
+    Parameters
+    ----------
+    xs : numpy.ndarray
+        Microscopic capture cross section (in barns).
+
+    Class Methods
+    -------------
+    from_h5_group(h5_group) :
+        Construct a capture reaction from an HDF5 group with dataset ``xs``.
+
+    See Also
+    --------
+    Nuclide
+        Holds multiple reactions, including capture.
+    DataTable
+        Typical container for tabulated capture cross sections.
+    """
+
     def __init__(self, xs):
         label = "neutron_capture_reaction"
         type_ = REACTION_NEUTRON_CAPTURE
@@ -53,6 +101,35 @@ class ReactionNeutronCapture(ReactionBase):
 
 
 class ReactionNeutronElasticScattering(ReactionBase):
+    """
+    Neutron elastic scattering (n,n) reaction.
+
+    Parameters
+    ----------
+    xs : numpy.ndarray
+        Microscopic scattering cross section (in barns).
+    mu : DataMultiPDF
+        Probability distribution of scattering cosine as a function of energy.
+
+    Class Methods
+    -------------
+    from_h5_group(h5_group) :
+        Construct an elastic scattering reaction from an HDF5 group with
+        datasets ``xs`` and a ``scattering_cosine`` subgroup.
+
+    Attributes
+    ----------
+    mu : DataMultiPDF
+        Multigroup distribution for scattering cosine.
+
+    See Also
+    --------
+    Nuclide
+        Holds multiple reactions, including scattering.
+    DataMultiPDF
+        Used for angular distributions (scattering cosine).
+    """
+
     def __init__(self, xs, mu):
         label = "neutron_elastic_scattering_reaction"
         type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
@@ -81,6 +158,55 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
 
 class ReactionNeutronFission(ReactionBase):
+    """
+    Neutron-induced fission reaction.
+
+    Parameters
+    ----------
+    xs : numpy.ndarray
+        Microscopic fission cross section (in barns).
+    prompt_yield : DataTable or DataPolynomial
+        Energy-dependent prompt neutron yield.
+    prompt_spectrum : DataMultiPDF or DataMaxwellian
+        Energy distribution of prompt neutrons.
+    delayed_yields : list of DataTable or DataPolynomial
+        Energy-dependent yields for each delayed neutron group.
+    delayed_spectrums : list of DataMultiPDF or DataMaxwellian
+        Energy distributions for each delayed neutron group.
+    delayed_decay_rates : numpy.ndarray
+        Decay rates (1/mean emission time) for delayed neutron groups.
+
+    Class Methods
+    -------------
+    from_h5_group(h5_group) :
+        Construct a fission reaction from an HDF5 group containing ``xs`` and
+        ``products`` for prompt and delayed neutrons.
+
+    Attributes
+    ----------
+    N_delayed : int
+        Number of delayed neutron groups.
+    prompt_yield : DataContainer
+        Yield representation for prompt neutrons.
+    prompt_spectrum : DataContainer
+        Spectrum representation for prompt neutrons.
+    delayed_yields : list of DataContainer
+        Yield representations for delayed neutrons.
+    delayed_spectrums : list of DataContainer
+        Spectrum representations for delayed neutrons.
+    delayed_decay_rates : numpy.ndarray
+        Decay rates for delayed neutron groups.
+
+    See Also
+    --------
+    Nuclide
+        Holds multiple reactions, including fission.
+    DataTable, DataPolynomial
+        Used for prompt/delayed yields.
+    DataMultiPDF, DataMaxwellian
+        Used for prompt/delayed spectra.
+    """
+
     def __init__(self, xs, prompt_yield, prompt_spectrum, delayed_yields, delayed_spectrums, delayed_decay_rates):
         label = "neutron_fission_reaction"
         type_ = REACTION_NEUTRON_FISSION
