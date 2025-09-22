@@ -15,15 +15,15 @@ m2 = mcdc.MaterialMG(capture=np.array([1.5]))
 m3 = mcdc.MaterialMG(capture=np.array([2.0]))
 
 # Set surfaces
-s1 = mcdc.surface("plane-z", z=0.0, bc="vacuum")
-s2 = mcdc.surface("plane-z", z=2.0)
-s3 = mcdc.surface("plane-z", z=4.0)
-s4 = mcdc.surface("plane-z", z=6.0, bc="vacuum")
+s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="vacuum")
+s2 = mcdc.Surface.PlaneZ(z=2.0)
+s3 = mcdc.Surface.PlaneZ(z=4.0)
+s4 = mcdc.Surface.PlaneZ(z=6.0, boundary_condition="vacuum")
 
 # Set cells
-mcdc.cell(+s1 & -s2, m2)
-mcdc.cell(+s2 & -s3, m3)
-mcdc.cell(+s3 & -s4, m1)
+mcdc.Cell(region=+s1 & -s2, fill=m2)
+mcdc.Cell(region=+s2 & -s3, fill=m3)
+mcdc.Cell(region=+s3 & -s4, fill=m1)
 
 # =============================================================================
 # Set source

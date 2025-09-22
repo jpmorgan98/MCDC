@@ -74,7 +74,7 @@ class Region(ObjectNonSingleton):
 
 
 class Cell(ObjectNonSingleton):
-    def __init__(self, name='', region=None, fill=None, translation=np.zeros(3), rotation=np.zeros(3)):
+    def __init__(self, name='', region=None, fill=None, translation=[0.0, 0.0, 0.0], rotation=[0.0, 0.0, 0.0]):
         label = "cell"
         super().__init__(label)
 
@@ -98,8 +98,8 @@ class Cell(ObjectNonSingleton):
             print_error(f"Unsupported cell fill: {fill}")
 
         # Local coordinate modifier
-        self.translation = translation
-        self.rotation = rotation
+        self.translation = np.array(translation)
+        self.rotation = np.array(rotation)
         self.fill_translated = False
         self.fill_rotated = False
         if (self.translation != 0.0).any():

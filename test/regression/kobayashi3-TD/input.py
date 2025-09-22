@@ -12,35 +12,35 @@ m = mcdc.MaterialMG(capture=np.array([0.05]), scatter=np.array([[0.05]]))
 m_void = mcdc.MaterialMG(capture=np.array([5e-5]), scatter=np.array([[5e-5]]))
 
 # Set surfaces
-sx1 = mcdc.surface("plane-x", x=0.0, bc="reflective")
-sx2 = mcdc.surface("plane-x", x=10.0)
-sx3 = mcdc.surface("plane-x", x=30.0)
-sx4 = mcdc.surface("plane-x", x=40.0)
-sx5 = mcdc.surface("plane-x", x=60.0, bc="vacuum")
-sy1 = mcdc.surface("plane-y", y=0.0, bc="reflective")
-sy2 = mcdc.surface("plane-y", y=10.0)
-sy3 = mcdc.surface("plane-y", y=50.0)
-sy4 = mcdc.surface("plane-y", y=60.0)
-sy5 = mcdc.surface("plane-y", y=100.0, bc="vacuum")
-sz1 = mcdc.surface("plane-z", z=0.0, bc="reflective")
-sz2 = mcdc.surface("plane-z", z=10.0)
-sz3 = mcdc.surface("plane-z", z=30.0)
-sz4 = mcdc.surface("plane-z", z=40.0)
-sz5 = mcdc.surface("plane-z", z=60.0, bc="vacuum")
+sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="reflective")
+sx2 = mcdc.Surface.PlaneX(x=10.0)
+sx3 = mcdc.Surface.PlaneX(x=30.0)
+sx4 = mcdc.Surface.PlaneX(x=40.0)
+sx5 = mcdc.Surface.PlaneX(x=60.0, boundary_condition="vacuum")
+sy1 = mcdc.Surface.PlaneY(y=0.0, boundary_condition="reflective")
+sy2 = mcdc.Surface.PlaneY(y=10.0)
+sy3 = mcdc.Surface.PlaneY(y=50.0)
+sy4 = mcdc.Surface.PlaneY(y=60.0)
+sy5 = mcdc.Surface.PlaneY(y=100.0, boundary_condition="vacuum")
+sz1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="reflective")
+sz2 = mcdc.Surface.PlaneZ(z=10.0)
+sz3 = mcdc.Surface.PlaneZ(z=30.0)
+sz4 = mcdc.Surface.PlaneZ(z=40.0)
+sz5 = mcdc.Surface.PlaneZ(z=60.0, boundary_condition="vacuum")
 
 # Set cells
 # Source
-source_cell = mcdc.cell(+sx1 & -sx2 & +sy1 & -sy2 & +sz1 & -sz2, m)
+source_cell = mcdc.Cell(region=+sx1 & -sx2 & +sy1 & -sy2 & +sz1 & -sz2, fill=m)
 # Voids
 channel_1 = +sx1 & -sx2 & +sy2 & -sy3 & +sz1 & -sz2
 channel_2 = +sx1 & -sx3 & +sy3 & -sy4 & +sz1 & -sz2
 channel_3 = +sx3 & -sx4 & +sy3 & -sy4 & +sz1 & -sz3
 channel_4 = +sx3 & -sx4 & +sy3 & -sy5 & +sz3 & -sz4
 void_channel = channel_1 | channel_2 | channel_3 | channel_4
-void_cell = mcdc.cell(void_channel, m_void)
+void_cell = mcdc.Cell(region=void_channel, fill=m_void)
 # Shield
 box = +sx1 & -sx5 & +sy1 & -sy5 & +sz1 & -sz5
-shield_cell = mcdc.cell(box & ~void_channel, m)
+shield_cell = mcdc.Cell(region=box & ~void_channel, fill=m)
 
 # =============================================================================
 # Set source

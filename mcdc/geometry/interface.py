@@ -382,7 +382,7 @@ def check_cell(particle_container, cell, mcdc, data):
 
         if token >= 0:
             surface = mcdc["surfaces"][token]
-            value[N_value] = check_sense(particle_container, speed, surface)
+            value[N_value] = check_sense(particle_container, speed, surface, data)
             N_value += 1
 
         elif token == BOOL_NOT:
@@ -441,8 +441,10 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
 
     # Iterate over all surfaces
     for i in range(cell['N_surface']):
-        surface = mcdc_get.surface.from_cell(i, cell, mcdc, data)
-        d = get_distance(particle_container, speed, surface)
+        offset = cell["surface_index_offset"]
+        candidate_surface_ID = int(data[offset + i])
+        surface = mcdc["surfaces"][candidate_surface_ID]
+        d = get_distance(particle_container, speed, surface, data)
         if d < distance:
             distance = d
             surface_ID = surface["ID"]
@@ -456,9 +458,10 @@ def surface_crossing(P_arr, data_tally, prog, data):
 
     # Apply BC
     surface = mcdc["surfaces"][P["surface_ID"]]
-    if surface["BC"] == BC_VACUUM:
+    BC = surface['boundary_condition']
+    if BC == BC_VACUUM:
         P["alive"] = False
-    elif surface["BC"] == BC_REFLECTIVE:
+    elif BC == BC_REFLECTIVE:
         reflect(P_arr, surface)
 
     # Score tally
@@ -469,7 +472,7 @@ def surface_crossing(P_arr, data_tally, prog, data):
         kernel.score_surface_tally(P_arr, surface, tally, data_tally, mcdc, data)
 
     # Need to check new cell later?
-    if P["alive"] and not surface["BC"] == BC_REFLECTIVE:
+    if P["alive"] and not BC == BC_REFLECTIVE:
         P["cell_ID"] = -1
         P["material_ID"] = -1
 

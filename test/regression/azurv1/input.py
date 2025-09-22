@@ -21,7 +21,7 @@ s1 = mcdc.Surface.PlaneX(x=-1e10, boundary_condition="reflective")
 s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition="reflective")
 
 # Set cells
-c = mcdc.Cell(region=+s1 & -s2, fill=m)
+mcdc.Cell(region=+s1 & -s2, fill=m)
 
 # =============================================================================
 # Set source

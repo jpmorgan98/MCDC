@@ -29,23 +29,23 @@ water = mcdc.MaterialMG(
 # =============================================================================
 
 # Surfaces
-cylinder_z = mcdc.surface("cylinder-z", center=[0.0, 0.0], radius=1.0)
-cylinder_x = mcdc.surface("cylinder-x", center=[0.0, 0.0], radius=1.0)
+cylinder_z = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)
+cylinder_x = mcdc.Surface.CylinderX(center=[0.0, 0.0], radius=1.0)
 
-top_z = mcdc.surface("plane-z", z=2.5)
-bot_z = mcdc.surface("plane-z", z=-2.5)
-top_x = mcdc.surface("plane-x", x=2.5)
-bot_x = mcdc.surface("plane-x", x=-2.5)
+top_z = mcdc.Surface.PlaneZ(z=2.5)
+bot_z = mcdc.Surface.PlaneZ(z=-2.5)
+top_x = mcdc.Surface.PlaneX(x=2.5)
+bot_x = mcdc.Surface.PlaneX(x=-2.5)
 
-sphere = mcdc.surface("sphere", center=[0.0, 0.0, 0.0], radius=3.0)
+sphere = mcdc.Surface.Sphere(center=[0.0, 0.0, 0.0], radius=3.0)
 
 # Cells
 pellet_z = -cylinder_z & +bot_z & -top_z
 pellet_x = -cylinder_x & +bot_x & -top_x
 shooting_star = pellet_z | pellet_x
-fuel_shooting_star = mcdc.cell(shooting_star, fuel)
-cover_sphere = mcdc.cell(-sphere & ~shooting_star, cover)
-water_tank = mcdc.cell(+sphere, water)
+fuel_shooting_star = mcdc.Cell(region=shooting_star, fill=fuel)
+cover_sphere = mcdc.Cell(region=-sphere & ~shooting_star, fill=cover)
+water_tank = mcdc.Cell(region=+sphere, fill=water)
 
 # =============================================================================
 # Copy the assembly via universe cells
@@ -55,19 +55,19 @@ water_tank = mcdc.cell(+sphere, water)
 assembly = mcdc.universe([fuel_shooting_star, cover_sphere, water_tank])
 
 # Set container cell surfaces
-min_x = mcdc.surface("plane-x", x=-10.0, bc="vacuum")
-mid_x = mcdc.surface("plane-x", x=0.0)
-max_x = mcdc.surface("plane-x", x=10.0, bc="vacuum")
-min_y = mcdc.surface("plane-y", y=-5.0, bc="vacuum")
-max_y = mcdc.surface("plane-y", y=5.0, bc="vacuum")
-min_z = mcdc.surface("plane-z", z=-5.0, bc="vacuum")
-max_z = mcdc.surface("plane-z", z=5.0, bc="vacuum")
+min_x = mcdc.Surface.PlaneX(x=-10.0, boundary_condition="vacuum")
+mid_x = mcdc.Surface.PlaneX(x=0.0)
+max_x = mcdc.Surface.PlaneX(x=10.0, boundary_condition="vacuum")
+min_y = mcdc.Surface.PlaneY(y=-5.0, boundary_condition="vacuum")
+max_y = mcdc.Surface.PlaneY(y=5.0, boundary_condition="vacuum")
+min_z = mcdc.Surface.PlaneZ(z=-5.0, boundary_condition="vacuum")
+max_z = mcdc.Surface.PlaneZ(z=5.0, boundary_condition="vacuum")
 
 # Make copies via universe cells
 container_left = +min_y & -max_y & +min_z & -max_z & +min_x & -mid_x
 container_right = +min_y & -max_y & +min_z & -max_z & +mid_x & -max_x
-assembly_left = mcdc.cell(container_left, assembly, (-5, 0, 0))
-assembly_right = mcdc.cell(container_right, assembly, (+5, 0, 0), (0, 10, 0))
+assembly_left = mcdc.Cell(region=container_left, fill=assembly, translation=[-5, 0, 0])
+assembly_right = mcdc.Cell(region=container_right, fill=assembly, translation=[+5, 0, 0], rotation=[0, 10, 0])
 
 # Root universe
 mcdc.universe([assembly_left, assembly_right], root=True)

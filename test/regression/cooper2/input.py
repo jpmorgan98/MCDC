@@ -16,19 +16,19 @@ SigmaT = 1.0
 m_room = mcdc.MaterialMG(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
 
 # Set surfaces
-sx1 = mcdc.surface("plane-x", x=0.0, bc="reflective")
-sx2 = mcdc.surface("plane-x", x=2.0)
-sx3 = mcdc.surface("plane-x", x=2.4)
-sx4 = mcdc.surface("plane-x", x=4.0, bc="vacuum")
-sy1 = mcdc.surface("plane-y", y=0.0, bc="reflective")
-sy2 = mcdc.surface("plane-y", y=2.0)
-sy3 = mcdc.surface("plane-y", y=4.0, bc="vacuum")
+sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="reflective")
+sx2 = mcdc.Surface.PlaneX(x=2.0)
+sx3 = mcdc.Surface.PlaneX(x=2.4)
+sx4 = mcdc.Surface.PlaneX(x=4.0, boundary_condition="vacuum")
+sy1 = mcdc.Surface.PlaneY(y=0.0, boundary_condition="reflective")
+sy2 = mcdc.Surface.PlaneY(y=2.0)
+sy3 = mcdc.Surface.PlaneY(y=4.0, boundary_condition="vacuum")
 
 # Set cells
-mcdc.cell(+sx1 & -sx2 & +sy1 & -sy2, m_room)
-mcdc.cell(+sx1 & -sx4 & +sy2 & -sy3, m_room)
-mcdc.cell(+sx3 & -sx4 & +sy1 & -sy2, m_room)
-mcdc.cell(+sx2 & -sx3 & +sy1 & -sy2, m_barrier)
+mcdc.Cell(region=+sx1 & -sx2 & +sy1 & -sy2, fill=m_room)
+mcdc.Cell(region=+sx1 & -sx4 & +sy2 & -sy3, fill=m_room)
+mcdc.Cell(region=+sx3 & -sx4 & +sy1 & -sy2, fill=m_room)
+mcdc.Cell(region=+sx2 & -sx3 & +sy1 & -sy2, fill=m_barrier)
 
 # =============================================================================
 # Set source

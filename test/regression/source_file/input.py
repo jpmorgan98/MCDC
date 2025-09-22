@@ -38,11 +38,11 @@ MPI.COMM_WORLD.Barrier()
 m = mcdc.MaterialMG(capture=np.array([0.1]), scatter=np.array([[0.9]]))
 
 # Set surfaces
-s1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
-s2 = mcdc.surface("plane-x", x=5.0, bc="vacuum")
+s1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="vacuum")
+s2 = mcdc.Surface.PlaneX(x=5.0, boundary_condition="vacuum")
 
 # Set cells
-mcdc.cell(+s1 & -s2, m)
+mcdc.Cell(region=+s1 & -s2, fill=m)
 
 
 # =============================================================================

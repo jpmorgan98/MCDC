@@ -13,11 +13,11 @@ import mcdc
 m = mcdc.MaterialMG(capture=np.array([1.0]))
 
 # Set surfaces
-s1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
-s2 = mcdc.surface("plane-x", x=5.0, bc="vacuum")
+s1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="vacuum")
+s2 = mcdc.Surface.PlaneX(x=5.0, boundary_condition="vacuum")
 
 # Set cells
-mcdc.cell(+s1 & -s2, m)
+mcdc.Cell(region=+s1 & -s2, fill=m)
 
 # =============================================================================
 # Set source

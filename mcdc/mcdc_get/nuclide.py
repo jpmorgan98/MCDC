@@ -2,13 +2,6 @@ from numba import njit
 
 
 @njit
-def from_material(index, material, mcdc, data):
-    offset = material["nuclide_index_offset"]
-    nuclide_ID = int(data[offset + index])
-    return mcdc["nuclides"][nuclide_ID]
-
-
-@njit
 def xs_energy_grid_length(nuclide):
     return int(nuclide["xs_energy_grid_length"])
 

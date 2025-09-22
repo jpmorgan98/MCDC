@@ -11,22 +11,22 @@ pure_f = mcdc.MaterialMG(fission=np.array([1.0]), nu_p=np.array([1.2]))
 pure_s = mcdc.MaterialMG(scatter=np.array([[1.0]]))
 
 # Set surfaces
-sx1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
-sx2 = mcdc.surface("plane-x", x=4.0, bc="vacuum")
-sy1 = mcdc.surface("plane-y", y=0.0, bc="vacuum")
-sy2 = mcdc.surface("plane-y", y=4.0, bc="vacuum")
-sz1 = mcdc.surface("plane-z", z=0.0, bc="vacuum")
-sz2 = mcdc.surface("plane-z", z=4.0, bc="vacuum")
-sphere = mcdc.surface("sphere", center=[2.0, 2.0, 2.0], radius=1.5)
+sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="vacuum")
+sx2 = mcdc.Surface.PlaneX(x=4.0, boundary_condition="vacuum")
+sy1 = mcdc.Surface.PlaneY(y=0.0, boundary_condition="vacuum")
+sy2 = mcdc.Surface.PlaneY(y=4.0, boundary_condition="vacuum")
+sz1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="vacuum")
+sz2 = mcdc.Surface.PlaneZ(z=4.0, boundary_condition="vacuum")
+sphere = mcdc.Surface.Sphere(center=[2.0, 2.0, 2.0], radius=1.5)
 inside_sphere = -sphere
 inside_box = +sx1 & -sx2 & +sy1 & -sy2 & +sz1 & -sz2
 
 # Set cells
 # Source
-mcdc.cell(inside_box & ~inside_sphere, pure_s)
+mcdc.Cell(region=inside_box & ~inside_sphere, fill=pure_s)
 
 # Sphere
-sphere_cell = mcdc.cell(inside_sphere, pure_f)
+sphere_cell = mcdc.Cell(region=inside_sphere, fill=pure_f)
 
 # =============================================================================
 # Set source

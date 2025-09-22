@@ -5,6 +5,8 @@ Surface operations based on the quadric equation:
 
 import math
 
+####
+
 from numba import njit
 
 import mcdc.geometry.surface.plane_x as plane_x
@@ -16,6 +18,7 @@ import mcdc.geometry.surface.cylinder_y as cylinder_y
 import mcdc.geometry.surface.cylinder_z as cylinder_z
 import mcdc.geometry.surface.sphere as sphere
 import mcdc.geometry.surface.quadric as quadric
+import mcdc.mcdc_get as mcdc_get
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
@@ -33,7 +36,7 @@ from mcdc.util import binary_search_with_length
 
 
 @njit
-def check_sense(particle_container, speed, surface):
+def check_sense(particle_container, speed, surface, data):
     """
     Check on which side of the surface the particle is
         - Return True if on positive side
@@ -41,13 +44,13 @@ def check_sense(particle_container, speed, surface):
     Particle direction and speed are used to tiebreak coincidence.
     """
     particle = particle_container[0]
-    result = evaluate(particle_container, surface)
+    result = evaluate(particle_container, surface, data)
 
     # Check if coincident on the surface
     if abs(result) < COINCIDENCE_TOLERANCE:
         # Determine sense based on the direction
         return (
-            get_normal_component(particle_container, speed, surface)
+            get_normal_component(particle_container, speed, surface, data)
             > 0.0  # TODO: Do we need to include COINCIDENCE TOLERANCE here?
         )
 
@@ -55,7 +58,7 @@ def check_sense(particle_container, speed, surface):
 
 
 @njit
-def evaluate(particle_container, surface):
+def evaluate(particle_container, surface, data):
     """
     Evaluate the surface equation wrt the particle coordinate
     """
@@ -65,8 +68,8 @@ def evaluate(particle_container, surface):
         x_original = particle["x"]
         y_original = particle["y"]
         z_original = particle["z"]
-        idx = _get_move_idx(particle["t"], surface)
-        _translate_particle_position(particle_container, surface, idx)
+        idx = _get_move_idx(particle["t"], surface, data)
+        _translate_particle_position(particle_container, surface, idx, data)
 
     if surface["linear"]:
         if surface["type"] == SURFACE_PLANE_X:
@@ -99,7 +102,7 @@ def evaluate(particle_container, surface):
 
 
 @njit
-def get_normal_component(particle_container, speed, surface):
+def get_normal_component(particle_container, speed, surface, data):
     """
     Get the surface outward-normal component of the particle
     This is the dot product of the particle and the surface outward-normal directions.
@@ -114,9 +117,9 @@ def get_normal_component(particle_container, speed, surface):
         ux_original = particle["ux"]
         uy_original = particle["uy"]
         uz_original = particle["uz"]
-        idx = _get_move_idx(particle["t"], surface)
-        _translate_particle_position(particle_container, surface, idx)
-        _translate_particle_direction(particle_container, speed, surface, idx)
+        idx = _get_move_idx(particle["t"], surface, data)
+        _translate_particle_position(particle_container, surface, idx, data)
+        _translate_particle_direction(particle_container, speed, surface, idx, data)
 
     if surface["linear"]:
         if surface["type"] == SURFACE_PLANE_X:
@@ -180,7 +183,7 @@ def reflect(particle_container, surface):
 
 
 @njit
-def get_distance(particle_container, speed, surface):
+def get_distance(particle_container, speed, surface, data):
     """
     Get particle distance to surface
 
@@ -188,7 +191,7 @@ def get_distance(particle_container, speed, surface):
     """
     particle = particle_container[0]
     if surface["moving"]:
-        return _get_distance_moving(particle_container, speed, surface)
+        return _get_distance_moving(particle_container, speed, surface, data)
     else:
         return _get_distance_static(particle_container, surface)
 
@@ -224,7 +227,7 @@ def _get_distance_static(particle_container, surface):
 
 
 @njit
-def _get_distance_moving(particle_container, speed, surface):
+def _get_distance_moving(particle_container, speed, surface, data):
     """
     Get particle distance to moving surface
     """
@@ -239,7 +242,7 @@ def _get_distance_moving(particle_container, speed, surface):
     t_original = particle["t"]
 
     # Move interval index
-    idx = _get_move_idx(particle["t"], surface)
+    idx = _get_move_idx(particle["t"], surface, data)
 
     # Distance accumulator
     total_distance = 0.0
@@ -247,15 +250,15 @@ def _get_distance_moving(particle_container, speed, surface):
     # Evaluate the current and the subsequent intervals until intersecting
     while idx < surface["N_move"]:
         # Translate particle position and direction
-        _translate_particle_position(particle_container, surface, idx)
-        _translate_particle_direction(particle_container, speed, surface, idx)
+        _translate_particle_position(particle_container, surface, idx, data)
+        _translate_particle_direction(particle_container, speed, surface, idx, data)
 
         # Get distance
         distance = _get_distance_static(particle_container, surface)
 
         # Intersection within the interval?
         distance_time = distance / speed
-        dt = surface["move_time_grid"][idx + 1] - particle["t"]
+        dt = mcdc_get.surface.move_time_grid(idx + 1, surface, data) - particle["t"]
         if distance_time < dt:
             # Restore particle parameters
             particle["x"] = x_original
@@ -279,7 +282,7 @@ def _get_distance_moving(particle_container, speed, surface):
         particle["ux"] = ux_original
         particle["uy"] = uy_original
         particle["uz"] = uz_original
-        particle["t"] = surface["move_time_grid"][idx + 1]
+        particle["t"] = mcdc_get.surface.move_time_grid(idx + 1, surface, data)
 
         # Check next interval
         idx += 1
@@ -303,12 +306,12 @@ def _get_distance_moving(particle_container, speed, surface):
 
 
 @njit
-def _get_move_idx(t, surface):
+def _get_move_idx(t, surface, data):
     """
     Get moving interval index wrt the given time
     """
     N_move = surface["N_move"]
-    time_grid = surface["move_time_grid"]
+    time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
     idx = binary_search_with_length(t, time_grid, N_move)
 
     # Coinciding cases
@@ -319,16 +322,16 @@ def _get_move_idx(t, surface):
 
 
 @njit
-def _translate_particle_position(particle_container, surface, idx):
+def _translate_particle_position(particle_container, surface, idx, data):
     """
     Translate particle position wrt the given surface moving interval index
     """
     particle = particle_container[0]
 
     # Surface move translations, velocities, and time grid
-    trans_0 = surface["move_translations"][idx]
-    time_0 = surface["move_time_grid"][idx]
-    V = surface["move_velocities"][idx]
+    trans_0 = mcdc_get.surface.move_translations_vector(idx, surface, data)
+    time_0 = mcdc_get.surface.move_time_grid(idx, surface, data)
+    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
 
     # Translate the particle
     t_local = particle["t"] - time_0
@@ -338,14 +341,14 @@ def _translate_particle_position(particle_container, surface, idx):
 
 
 @njit
-def _translate_particle_direction(particle_container, speed, surface, idx):
+def _translate_particle_direction(particle_container, speed, surface, idx, data):
     """
     Translate particle direction wrt the given surface moving interval index
     """
     particle = particle_container[0]
 
     # Surface move translations, velocities, and time grid
-    V = surface["move_velocities"][idx]
+    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
 
     # Translate the particle
     particle["ux"] -= V[0] / speed

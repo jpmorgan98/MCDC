@@ -43,18 +43,18 @@ pitch = 1.26
 radius = 0.54
 
 # Surfaces
-cy = mcdc.surface("cylinder-z", center=[0.0, 0.0], radius=radius)
+cy = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=radius)
 
 # Cells
-uo2 = mcdc.cell(-cy, mat_uo2)
-mox4 = mcdc.cell(-cy, mat_mox43)
-mox7 = mcdc.cell(-cy, mat_mox7)
-mox8 = mcdc.cell(-cy, mat_mox87)
-gt = mcdc.cell(-cy, mat_gt)
-fc = mcdc.cell(-cy, mat_fc)
-cr = mcdc.cell(-cy, mat_cr)
-mod = mcdc.cell(+cy, mat_mod)
-modi = mcdc.cell(-cy, mat_mod)  # For all-water lattice
+uo2 = mcdc.Cell(region=-cy, fill=mat_uo2)
+mox4 = mcdc.Cell(region=-cy, fill=mat_mox43)
+mox7 = mcdc.Cell(region=-cy, fill=mat_mox7)
+mox8 = mcdc.Cell(region=-cy, fill=mat_mox87)
+gt = mcdc.Cell(region=-cy, fill=mat_gt)
+fc = mcdc.Cell(region=-cy, fill=mat_fc)
+cr = mcdc.Cell(region=-cy, fill=mat_cr)
+mod = mcdc.Cell(region=+cy, fill=mat_mod)
+modi = mcdc.Cell(region=-cy, fill=mat_mod)  # For all-water lattice
 
 # Universes
 u = mcdc.universe([uo2, mod])
@@ -127,14 +127,14 @@ lattice_mod = mcdc.lattice(
 
 # Assembly cells
 # Surfaces
-x0 = mcdc.surface("plane-x", x=-pitch * 17 / 2)
-x1 = mcdc.surface("plane-x", x=pitch * 17 / 2)
-y0 = mcdc.surface("plane-y", y=-pitch * 17 / 2)
-y1 = mcdc.surface("plane-y", y=pitch * 17 / 2)
+x0 = mcdc.Surface.PlaneX(x=-pitch * 17 / 2)
+x1 = mcdc.Surface.PlaneX(x=pitch * 17 / 2)
+y0 = mcdc.Surface.PlaneY(y=-pitch * 17 / 2)
+y1 = mcdc.Surface.PlaneY(y=pitch * 17 / 2)
 # Cells
-assembly_uo2 = mcdc.cell(+x0 & -x1 & +y0 & -y1, lattice_uo2)
-assembly_mox = mcdc.cell(+x0 & -x1 & +y0 & -y1, lattice_mox)
-assembly_mod = mcdc.cell(+x0 & -x1 & +y0 & -y1, lattice_mod)
+assembly_uo2 = mcdc.Cell(region=+x0 & -x1 & +y0 & -y1, fill=lattice_uo2)
+assembly_mox = mcdc.Cell(region=+x0 & -x1 & +y0 & -y1, fill=lattice_mox)
+assembly_mod = mcdc.Cell(region=+x0 & -x1 & +y0 & -y1, fill=lattice_mod)
 
 # Set assemblies in their respective universes
 u_ = mcdc.universe([assembly_uo2])
@@ -154,14 +154,14 @@ lattice_core = mcdc.lattice(
 
 # Core cell
 # Surfaces
-x0_ = mcdc.surface("plane-x", x=0.0, bc="reflective")
-x1_ = mcdc.surface("plane-x", x=pitch * 17 * 3, bc="vacuum")
-y0_ = mcdc.surface("plane-y", y=-pitch * 17 * 3, bc="vacuum")
-y1_ = mcdc.surface("plane-y", y=0.0, bc="reflective")
+x0_ = mcdc.Surface.PlaneX(x=0.0, boundary_condition="reflective")
+x1_ = mcdc.Surface.PlaneX(x=pitch * 17 * 3, boundary_condition="vacuum")
+y0_ = mcdc.Surface.PlaneY(y=-pitch * 17 * 3, boundary_condition="vacuum")
+y1_ = mcdc.Surface.PlaneY(y=0.0, boundary_condition="reflective")
 # Cell
-core = mcdc.cell(
+core = mcdc.Cell(region=
     +x0_ & -x1_ & +y0_ & -y1_,
-    lattice_core,
+    fill=lattice_core,
     translation=[pitch * 17 * 3 / 2, -pitch * 17 * 3 / 2, 0.0],
 )
 

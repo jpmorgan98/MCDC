@@ -121,6 +121,7 @@ class Surface(ObjectNonSingleton):
         self.move_translations = np.zeros((2,3))
 
         # TODO: Surface tally
+        self.N_tally = 0
     
 
     def __repr__(self):

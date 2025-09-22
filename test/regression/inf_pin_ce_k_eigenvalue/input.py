@@ -30,16 +30,16 @@ water = mcdc.Material(
 )
 
 # Set surfaces
-cy = mcdc.surface("cylinder-z", center=[0.0, 0.0], radius=0.45720)
+cy = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=0.45720)
 pitch = 1.25984
-x1 = mcdc.surface("plane-x", x=-pitch / 2, bc="reflective")
-x2 = mcdc.surface("plane-x", x=pitch / 2, bc="reflective")
-y1 = mcdc.surface("plane-y", y=-pitch / 2, bc="reflective")
-y2 = mcdc.surface("plane-y", y=pitch / 2, bc="reflective")
+x1 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
+x2 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
+y1 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
+y2 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
 
 # Set cells
-mcdc.cell(-cy & +x1 & -x2 & +y1 & -y2, fuel)
-mcdc.cell(+cy & +x1 & -x2 & +y1 & -y2, water)
+mcdc.Cell(region=-cy & +x1 & -x2 & +y1 & -y2, fill=fuel)
+mcdc.Cell(region=+cy & +x1 & -x2 & +y1 & -y2, fill=water)
 
 # =============================================================================
 # Set source

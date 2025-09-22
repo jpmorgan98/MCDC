@@ -26,9 +26,9 @@ air = mcdc.MaterialMG(
 # =============================================================================
 
 # Surfaces
-cylinder_z = mcdc.surface("cylinder-z", center=[0.0, 0.0], radius=1.0)
-top_z = mcdc.surface("plane-z", z=9.0)
-bot_z = mcdc.surface("plane-z", z=6.0)
+cylinder_z = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)
+top_z = mcdc.Surface.PlaneZ(z=9.0)
+bot_z = mcdc.Surface.PlaneZ(z=6.0)
 
 # Move
 cylinder_z.move([[-0.5, 0.0, 0.0], [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0]], [2.0, 5.0, 1.0])
@@ -36,18 +36,18 @@ top_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.
 bot_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])
 
 # Set container cell surfaces
-min_x = mcdc.surface("plane-x", x=-5.0, bc="vacuum")
-max_x = mcdc.surface("plane-x", x=5.0, bc="vacuum")
-min_y = mcdc.surface("plane-y", y=-5.0, bc="vacuum")
-max_y = mcdc.surface("plane-y", y=5.0, bc="vacuum")
-min_z = mcdc.surface("plane-z", z=-10.0, bc="vacuum")
-max_z = mcdc.surface("plane-z", z=10.0, bc="vacuum")
+min_x = mcdc.Surface.PlaneX(x=-5.0, boundary_condition="vacuum")
+max_x = mcdc.Surface.PlaneX(x=5.0, boundary_condition="vacuum")
+min_y = mcdc.Surface.PlaneY(y=-5.0, boundary_condition="vacuum")
+max_y = mcdc.Surface.PlaneY(y=5.0, boundary_condition="vacuum")
+min_z = mcdc.Surface.PlaneZ(z=-10.0, boundary_condition="vacuum")
+max_z = mcdc.Surface.PlaneZ(z=10.0, boundary_condition="vacuum")
 
 # Make cells
 fuel_pellet_region = +bot_z & -top_z & -cylinder_z
-mcdc.cell(fuel_pellet_region, fuel)
-mcdc.cell(
-    ~fuel_pellet_region & +min_x & -max_x & +min_y & -max_y & +min_z & -max_z, air
+mcdc.Cell(region=fuel_pellet_region, fill=fuel)
+mcdc.Cell(region=
+    ~fuel_pellet_region & +min_x & -max_x & +min_y & -max_y & +min_z & -max_z, fill=air
 )
 
 # =============================================================================
