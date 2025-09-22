@@ -440,9 +440,9 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     # Iterate over all surfaces and find the minimum distance
     for i in range(cell['N_surface']):
         candidate_surface_ID = int(mcdc_get.cell.surface_index(i, cell, data))
-        print('surface ID', candidate_surface_ID)
         surface = mcdc["surfaces"][candidate_surface_ID]
         d = get_distance(particle_container, speed, surface, data)
+        print('surface ID', candidate_surface_ID, d)
         if d < distance:
             distance = d
             surface_ID = surface["ID"]

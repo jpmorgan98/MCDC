@@ -101,8 +101,8 @@ class Cell(ObjectNonSingleton):
             print_error(f"Unsupported cell fill: {fill}")
 
         # Local coordinate modifier
-        self.translation = np.array(translation)
-        self.rotation = np.array(rotation)
+        self.translation = np.array(translation, dtype=float)
+        self.rotation = np.array(rotation, dtype=float)
         self.fill_translated = False
         self.fill_rotated = False
         if (self.translation != 0.0).any():
