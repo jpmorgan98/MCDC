@@ -64,6 +64,7 @@ def inspect_geometry(particle_container, mcdc, data):
 
     # Recursively check cells until material cell is found (or the particle is lost)
     while event != EVENT_LOST:
+        print('cell ID', cell['ID'])
         # Distance to nearest surface
         d_surface, surface_ID = distance_to_nearest_surface(
             particle_container, cell, mcdc, data
@@ -439,6 +440,7 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     # Iterate over all surfaces and find the minimum distance
     for i in range(cell['N_surface']):
         candidate_surface_ID = int(mcdc_get.cell.surface_index(i, cell, data))
+        print('surface ID', candidate_surface_ID)
         surface = mcdc["surfaces"][candidate_surface_ID]
         d = get_distance(particle_container, speed, surface, data)
         if d < distance:
