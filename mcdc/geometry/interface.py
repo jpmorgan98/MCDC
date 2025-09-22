@@ -72,6 +72,7 @@ def inspect_geometry(particle_container, mcdc, data):
         # Check if smaller
         if d_surface < distance - COINCIDENCE_TOLERANCE:
             distance = d_surface
+            print('surface', distance)
             event = EVENT_SURFACE_CROSSING
             particle["surface_ID"] = surface_ID
 
@@ -120,6 +121,7 @@ def inspect_geometry(particle_container, mcdc, data):
                 # Check if smaller
                 if d_lattice < distance - COINCIDENCE_TOLERANCE:
                     distance = d_lattice
+                    print('lattice', distance)
                     event = EVENT_LATTICE_CROSSING
                     particle["surface_ID"] = -1
 
