@@ -2,6 +2,7 @@ import numpy as np
 
 ####
 
+from mcdc.cell import Region
 from mcdc.constant import (
     BC_NONE,
     BC_REFLECTIVE,
@@ -21,7 +22,62 @@ from mcdc.objects import ObjectNonSingleton
 
 
 class Surface(ObjectNonSingleton):
-    def __init__(self, type_, boundary_condition, name):
+    """
+    Geometric surface primitive with optional boundary condition and motion.
+
+    Surfaces are registered non-singletons and receive a stable ``ID``. Factory
+    constructors (:meth:`PlaneX`, :meth:`CylinderZ`, etc.) set the quadric
+    coefficients (A..J) and linearity flag. Motion segments can be defined with
+    :meth:`move`.
+
+    Parameters
+    ----------
+    type_ : int
+        One of ``SURFACE_*`` constants (e.g., ``SURFACE_PLANE_X``).
+    name : str
+        Optional label for reporting.
+    boundary_condition : {"none","vacuum","reflective"}
+        Boundary behavior at the surface.
+
+    Attributes
+    ----------
+    ID : int
+        Index in the global registry (assigned on construction).
+    type : int
+        Surface type code (``SURFACE_*``).
+    name : str
+        User label.
+    boundary_condition : int
+        One of ``BC_NONE``, ``BC_VACUUM``, ``BC_REFLECTIVE``.
+    A,B,C,D,E,F,G,H,I,J : float
+        Quadric coefficients defining the implicit surface.
+    linear : bool
+        True for linear (plane) surfaces; False for general quadrics.
+    nx, ny, nz : float
+        Outward normal components for linear planes.
+    moving : bool
+        True if :meth:`move` has been called.
+    N_move : int
+        Number of motion segments plus the final static segment.
+    move_velocities : (N_move, 3) ndarray
+        Per-segment velocity vectors.
+    move_durations : (N_move,) ndarray
+        Per-segment durations (s).
+    move_time_grid : (N_move+1,) ndarray
+        Cumulative time breakpoints.
+    move_translations : (N_move+1, 3) ndarray
+        Cumulative translations at each breakpoint.
+
+    See Also
+    --------
+    Region
+        Use unary ``+`` / ``-`` to form half-spaces: ``+surface`` or ``-surface``.
+    decode_type
+        Human-readable surface type.
+    decode_BC_type
+        Human-readable boundary condition name.
+    """
+    def __init__(self, type_, name, boundary_condition):
         label = "surface"
         super().__init__(label)
 
@@ -58,14 +114,24 @@ class Surface(ObjectNonSingleton):
 
         # Moving surface parameters
         self.moving = False
+        self.N_move = 1
+        self.move_velocities = np.zeros((1,3))
+        self.move_durations = np.array([INF])
         self.move_time_grid = np.array([0.0, INF])
-        self.move_translations = np.array([[0.0, 0.0, 0.0]])
-        self.move_velocities = np.array([0.0])
+        self.move_translations = np.zeros((2,3))
 
         # TODO: Surface tally
     
 
     def __repr__(self):
+        """
+        Return a human-readable description including type-specific parameters.
+
+        Returns
+        -------
+        str
+            Multi-line formatted string with ID, name, BC, and geometry details.
+        """
         text = "\n"
         text += f"{decode_type(self.type)}\n"
         text += f"  - ID: {self.ID}\n"
@@ -118,16 +184,30 @@ class Surface(ObjectNonSingleton):
 
         return text
 
-
     
     # ==================================================================================
     # Type-based creation methods
     # ==================================================================================
 
     @classmethod
-    def PlaneX(cls, x=0.0, boundary_condition='none', name=''):
+    def PlaneX(cls, name='', x=0.0, boundary_condition='none'):
+        """
+        Create a plane perpendicular to +x at x = constant.
+
+        Parameters
+        ----------
+        name : str, optional
+        x : float, default 0.0
+            Plane location (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Linear plane with normal ``(+1, 0, 0)``.
+        """
         type_ = SURFACE_PLANE_X
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
         
         surface.linear = True
         surface.G = 1.0
@@ -138,9 +218,24 @@ class Surface(ObjectNonSingleton):
 
 
     @classmethod
-    def PlaneY(cls, y=0.0, boundary_condition='none', name=''):
+    def PlaneY(cls, name='', y=0.0, boundary_condition='none'):
+        """
+        Create a plane perpendicular to +y at y = constant.
+
+        Parameters
+        ----------
+        name : str, optional
+        y : float, default 0.0
+            Plane location (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Linear plane with normal ``(0, +1, 0)``.
+        """
         type_ = SURFACE_PLANE_Y
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
         
         surface.linear = True
         surface.H = 1.0
@@ -151,9 +246,24 @@ class Surface(ObjectNonSingleton):
 
 
     @classmethod
-    def PlaneZ(cls, z=0.0, boundary_condition='none', name=''):
+    def PlaneZ(cls, name='', z=0.0, boundary_condition='none'):
+        """
+        Create a plane perpendicular to +z at z = constant.
+
+        Parameters
+        ----------
+        name : str, optional
+        z : float, default 0.0
+            Plane location (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Linear plane with normal ``(0, 0, +1)``.
+        """
         type_ = SURFACE_PLANE_Z
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
         
         surface.linear = True
         surface.I = 1.0
@@ -164,9 +274,26 @@ class Surface(ObjectNonSingleton):
    
 
     @classmethod
-    def Plane(cls, A=0.0, B=0.0, C=0.0, D=0.0, boundary_condition='none', name=''):
+    def Plane(cls, name='', A=0.0, B=0.0, C=0.0, D=0.0, boundary_condition='none'):
+        """
+        Create a general plane defined by A x + B y + C z + D = 0.
+
+        The normal is normalized to unit length and stored in ``(nx, ny, nz)``.
+
+        Parameters
+        ----------
+        name : str, optional
+        A, B, C, D : float
+            Plane coefficients.
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Linear plane with normalized normal vector.
+        """
         type_ = SURFACE_PLANE
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
 
         surface.linear = True
 
@@ -185,14 +312,32 @@ class Surface(ObjectNonSingleton):
 
         # Surface normal direction
         surface.nx = A
-        surface.nx = B
-        surface.nx = C
+        surface.ny = B
+        surface.nz = C
         return surface
 
+
     @classmethod
-    def CylinderX(cls, center=[0.0, 0.0], radius=1.0, boundary_condition='none', name=''):
+    def CylinderX(cls, name='', center=[0.0, 0.0], radius=1.0, boundary_condition='none'):
+        """
+        Create an infinite cylinder aligned with the x-axis.
+
+        Parameters
+        ----------
+        name : str, optional
+        center : (2,) array_like of float, default (0, 0)
+            Cylinder center in (y, z) (cm).
+        radius : float, default 1.0
+            Cylinder radius (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Quadratic cylinder surface.
+        """
         type_ = SURFACE_CYLINDER_X
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
 
@@ -208,10 +353,28 @@ class Surface(ObjectNonSingleton):
         surface.J = y**2 + z**2 - r**2
         return surface
 
+
     @classmethod
-    def CylinderY(cls, center=[0.0, 0.0], radius=1.0, boundary_condition='none', name=''):
+    def CylinderY(cls, name='', center=[0.0, 0.0], radius=1.0, boundary_condition='none'):
+        """
+        Create an infinite cylinder aligned with the y-axis.
+
+        Parameters
+        ----------
+        name : str, optional
+        center : (2,) array_like of float
+            Cylinder center in (x, z) (cm).
+        radius : float
+            Cylinder radius (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Quadratic cylinder surface.
+        """
         type_ = SURFACE_CYLINDER_Y
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
 
@@ -227,10 +390,28 @@ class Surface(ObjectNonSingleton):
         surface.J = x**2 + z**2 - r**2
         return surface
 
+
     @classmethod
-    def CylinderZ(cls, center=[0.0, 0.0], radius=1.0, boundary_condition='none', name=''):
+    def CylinderZ(cls, name='', center=[0.0, 0.0], radius=1.0, boundary_condition='none'):
+        """
+        Create an infinite cylinder aligned with the z-axis.
+
+        Parameters
+        ----------
+        name : str, optional
+        center : (2,) array_like of float
+            Cylinder center in (x, y) (cm).
+        radius : float
+            Cylinder radius (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Quadratic cylinder surface.
+        """
         type_ = SURFACE_CYLINDER_Z
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
         surface.linear = False
 
         # Center and radius
@@ -246,10 +427,28 @@ class Surface(ObjectNonSingleton):
  
         return surface
 
+
     @classmethod
-    def Sphere(cls, center=[0.0, 0.0, 0.0], radius=1.0, boundary_condition='none', name=''):
+    def Sphere(cls, name='', center=[0.0, 0.0, 0.0], radius=1.0, boundary_condition='none'):
+        """
+        Create a sphere.
+
+        Parameters
+        ----------
+        name : str, optional
+        center : (3,) array_like of float
+            Sphere center (x, y, z) in cm.
+        radius : float
+            Radius (cm).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Quadratic spherical surface.
+        """
         type_ = SURFACE_SPHERE
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
 
@@ -267,10 +466,27 @@ class Surface(ObjectNonSingleton):
         surface.J = x**2 + y**2 + z**2 - r**2
         return surface
 
+
     @classmethod
-    def Quadric(cls, A=0.0, B=0.0, C=0.0, D=0.0, E=0.0, F=0.0, G=0.0, H=0.0, I=0.0, J=0.0, boundary_condition='none', name=''):
+    def Quadric(cls, name='', A=0.0, B=0.0, C=0.0, D=0.0, E=0.0, F=0.0, G=0.0, H=0.0, I=0.0, J=0.0, boundary_condition='none'):
+        """
+        Create a general quadric:
+            A x^2 + B y^2 + C z^2 + D xy + E yz + F zx + G x + H y + I z + J = 0
+
+        Parameters
+        ----------
+        name : str, optional
+        A,B,C,D,E,F,G,H,I,J : float
+            Quadric coefficients.
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            General quadratic surface.
+        """
         type_ = SURFACE_QUADRIC
-        surface = cls(type_, boundary_condition, name)
+        surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
 
@@ -292,33 +508,27 @@ class Surface(ObjectNonSingleton):
     # Region building
     # ==================================================================================
 
-    def _create_halfspace(self, positive):
-        region = RegionCard("halfspace")
-        region.A = self.ID
-        if positive:
-            region.B = 1
-        else:
-            region.B = -1
-
-        # Check if an identical halfspace region already existed
-        for idx, existing_region in enumerate(global_.input_deck.regions):
-            if (
-                existing_region.type == "halfspace"
-                and region.A == existing_region.A
-                and region.B == existing_region.B
-            ):
-                return global_.input_deck.regions[idx]
-
-        # Set ID and push to deck
-        region.ID = len(global_.input_deck.regions)
-        global_.input_deck.regions.append(region)
-        return region
-
     def __pos__(self):
-        return self._create_halfspace(True)
+        """
+        Half-space on the **outward** side of the surface.
+
+        Returns
+        -------
+        Region
+            Region representing ``n · r + J >= 0`` (sign convention per type).
+        """
+        return Region.make_halfspace(self, +1)
 
     def __neg__(self):
-        return self._create_halfspace(False)
+        """
+        Half-space on the **inward** side of the surface.
+
+        Returns
+        -------
+        Region
+            Region representing the complement half-space.
+        """
+        return Region.make_halfspace(self, -1)
 
 
     # ==================================================================================
@@ -326,6 +536,32 @@ class Surface(ObjectNonSingleton):
     # ==================================================================================
 
     def move(self, velocities, durations):
+        """
+        Define piecewise-constant motion for the surface.
+
+        Appends a final static segment (zero velocity, infinite duration) so that
+        the motion covers the whole simulation time.
+
+        Parameters
+        ----------
+        velocities : array_like, shape (N, 3) or list
+            Per-segment velocity vectors [cm/s].
+        durations : array_like, shape (N,) or list
+            Per-segment durations [s].
+
+        Notes
+        -----
+        - Internally converts lists to arrays and constructs
+          ``move_time_grid`` and cumulative ``move_translations``.
+        - Sets ``moving=True`` and ``N_move = len(durations) + 1``.
+
+        Examples
+        --------
+        >>> s = Surface.PlaneZ(z=0.0)
+        >>> s.move(velocities=[[0,0,1.0]], durations=[0.5])  # 0.5 s upward, then static
+        >>> s.N_move
+        2
+        """
         self.moving = True
         self.N_move = len(durations) + 1
 
@@ -333,13 +569,24 @@ class Surface(ObjectNonSingleton):
             velocities = velocities.tolist()
             durations = durations.tolist()
 
+        # Add the statics for the rest of the simulation
         self.move_velocities = velocities
         self.move_velocities.append([0.0, 0.0, 0.0])
         self.move_velocities = np.array(self.move_velocities)
-
+        #
         self.move_durations = durations
         self.move_durations.append(INF)
         self.move_durations = np.array(self.move_durations)
+
+        # Set time grid and translations
+        self.move_time_grid = np.zeros(self.N_move + 1)
+        self.move_translations = np.zeros((self.N_move + 1, 3))
+        for n in range(self.N_move):
+            t_start = self.move_time_grid[n]
+            self.move_time_grid[n + 1] = t_start + self.move_durations[n]
+
+            trans_start = self.move_translations[n]
+            self.move_translations[n + 1] = trans_start + self.move_velocities[n] * self.move_durations[n]
 
 
 # ======================================================================================
