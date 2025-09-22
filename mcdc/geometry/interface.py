@@ -367,7 +367,6 @@ def check_cell(particle_container, cell, mcdc, data):
     N_token = mcdc_get.cell.region_RPN_tokens_length(cell)
     if N_token == 0:
         return True
-    RPN_tokens = mcdc_get.cell.region_RPN_tokens_all(cell, data)
 
     # Create local value array
     value = adapt.local_array(type_.rpn_buffer_size(), type_.bool_)
@@ -379,7 +378,7 @@ def check_cell(particle_container, cell, mcdc, data):
 
     # March forward through RPN tokens
     for idx in range(N_token):
-        token = int(RPN_tokens[idx])
+        token = int(mcdc_get.cell.region_RPN_tokens(idx, cell, data))
 
         if token >= 0:
             surface = mcdc["surfaces"][token]
