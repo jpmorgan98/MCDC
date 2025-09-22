@@ -24,3 +24,78 @@ def region_RPN_tokens_chunk(start, size, cell, data):
     start += cell["region_RPN_tokens_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def surface_index_length(cell):
+    return int(cell["surface_index_length"])
+
+
+@njit
+def surface_index_all(cell, data):
+    start = cell["surface_index_offset"]
+    end = start + cell["surface_index_length"]
+    return data[start:end]
+
+
+@njit
+def surface_index(index, cell, data):
+    offset = cell["surface_index_offset"]
+    return data[offset + index]
+
+
+@njit
+def surface_index_chunk(start, size, cell, data):
+    start += cell["surface_index_offset"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def translation_length(cell):
+    return int(cell["translation_length"])
+
+
+@njit
+def translation_all(cell, data):
+    start = cell["translation_offset"]
+    end = start + cell["translation_length"]
+    return data[start:end]
+
+
+@njit
+def translation(index, cell, data):
+    offset = cell["translation_offset"]
+    return data[offset + index]
+
+
+@njit
+def translation_chunk(start, size, cell, data):
+    start += cell["translation_offset"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def rotation_length(cell):
+    return int(cell["rotation_length"])
+
+
+@njit
+def rotation_all(cell, data):
+    start = cell["rotation_offset"]
+    end = start + cell["rotation_length"]
+    return data[start:end]
+
+
+@njit
+def rotation(index, cell, data):
+    offset = cell["rotation_offset"]
+    return data[offset + index]
+
+
+@njit
+def rotation_chunk(start, size, cell, data):
+    start += cell["rotation_offset"]
+    end = start + size
+    return data[start:end]

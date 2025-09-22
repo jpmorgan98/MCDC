@@ -5,7 +5,7 @@ import mcdc.config as config
 import mcdc.objects as objects
 import mcdc.physics as physics
 
-from mcdc.cell import Region
+from mcdc.cell import Region, Universe
 
 ########################################################################################
 
@@ -517,14 +517,8 @@ def prepare():
     # Create root universe if not defined
     # =========================================================================
 
-    if input_deck.universes[0] == None:
-        N_cell = len(objects.cells)
-        root_universe = UniverseCard()
-        root_universe.ID = 0
-        root_universe.cell_IDs = np.zeros(N_cell, int)
-        for i, cell in enumerate(objects.cells):
-            root_universe.cell_IDs[i] = cell.ID
-        input_deck.universes[0] = root_universe
+    if objects.universes[0] == None:
+        Universe(cells=objects.cells)
 
     # =========================================================================
     # Time census-based tally
@@ -584,29 +578,6 @@ def prepare():
             mcdc[f"{key}s"] = np.array(records[key], dtype=structures[key])
         else:
             mcdc[f"{key}"] = np.array(records[key], dtype=structures[key])
-
-    # =========================================================================
-    # Set universes
-    # =========================================================================
-
-    N_universe = len(input_deck.universes)
-    cell_data_idx = 0
-    for i in range(N_universe):
-        universe = mcdc["universes"][i]
-        universe_input = input_deck.universes[i]
-
-        # Directly transferables
-        for name in ["ID"]:
-            copy_field(universe, universe_input, name)
-
-        # Cells IDs
-        universe["cell_data_idx"] = cell_data_idx
-        universe["N_cell"] = len(universe_input.cell_IDs)
-        # Cell ID data
-        start = cell_data_idx
-        end = start + universe["N_cell"]
-        mcdc["universes_data_cell"][start:end] = universe_input.cell_IDs
-        cell_data_idx += universe["N_cell"]
 
     # =========================================================================
     # Lattices
@@ -1602,7 +1573,7 @@ def generate_hdf5(data_tally, mcdc):
                 # cardlist_to_h5group(objects.materials, input_group, "material")
                 # cardlist_to_h5group(input_deck.surfaces, input_group, "surface")
                 # cardlist_to_h5group(input_deck.cells, input_group, "cell")
-                cardlist_to_h5group(input_deck.universes, input_group, "universe")
+                # cardlist_to_h5group(input_deck.universes, input_group, "universe")
                 cardlist_to_h5group(input_deck.lattices, input_group, "lattice")
                 cardlist_to_h5group(input_deck.sources, input_group, "source")
                 cardlist_to_h5group(

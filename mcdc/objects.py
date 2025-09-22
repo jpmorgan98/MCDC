@@ -140,11 +140,12 @@ class ObjectBase:
     ObjectNonSingleton, ObjectPolymorphic, ObjectOverriding, ObjectSingleton
         Derived base types used throughout the codebase.
     """
-    def __init__(self, label):
+    def __init__(self, label, automatic_registration=True):
         self.label = label
         self.numbafied = False
         self.non_numba = ["non_numba", "label", "numbafied"]
-        register_object(self)
+        if automatic_registration:
+            register_object(self)
 
 
 class ObjectSingleton(ObjectBase):
@@ -198,9 +199,9 @@ class ObjectNonSingleton(ObjectBase):
     --------
     register_object : Dispatcher that determines the destination list.
     """
-    def __init__(self, label):
+    def __init__(self, label, automatic_registration=True):
         self.ID = -1
-        super().__init__(label)
+        super().__init__(label, automatic_registration)
         self.ID_numba = -1
         self.non_numba += ["ID", "ID_numba"]
 
@@ -227,8 +228,8 @@ class ObjectPolymorphic(ObjectNonSingleton):
     mcdc.reaction.ReactionBase : Example of a polymorphic hierarchy.
     mcdc.data_container.DataContainer : Another polymorphic family.
     """
-    def __init__(self, label, type_):
-        super().__init__(label)
+    def __init__(self, label, type_, automatic_registration=True):
+        super().__init__(label, automatic_registration)
         self.type = type_
         self.non_numba += ["type"]
 
@@ -255,8 +256,8 @@ class ObjectOverriding(ObjectPolymorphic):
     mcdc.material.Material, mcdc.material.MaterialMG
         Concrete overriding material types.
     """
-    def __init__(self, label, type_):
-        super().__init__(label, type_)
+    def __init__(self, label, type_, automatic_registration=True):
+        super().__init__(label, type_, automatic_registration)
 
 
 # The objects
@@ -267,6 +268,7 @@ data_containers = []    # Polymorphic (DataContainer and subclasses)
 surfaces = []           # Non-singleton (Surface)
 regions = []            # Non-singleton (Region)
 cells = []              # Non-singleton (Cell)
+universes = [None]      # Non-singleton (Universe); None as root universe placeholder
 settings = None         # Singleton (Settings)
 
 
@@ -313,7 +315,7 @@ def register_object(object_):
     from mcdc.nuclide import Nuclide
     from mcdc.reaction import ReactionBase
     from mcdc.surface import Surface
-    from mcdc.cell import Region, Cell
+    from mcdc.cell import Region, Cell, Universe
 
     global materials, nuclides, reactions, data_containers
 
@@ -331,6 +333,8 @@ def register_object(object_):
         object_list = regions
     elif isinstance(object_, Cell):
         object_list = cells
+    elif isinstance(object_, Universe):
+        object_list = universes
 
     if isinstance(object_, ObjectSingleton):
         object_list = object_

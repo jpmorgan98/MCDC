@@ -52,7 +52,7 @@ water_tank = mcdc.Cell(region=+sphere, fill=water)
 # =============================================================================
 
 # Set the universe
-assembly = mcdc.universe([fuel_shooting_star, cover_sphere, water_tank])
+assembly = mcdc.Universe(cells=[fuel_shooting_star, cover_sphere, water_tank])
 
 # Set container cell surfaces
 min_x = mcdc.Surface.PlaneX(x=-10.0, boundary_condition="vacuum")
@@ -70,7 +70,7 @@ assembly_left = mcdc.Cell(region=container_left, fill=assembly, translation=[-5,
 assembly_right = mcdc.Cell(region=container_right, fill=assembly, translation=[+5, 0, 0], rotation=[0, 10, 0])
 
 # Root universe
-mcdc.universe([assembly_left, assembly_right], root=True)
+mcdc.Universe(cells=[assembly_left, assembly_right], root=True)
 
 # =============================================================================
 # Set source

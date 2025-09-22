@@ -93,13 +93,14 @@ def inspect_geometry(particle_container, mcdc, data):
 
             # Apply translation
             if cell["fill_translated"]:
-                particle["x"] -= cell["translation"][0]
-                particle["y"] -= cell["translation"][1]
-                particle["z"] -= cell["translation"][2]
+                particle["x"] -= mcdc_get.cell.translation(0, cell, data)
+                particle["y"] -= mcdc_get.cell.translation(1, cell, data)
+                particle["z"] -= mcdc_get.cell.translation(2, cell, data)
+
 
             # Apply rotation
             if cell["fill_rotated"]:
-                _rotate_particle(particle_container, cell["rotation"])
+                _rotate_particle(particle_container, mcdc_get.cell.rotation_all(cell, data))
 
             # Universe cell?
             if cell["fill_type"] == FILL_UNIVERSE:
@@ -214,13 +215,13 @@ def locate_particle(particle_container, mcdc, data):
 
             # Apply translation
             if cell["fill_translated"]:
-                particle["x"] -= cell["translation"][0]
-                particle["y"] -= cell["translation"][1]
-                particle["z"] -= cell["translation"][2]
+                particle["x"] -= mcdc_get.cell.translation(0, cell, data)
+                particle["y"] -= mcdc_get.cell.translation(1, cell, data)
+                particle["z"] -= mcdc_get.cell.translation(2, cell, data)
 
             # Apply rotation
             if cell["fill_rotated"]:
-                _rotate_particle(particle_container, cell["rotation"])
+                _rotate_particle(particle_container, mcdc_get.cell.rotation_all(cell, data))
 
             # Universe cell?
             if cell["fill_type"] == FILL_UNIVERSE:
@@ -339,18 +340,12 @@ def get_cell(particle_container, universe_ID, mcdc, data):
     particle = particle_container[0]
     universe = mcdc["universes"][universe_ID]
 
-    # Access universe cell data
-    idx = universe["cell_data_idx"]
-    N_cell = universe["N_cell"]
-
     # Check over all cells in the universe
-    idx_end = idx + N_cell
-    while idx < idx_end:
-        cell_ID = mcdc["universes_data_cell"][idx]
+    for i in range(universe['N_cell']):
+        cell_ID = int(mcdc_get.universe.cell_index(i, universe, data))
         cell = mcdc["cells"][cell_ID]
         if check_cell(particle_container, cell, mcdc, data):
-            return cell["ID"]
-        idx += 1
+            return cell_ID
 
     # Particle is not found
     return -1
@@ -439,15 +434,15 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     material = mcdc["materials"][particle["material_ID"]]
     speed = physics.particle_speed(particle_container, material, data)
 
-    # Iterate over all surfaces
+    # Iterate over all surfaces and find the minimum distance
     for i in range(cell['N_surface']):
-        offset = cell["surface_index_offset"]
-        candidate_surface_ID = int(data[offset + i])
+        candidate_surface_ID = int(mcdc_get.cell.surface_index(i, cell, data))
         surface = mcdc["surfaces"][candidate_surface_ID]
         d = get_distance(particle_container, speed, surface, data)
         if d < distance:
             distance = d
             surface_ID = surface["ID"]
+
     return distance, surface_ID
 
 

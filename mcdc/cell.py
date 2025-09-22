@@ -5,7 +5,7 @@ import sympy
 ####
 
 from mcdc import objects
-from mcdc.constant import BOOL_AND, BOOL_NOT, BOOL_OR, FILL_MATERIAL
+from mcdc.constant import BOOL_AND, BOOL_NOT, BOOL_OR, FILL_MATERIAL, FILL_UNIVERSE
 from mcdc.material import MaterialBase
 from mcdc.objects import ObjectNonSingleton
 from mcdc.prints import print_error
@@ -93,6 +93,9 @@ class Cell(ObjectNonSingleton):
         self.non_numba += ['fill']
         if isinstance(fill, MaterialBase):
             self.fill_type = FILL_MATERIAL
+            self.fill_ID = fill.ID
+        elif isinstance(fill, Universe):
+            self.fill_type = FILL_UNIVERSE
             self.fill_ID = fill.ID
         else:
             print_error(f"Unsupported cell fill: {fill}")
@@ -208,3 +211,48 @@ def list_surfaces(rpn_tokens):
                 surfaces.append(surface)
 
     return sorted(surfaces, key=attrgetter("ID"))
+
+
+# ======================================================================================
+# Universe
+# ======================================================================================
+
+class Universe(ObjectNonSingleton):
+    def __init__(self, name='', cells=[], root=False):
+        # Custom treatment for root universe
+        label = "universe"
+        if not root:
+            super().__init__(label)
+        else:
+            super().__init__(label, automatic_registration=False)
+            objects.universes[0] = self
+            self.ID = 0
+
+        self.name = name
+        self.cells = cells
+    
+
+    def __repr__(self):
+        text = "\n"
+        text += f"Universe\n"
+        if self.ID == 0:
+            text += f"  - ID: {self.ID} (root)\n"
+        else:
+            text += f"  - ID: {self.ID}\n"
+        if self.name != '':
+            text += f"  - Name: {self.name}\n"
+        text += f"Cells: {[x.ID for x in self.cells]}"
+        return text
+
+
+# ======================================================================================
+# Lattice
+# ======================================================================================
+
+
+class Lattice(ObjectNonSingleton):
+    def __init__(self, name='', region=None, fill=None, translation=np.zeros(3), rotation=np.zeros(3)):
+        label = "cell"
+        super().__init__(label)
+
+        self.name = name

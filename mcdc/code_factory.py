@@ -140,6 +140,7 @@ def generate_numba_objects():
         + objects.reactions
         + objects.surfaces
         + objects.cells
+        + objects.universes
         + [objects.settings]
         + objects.data_containers
     )

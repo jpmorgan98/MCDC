@@ -316,21 +316,6 @@ def particle_bank(max_size):
 
 
 # ==============================================================================
-# Universe
-# ==============================================================================
-
-
-universe = into_dtype(
-    [
-        ("ID", int64),
-        # Cell IDs
-        ("N_cell", int64),
-        ("cell_data_idx", int64),
-    ]
-)
-
-
-# ==============================================================================
 # Lattice
 # ==============================================================================
 
@@ -1111,15 +1096,11 @@ def make_type_global(input_deck, structures, records):
 
     # Numbers of objects
     N_source = len(input_deck.sources)
-    N_universe = len(input_deck.universes)
     N_lattice = len(input_deck.lattices)
     N_mesh_tally = len(input_deck.mesh_tallies)
     N_surface_tally = len(input_deck.surface_tallies)
     N_cell_tally = len(input_deck.cell_tallies)
     N_cs_tally = len(input_deck.cs_tallies)
-
-    # Universe data sizes
-    N_universe_cell = sum([len(x.cell_IDs) for x in input_deck.universes])
 
     # Simulation parameters
     settings = objects.settings
@@ -1178,8 +1159,6 @@ def make_type_global(input_deck, structures, records):
             global_structure += [(f"{key}", structures[key])]
     global_structure += [
         # Universes
-        ("universes", universe, (N_universe,)),
-        ("universes_data_cell", int64, (N_universe_cell,)),
         ("lattices", lattice, (N_lattice,)),
         ("sources", source, (N_source,)),
         ("mesh_tallies", mesh_tally, (N_mesh_tally,)),

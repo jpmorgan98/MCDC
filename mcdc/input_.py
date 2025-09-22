@@ -33,54 +33,6 @@ from mcdc.constant import (
     WW_WOLLABER,
 )
 
-def universe(cells, root=False):
-    """
-    Define a list of cells as a universe.
-
-    Parameters
-    ----------
-    cells : list of CellCard
-        List of cells that comprise the universe.
-    root : bool
-        Flag to edit the root universe
-
-    Returns
-    -------
-    UniverseCard
-        The universe card
-
-    See also
-    --------
-    mcdc.cell : Creates a cell that can be used to define a universe.
-    """
-
-    # Edit root universe
-    if root:
-        # Create and replace placeholder if root is not yet created
-        if global_.input_deck.universes[0] == None:
-            card = UniverseCard()
-            card.ID = 0
-            global_.input_deck.universes[0] = card
-        else:
-            card = global_.input_deck.universes[0]
-
-    # Create new universe
-    else:
-        card = UniverseCard()
-        card.ID = len(global_.input_deck.universes)
-
-    # Cells
-    N_cell = len(cells)
-    card.cell_IDs = np.zeros(N_cell, dtype=int)
-    for i in range(N_cell):
-        card.cell_IDs[i] = cells[i].ID
-
-    # Push card
-    if not root:
-        global_.input_deck.universes.append(card)
-
-    return card
-
 
 def lattice(x=None, y=None, z=None, universes=None):
     """

@@ -51,8 +51,14 @@ targets = {
         ("pdf", 1),
         ("cdf", 1),
     ],
+    "universe": [
+        ("cell_index", 1),
+    ],
     "cell": [
         ("region_RPN_tokens", 1),
+        ("surface_index", 1),
+        ("translation", 1),
+        ("rotation", 1),
     ],
     "surface": [
         ("move_time_grid", 1),
