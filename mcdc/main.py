@@ -499,12 +499,9 @@ def generate_cs_centers(mcdc, N_dim=3, seed=123456789):
 
 
 def prepare():
-    """
-    Preparing the MC transport simulation:
-      (1) Adapt kernels
-      (2) Make types
-      (3) Create and set up global variable container `mcdc`
-    """
+    # Create root universe if not defined
+    if objects.universes[0] == None:
+        Universe(cells=objects.cells, root=True)
 
     # Generate Numba-supported "Objects"
     data, structures, records = code_factory.generate_numba_objects()
@@ -512,13 +509,6 @@ def prepare():
     settings = objects.settings
 
     prepare_domain_decomposition()
-
-    # =========================================================================
-    # Create root universe if not defined
-    # =========================================================================
-
-    if objects.universes[0] == None:
-        Universe(cells=objects.cells)
 
     # =========================================================================
     # Time census-based tally
