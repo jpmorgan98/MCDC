@@ -95,9 +95,12 @@ def inspect_geometry(particle_container, mcdc, data):
 
             # Apply translation
             if cell["fill_translated"]:
+                print('translated')
+                print('  before', particle['x'], particle['y'], particle['z'])
                 particle["x"] -= mcdc_get.cell.translation(0, cell, data)
                 particle["y"] -= mcdc_get.cell.translation(1, cell, data)
                 particle["z"] -= mcdc_get.cell.translation(2, cell, data)
+                print('  after', particle['x'], particle['y'], particle['z'])
 
 
             # Apply rotation
