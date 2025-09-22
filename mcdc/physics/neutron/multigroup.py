@@ -120,11 +120,14 @@ def collision(particle_container, prog, data):
     total = SigmaS
     if total > xi:
         scattering(particle_container, prog, data)
+        print('scattering')
     else:
         total += SigmaF
         if total > xi:
             fission(particle_container, prog, data)
+            print('fission')
         else:
+            print('capture')
             particle["alive"] = False
 
 

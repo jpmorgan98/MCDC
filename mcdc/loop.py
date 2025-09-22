@@ -589,7 +589,9 @@ def loop_particle(P_arr, data_tally, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     while P["alive"]:
+        print('\nstart', P['x'], P['ux'])
         step_particle(P_arr, data_tally, prog, data)
+        print('end', P['x'], P['ux'])
 
 
 @njit
@@ -606,10 +608,12 @@ def step_particle(P_arr, data_tally, prog, data):
 
     # Collision
     if P["event"] & EVENT_COLLISION:
+        print('collision')
         physics.collision(P_arr, prog, data)
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
+        print('surface crossing')
         geometry.surface_crossing(P_arr, data_tally, prog, data)
         if P["event"] & EVENT_DOMAIN_CROSSING:
             if mcdc["surfaces"][P["surface_ID"]]["BC"] == BC_NONE:
