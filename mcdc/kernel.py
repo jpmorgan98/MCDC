@@ -2670,8 +2670,6 @@ def move_to_event(P_arr, data_tally, mcdc, data):
     # Move particle
     # =========================================================================
     
-    print('distances', d_boundary, d_collision)
-
     # Score tracklength tallies
     if mcdc["cycle_active"]:
         # Mesh tallies

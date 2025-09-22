@@ -5,7 +5,7 @@ import sympy
 ####
 
 from mcdc import objects
-from mcdc.constant import BOOL_AND, BOOL_NOT, BOOL_OR, FILL_MATERIAL, FILL_UNIVERSE
+from mcdc.constant import BOOL_AND, BOOL_NOT, BOOL_OR, FILL_MATERIAL, FILL_UNIVERSE, PI
 from mcdc.material import MaterialBase
 from mcdc.objects import ObjectNonSingleton
 from mcdc.prints import print_error
@@ -109,6 +109,8 @@ class Cell(ObjectNonSingleton):
             self.fill_translated = True
         if (self.rotation != 0.0).any():
             self.fill_rotated = True
+            # Convert ritation
+            self.rotation *= PI / 180.0
 
         # Set region Reversed Polished Notation (RPN)
         if self.region.type != 'all':
@@ -133,13 +135,13 @@ class Cell(ObjectNonSingleton):
         text += f"  - ID: {self.ID}\n"
         if self.name != '':
             text += f"  - Name: {self.name}\n"
-        text += f"  - Region: {self.region}\n"
+        text += f"  - {self.region}\n"
         if isinstance(self.fill, MaterialBase):
             text += f"  - Fill: Material [ID: {self.fill.ID}]\n"
         if self.fill_translated:
             text += f"  - Translation: {self.translation}\n"
         if self.fill_rotated:
-            text += f"  - Rotation: {self.rotation}\n"
+            text += f"  - Rotation: {self.rotation * 180 / PI}\n"
         text += f"Bounding surfaces: {[x.ID for x in self.surfaces]}"
         return text
 

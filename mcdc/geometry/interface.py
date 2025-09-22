@@ -64,7 +64,6 @@ def inspect_geometry(particle_container, mcdc, data):
 
     # Recursively check cells until material cell is found (or the particle is lost)
     while event != EVENT_LOST:
-        print('cell ID', cell['ID'])
         # Distance to nearest surface
         d_surface, surface_ID = distance_to_nearest_surface(
             particle_container, cell, mcdc, data
@@ -73,7 +72,6 @@ def inspect_geometry(particle_container, mcdc, data):
         # Check if smaller
         if d_surface < distance - COINCIDENCE_TOLERANCE:
             distance = d_surface
-            print('surface', distance)
             event = EVENT_SURFACE_CROSSING
             particle["surface_ID"] = surface_ID
 
@@ -95,12 +93,9 @@ def inspect_geometry(particle_container, mcdc, data):
 
             # Apply translation
             if cell["fill_translated"]:
-                print('translated')
-                print('  before', particle['x'], particle['y'], particle['z'])
                 particle["x"] -= mcdc_get.cell.translation(0, cell, data)
                 particle["y"] -= mcdc_get.cell.translation(1, cell, data)
                 particle["z"] -= mcdc_get.cell.translation(2, cell, data)
-                print('  after', particle['x'], particle['y'], particle['z'])
 
 
             # Apply rotation
@@ -125,7 +120,6 @@ def inspect_geometry(particle_container, mcdc, data):
                 # Check if smaller
                 if d_lattice < distance - COINCIDENCE_TOLERANCE:
                     distance = d_lattice
-                    print('lattice', distance)
                     event = EVENT_LATTICE_CROSSING
                     particle["surface_ID"] = -1
 
@@ -445,7 +439,6 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
         candidate_surface_ID = int(mcdc_get.cell.surface_index(i, cell, data))
         surface = mcdc["surfaces"][candidate_surface_ID]
         d = get_distance(particle_container, speed, surface, data)
-        print('surface ID', candidate_surface_ID, d)
         if d < distance:
             distance = d
             surface_ID = surface["ID"]
