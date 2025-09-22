@@ -102,3 +102,9 @@ def print_runtime(mcdc):
     print_time("Output     ", output, output / total * 100)
     print("\n")
     sys.stdout.flush()
+
+
+def print_structure(struct):
+    dtype = struct.dtype
+    for name in dtype.names:
+        print(f"{name} = {struct[name]}")

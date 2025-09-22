@@ -5,6 +5,8 @@ import mcdc.config as config
 import mcdc.objects as objects
 import mcdc.physics as physics
 
+from mcdc.cell import Region
+
 ########################################################################################
 
 import importlib.metadata
@@ -516,31 +518,13 @@ def prepare():
     # =========================================================================
 
     if input_deck.universes[0] == None:
-        N_cell = len(input_deck.cells)
+        N_cell = len(objects.cells)
         root_universe = UniverseCard()
         root_universe.ID = 0
         root_universe.cell_IDs = np.zeros(N_cell, int)
-        for i, cell in enumerate(input_deck.cells):
+        for i, cell in enumerate(objects.cells):
             root_universe.cell_IDs[i] = cell.ID
         input_deck.universes[0] = root_universe
-
-    # =========================================================================
-    # Prepare cell region RPN (Reverse Polish Notation)
-    #   - Replace halfspace region ID with its surface and insert
-    #     complement operator if the sense is negative.
-    # =========================================================================
-
-    for cell in input_deck.cells:
-        i = 0
-        while i < len(cell._region_RPN):
-            token = cell._region_RPN[i]
-            if token >= 0:
-                surface_ID = input_deck.regions[token].A
-                sense = input_deck.regions[token].B
-                cell._region_RPN[i] = surface_ID
-                if sense < 0:
-                    cell._region_RPN.insert(i + 1, BOOL_NOT)
-            i += 1
 
     # =========================================================================
     # Time census-based tally
@@ -563,10 +547,9 @@ def prepare():
     # Make types
     # =========================================================================
 
+    type_.make_size_rpn(objects.cells)
     type_.make_type_particle(input_deck)
     type_.make_type_particle_record(input_deck)
-    type_.make_type_surface(input_deck)
-    type_.make_type_cell(input_deck)
     type_.make_type_lattice(input_deck)
     type_.make_type_source(input_deck)
     type_.make_type_mesh_tally(input_deck)
@@ -578,7 +561,6 @@ def prepare():
     type_.make_type_dd_turnstile_event(input_deck)
     type_.make_type_technique(input_deck)
     type_.make_type_global(input_deck, structures, records)
-    type_.make_size_rpn(input_deck)
     kernel.adapt_rng(nb.config.DISABLE_JIT)
 
     settings.target_gpu = True if config.target == "gpu" else False
@@ -602,142 +584,6 @@ def prepare():
             mcdc[f"{key}s"] = np.array(records[key], dtype=structures[key])
         else:
             mcdc[f"{key}"] = np.array(records[key], dtype=structures[key])
-
-    # =========================================================================
-    # Surfaces
-    # =========================================================================
-
-    N_surface = len(input_deck.surfaces)
-    for i in range(N_surface):
-        surface = mcdc["surfaces"][i]
-        surface_input = input_deck.surfaces[i]
-
-        # Direct assignment
-        for name in type_.surface.names:
-            if name not in [
-                "type",
-                "BC",
-                "tally_IDs",
-                "move_velocities",
-                "move_translations",
-                "move_time_grid",
-            ]:
-                copy_field(surface, surface_input, name)
-
-        # Type
-        if surface_input.type == "plane-x":
-            surface["type"] = SURFACE_LINEAR
-            surface["type"] += SURFACE_PLANE_X
-        elif surface_input.type == "plane-y":
-            surface["type"] = SURFACE_LINEAR
-            surface["type"] += SURFACE_PLANE_Y
-        elif surface_input.type == "plane-z":
-            surface["type"] = SURFACE_LINEAR
-            surface["type"] += SURFACE_PLANE_Z
-        elif surface_input.type == "plane":
-            surface["type"] = SURFACE_LINEAR
-            surface["type"] += SURFACE_PLANE
-        elif surface_input.type == "cylinder-x":
-            surface["type"] = SURFACE_QUADRATIC
-            surface["type"] += SURFACE_CYLINDER_X
-        elif surface_input.type == "cylinder-y":
-            surface["type"] = SURFACE_QUADRATIC
-            surface["type"] += SURFACE_CYLINDER_Y
-        elif surface_input.type == "cylinder-z":
-            surface["type"] = SURFACE_QUADRATIC
-            surface["type"] += SURFACE_CYLINDER_Z
-        elif surface_input.type == "sphere":
-            surface["type"] = SURFACE_QUADRATIC
-            surface["type"] += SURFACE_SPHERE
-        elif surface_input.type == "quadric":
-            surface["type"] = SURFACE_QUADRATIC
-            surface["type"] += SURFACE_SPHERE
-
-        # Boundary condition
-        if input_deck.surfaces[i].boundary_type == "interface":
-            mcdc["surfaces"][i]["BC"] = BC_NONE
-        elif input_deck.surfaces[i].boundary_type == "vacuum":
-            mcdc["surfaces"][i]["BC"] = BC_VACUUM
-        elif input_deck.surfaces[i].boundary_type == "reflective":
-            mcdc["surfaces"][i]["BC"] = BC_REFLECTIVE
-
-        # Variables with possible different sizes
-        for name in ["tally_IDs"]:
-            N = len(getattr(input_deck.surfaces[i], name))
-            mcdc["surfaces"][i][name][:N] = getattr(input_deck.surfaces[i], name)
-
-        # Moves
-        if surface["moving"]:
-            for n in range(surface["N_move"]):
-                duration = surface_input.move_durations[n]
-                velocity = surface_input.move_velocities[n]
-
-                surface["move_velocities"][n] = velocity
-
-                t_start = surface["move_time_grid"][n]
-                surface["move_time_grid"][n + 1] = t_start + duration
-
-                trans_start = surface["move_translations"][n]
-                surface["move_translations"][n + 1] = trans_start + velocity * duration
-
-    # =========================================================================
-    # Set cells
-    # =========================================================================
-
-    N_cell = len(input_deck.cells)
-    surface_data_idx = 0
-    region_data_idx = 0
-    for i in range(N_cell):
-        cell = mcdc["cells"][i]
-        cell_input = input_deck.cells[i]
-
-        # Directly transferables
-        for name in ["ID", "fill_ID", "translation", "rotation", "N_tally"]:
-            copy_field(cell, cell_input, name)
-
-        # Fill type
-        if cell_input.fill_type == "material":
-            cell["fill_type"] = FILL_MATERIAL
-        elif cell_input.fill_type == "universe":
-            cell["fill_type"] = FILL_UNIVERSE
-        elif cell_input.fill_type == "lattice":
-            cell["fill_type"] = FILL_LATTICE
-
-        # Fill translation
-        if np.max(np.abs(cell["translation"])) > 0.0:
-            cell["fill_translated"] = True
-
-        # Fill rotation
-        if np.max(np.abs(cell["rotation"])) > 0.0:
-            cell["fill_rotated"] = True
-
-            # Convert rotation
-            cell["rotation"][0] *= PI / 180.0
-            cell["rotation"][1] *= PI / 180.0
-            cell["rotation"][2] *= PI / 180.0
-
-        # Surface IDs
-        cell["surface_data_idx"] = surface_data_idx
-        cell["N_surface"] = len(cell_input.surface_IDs)
-        # The data
-        start = surface_data_idx
-        end = start + cell["N_surface"]
-        mcdc["cells_data_surface"][start:end] = cell_input.surface_IDs
-        surface_data_idx += cell["N_surface"]
-
-        # Region RPN tokens
-        cell["region_data_idx"] = region_data_idx
-        cell["N_region"] = len(cell_input._region_RPN)
-        # The data
-        start = region_data_idx
-        end = start + cell["N_region"]
-        mcdc["cells_data_region"][start:end] = cell_input._region_RPN
-        region_data_idx += cell["N_region"]
-
-        # Variables with possible different sizes
-        for name in ["tally_IDs"]:
-            N = len(getattr(input_deck.cells[i], name))
-            mcdc["cells"][i][name][:N] = getattr(input_deck.cells[i], name)
 
     # =========================================================================
     # Set universes

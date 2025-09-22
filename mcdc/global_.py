@@ -25,9 +25,7 @@ class InputDeck:
         self.reset()
 
     def reset(self):
-        self.surfaces = []
         self.regions = []
-        self.cells = []
         self.universes = [None]  # Placeholder for the root universe
         self.lattices = []
         self.sources = []

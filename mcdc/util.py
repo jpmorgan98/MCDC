@@ -97,3 +97,7 @@ def cdf_from_pdf(offset, value, pdf):
         cdf[start:end] /= norm
 
     return pdf, cdf
+
+
+def is_sorted(a):
+    return np.all(a[:-1] <= a[1:])

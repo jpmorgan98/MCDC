@@ -2675,7 +2675,7 @@ def move_to_event(P_arr, data_tally, mcdc, data):
         # Mesh tallies
         for tally in mcdc["mesh_tallies"]:
             score_mesh_tally(P_arr, distance, tally, data_tally, mcdc, data)
-
+        '''
         # Cell tallies
         cell = mcdc["cells"][P["cell_ID"]]
         for i in range(cell["N_tally"]):
@@ -2687,6 +2687,7 @@ def move_to_event(P_arr, data_tally, mcdc, data):
         # HAZARD
         for tally in mcdc["cs_tallies"]:
             score_cs_tally(P_arr, distance, tally, data_tally, mcdc, data)
+        '''
 
     if settings["eigenvalue_mode"]:
         eigenvalue_tally(P_arr, distance, mcdc, data)

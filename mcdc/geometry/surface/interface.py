@@ -20,8 +20,6 @@ import mcdc.geometry.surface.quadric as quadric
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
-    SURFACE_LINEAR,
-    SURFACE_QUADRIC,
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
     SURFACE_PLANE_Z,
@@ -30,7 +28,6 @@ from mcdc.constant import (
     SURFACE_CYLINDER_Y,
     SURFACE_CYLINDER_Z,
     SURFACE_SPHERE,
-    SURFACE_QUADRIC,
 )
 from mcdc.util import binary_search_with_length
 
@@ -71,23 +68,23 @@ def evaluate(particle_container, surface):
         idx = _get_move_idx(particle["t"], surface)
         _translate_particle_position(particle_container, surface, idx)
 
-    if surface["type"] & SURFACE_LINEAR:
-        if surface["type"] & SURFACE_PLANE_X:
+    if surface["linear"]:
+        if surface["type"] == SURFACE_PLANE_X:
             result = plane_x.evaluate(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Y:
+        elif surface["type"] == SURFACE_PLANE_Y:
             result = plane_y.evaluate(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Z:
+        elif surface["type"] == SURFACE_PLANE_Z:
             result = plane_z.evaluate(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE:
+        elif surface["type"] == SURFACE_PLANE:
             result = plane.evaluate(particle_container, surface)
     else:
-        if surface["type"] & SURFACE_CYLINDER_X:
+        if surface["type"] == SURFACE_CYLINDER_X:
             result = cylinder_x.evaluate(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Y:
+        elif surface["type"] == SURFACE_CYLINDER_Y:
             result = cylinder_y.evaluate(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Z:
+        elif surface["type"] == SURFACE_CYLINDER_Z:
             result = cylinder_z.evaluate(particle_container, surface)
-        elif surface["type"] & SURFACE_SPHERE:
+        elif surface["type"] == SURFACE_SPHERE:
             result = sphere.evaluate(particle_container, surface)
         else:
             result = quadric.evaluate(particle_container, surface)
@@ -121,23 +118,23 @@ def get_normal_component(particle_container, speed, surface):
         _translate_particle_position(particle_container, surface, idx)
         _translate_particle_direction(particle_container, speed, surface, idx)
 
-    if surface["type"] & SURFACE_LINEAR:
-        if surface["type"] & SURFACE_PLANE_X:
+    if surface["linear"]:
+        if surface["type"] == SURFACE_PLANE_X:
             result = plane_x.get_normal_component(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Y:
+        elif surface["type"] == SURFACE_PLANE_Y:
             result = plane_y.get_normal_component(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Z:
+        elif surface["type"] == SURFACE_PLANE_Z:
             result = plane_z.get_normal_component(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE:
+        elif surface["type"] == SURFACE_PLANE:
             result = plane.get_normal_component(particle_container, surface)
     else:
-        if surface["type"] & SURFACE_CYLINDER_X:
+        if surface["type"] == SURFACE_CYLINDER_X:
             result = cylinder_x.get_normal_component(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Y:
+        elif surface["type"] == SURFACE_CYLINDER_Y:
             result = cylinder_y.get_normal_component(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Z:
+        elif surface["type"] == SURFACE_CYLINDER_Z:
             result = cylinder_z.get_normal_component(particle_container, surface)
-        elif surface["type"] & SURFACE_SPHERE:
+        elif surface["type"] == SURFACE_SPHERE:
             result = sphere.get_normal_component(particle_container, surface)
         else:
             result = quadric.get_normal_component(particle_container, surface)
@@ -160,23 +157,23 @@ def reflect(particle_container, surface):
     Reflect the particle off the surface
     """
     particle = particle_container[0]
-    if surface["type"] & SURFACE_LINEAR:
-        if surface["type"] & SURFACE_PLANE_X:
+    if surface["linear"]:
+        if surface["type"] == SURFACE_PLANE_X:
             return plane_x.reflect(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Y:
+        elif surface["type"] == SURFACE_PLANE_Y:
             return plane_y.reflect(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Z:
+        elif surface["type"] == SURFACE_PLANE_Z:
             return plane_z.reflect(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE:
+        elif surface["type"] == SURFACE_PLANE:
             return plane.reflect(particle_container, surface)
     else:
-        if surface["type"] & SURFACE_CYLINDER_X:
+        if surface["type"] == SURFACE_CYLINDER_X:
             return cylinder_x.reflect(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Y:
+        elif surface["type"] == SURFACE_CYLINDER_Y:
             return cylinder_y.reflect(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Z:
+        elif surface["type"] == SURFACE_CYLINDER_Z:
             return cylinder_z.reflect(particle_container, surface)
-        elif surface["type"] & SURFACE_SPHERE:
+        elif surface["type"] == SURFACE_SPHERE:
             return sphere.reflect(particle_container, surface)
         else:
             return quadric.reflect(particle_container, surface)
@@ -202,25 +199,25 @@ def _get_distance_static(particle_container, surface):
     Get particle distance to static surface
     """
     particle = particle_container[0]
-    if surface["type"] & SURFACE_LINEAR:
-        if surface["type"] & SURFACE_PLANE_X:
+    if surface["linear"]:
+        if surface["type"] == SURFACE_PLANE_X:
             return plane_x.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Y:
+        elif surface["type"] == SURFACE_PLANE_Y:
             return plane_y.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE_Z:
+        elif surface["type"] == SURFACE_PLANE_Z:
             return plane_z.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE:  # SHOULD BE REVIEWED
+        elif surface["type"] == SURFACE_PLANE: # SHOULD BE REVIEWED
             return plane.get_distance(particle_container, surface)
         else:
             return INF
     else:
-        if surface["type"] & SURFACE_CYLINDER_X:
+        if surface["type"] == SURFACE_CYLINDER_X:
             return cylinder_x.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Y:
+        elif surface["type"] == SURFACE_CYLINDER_Y:
             return cylinder_y.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_CYLINDER_Z:
+        elif surface["type"] == SURFACE_CYLINDER_Z:
             return cylinder_z.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_SPHERE:
+        elif surface["type"] == SURFACE_SPHERE:
             return sphere.get_distance(particle_container, surface)
         else:
             return quadric.get_distance(particle_container, surface)

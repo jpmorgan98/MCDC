@@ -74,9 +74,9 @@ def rpn_buffer_size():
     pass
 
 
-def make_size_rpn(input_deck):
+def make_size_rpn(cells):
     global rpn_buffer_size
-    size = max([np.sum(np.array(x._region_RPN) >= 0.0) for x in input_deck.cells])
+    size = max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in cells])
     rpn_buffer_size = literalize(size)
 
 
@@ -311,87 +311,6 @@ def particle_bank(max_size):
             ("particles", particle_record, (max_size,)),
             ("size", int64, (1,)),
             ("tag", str_),
-        ]
-    )
-
-
-# ==============================================================================
-# Surface
-# ==============================================================================
-
-
-def make_type_surface(input_deck):
-    global surface
-
-    # Maximum number of tallies and movements
-    Nmax_tally = 0
-    Nmax_move = 0
-    for surface in input_deck.surfaces:
-        Nmax_tally = max(Nmax_tally, surface.N_tally)
-        Nmax_move = max(Nmax_move, surface.N_move)
-
-    surface = into_dtype(
-        [
-            ("ID", int64),
-            ("BC", int64),
-            ("A", float64),
-            ("B", float64),
-            ("C", float64),
-            ("D", float64),
-            ("E", float64),
-            ("F", float64),
-            ("G", float64),
-            ("H", float64),
-            ("I", float64),
-            ("J", float64),
-            ("type", int64),
-            ("nx", float64),
-            ("ny", float64),
-            ("nz", float64),
-            ("N_tally", int64),
-            ("tally_IDs", int64, (Nmax_tally,)),
-            ("moving", bool_),
-            ("N_move", int64),
-            ("move_time_grid", float64, (Nmax_move + 1,)),
-            ("move_translations", float64, (Nmax_move + 1, 3)),
-            ("move_velocities", float64, (Nmax_move, 3)),
-        ]
-    )
-
-
-# ==============================================================================
-# Cell
-# ==============================================================================
-
-
-def make_type_cell(input_deck):
-    global cell
-
-    # Maximum number tallies
-    Nmax_tally = 0
-    for cell in input_deck.cells:
-        Nmax_tally = max(Nmax_tally, len(cell.tally_IDs))
-
-    cell = into_dtype(
-        [
-            ("ID", int64),
-            # Surface IDs
-            ("N_surface", int64),
-            ("surface_data_idx", int64),
-            # Region RPN tokens
-            ("N_region", int64),
-            ("region_data_idx", int64),
-            # Fill status
-            ("fill_type", int64),
-            ("fill_ID", int64),
-            ("fill_translated", bool_),
-            ("fill_rotated", bool_),
-            # Cell tally
-            ("N_tally", int64),
-            ("tally_IDs", int64, (Nmax_tally,)),
-            # Local coordinate modifier
-            ("translation", float64, (3,)),
-            ("rotation", float64, (3,)),
         ]
     )
 
@@ -1191,8 +1110,6 @@ def make_type_global(input_deck, structures, records):
     mode_CE = not mode_MG
 
     # Numbers of objects
-    N_surface = len(input_deck.surfaces)
-    N_cell = len(input_deck.cells)
     N_source = len(input_deck.sources)
     N_universe = len(input_deck.universes)
     N_lattice = len(input_deck.lattices)
@@ -1200,10 +1117,6 @@ def make_type_global(input_deck, structures, records):
     N_surface_tally = len(input_deck.surface_tallies)
     N_cell_tally = len(input_deck.cell_tallies)
     N_cs_tally = len(input_deck.cs_tallies)
-
-    # Cell data sizes
-    N_cell_surface = sum([len(x.surface_IDs) for x in input_deck.cells])
-    N_cell_region = sum([len(x._region_RPN) for x in input_deck.cells])
 
     # Universe data sizes
     N_universe_cell = sum([len(x.cell_IDs) for x in input_deck.universes])
@@ -1264,11 +1177,6 @@ def make_type_global(input_deck, structures, records):
         else:
             global_structure += [(f"{key}", structures[key])]
     global_structure += [
-        ("surfaces", surface, (N_surface,)),
-        # Cells
-        ("cells", cell, (N_cell,)),
-        ("cells_data_surface", int64, (N_cell_surface,)),
-        ("cells_data_region", int64, (N_cell_region,)),
         # Universes
         ("universes", universe, (N_universe,)),
         ("universes_data_cell", int64, (N_universe_cell,)),

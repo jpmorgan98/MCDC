@@ -41,15 +41,7 @@ def numbafy_object(object_, structures, records, data):
         if (
             x[:2] != "__"
             and not callable(getattr(object_, x))
-            and x
-            not in [
-                "label",
-                "numbafied",
-                "ID",
-                "type",
-                "nuclide_composition",
-                "ID_numba",
-            ]
+            and x not in object_.non_numba
         )
     ]
     for attribute_name in attribute_names:
@@ -128,11 +120,16 @@ def numbafy_object(object_, structures, records, data):
 
     # Register the numbafied object
     object_.numbafied = True
-    structures[object_.label] = np.dtype(structure)
     if isinstance(object_, ObjectSingleton):
         records[object_.label] = record
+        structures[object_.label] = np.dtype(structure)
     elif isinstance(object_, ObjectNonSingleton):
         object_.ID_numba = len(records[object_.label])
+
+        structure.append((f"ID", "i8"))
+        record += (object_.ID_numba,)
+
+        structures[object_.label] = np.dtype(structure)
         records[object_.label].append(record)
 
 
@@ -142,6 +139,7 @@ def generate_numba_objects():
         + objects.nuclides
         + objects.reactions
         + objects.surfaces
+        + objects.cells
         + [objects.settings]
         + objects.data_containers
     )

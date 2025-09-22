@@ -52,6 +52,12 @@ targets = {
         ("pdf", 1),
         ("cdf", 1),
     ],
+    "cell": [
+        ("region_RPN_tokens", 1),
+    ],
+    "surface": [
+        ("from_cell",)
+    ],
 }
 
 

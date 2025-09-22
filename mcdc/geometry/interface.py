@@ -8,9 +8,12 @@ from mcdc.geometry.surface.interface import get_distance, check_sense, reflect
 
 import mcdc.adapt as adapt
 import mcdc.kernel as kernel
+import mcdc.mcdc_get as mcdc_get
 import mcdc.src.mesh as mesh
 import mcdc.physics.interface as physics
 import mcdc.type_ as type_
+
+from mcdc.prints import print_structure
 
 from mcdc.adapt import for_cpu, for_gpu
 from mcdc.constant import *
@@ -361,12 +364,10 @@ def check_cell(particle_container, cell, mcdc, data):
     particle = particle_container[0]
 
     # Access RPN data
-    idx = cell["region_data_idx"]
-    N_token = cell["N_region"]
-
-    # No region description
+    N_token = mcdc_get.cell.region_RPN_tokens_length(cell)
     if N_token == 0:
         return True
+    RPN_tokens = mcdc_get.cell.region_RPN_tokens_all(cell, data)
 
     # Create local value array
     value = adapt.local_array(type_.rpn_buffer_size(), type_.bool_)
@@ -377,9 +378,8 @@ def check_cell(particle_container, cell, mcdc, data):
     speed = physics.particle_speed(particle_container, material, data)
 
     # March forward through RPN tokens
-    idx_end = idx + N_token
-    while idx < idx_end:
-        token = mcdc["cells_data_region"][idx]
+    for idx in range(N_token):
+        token = int(RPN_tokens[idx])
 
         if token >= 0:
             surface = mcdc["surfaces"][token]
@@ -396,8 +396,6 @@ def check_cell(particle_container, cell, mcdc, data):
         elif token == BOOL_OR:
             value[N_value - 2] = value[N_value - 2] | value[N_value - 1]
             N_value -= 1
-
-        idx += 1
 
     return value[0]
 
@@ -442,20 +440,13 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     material = mcdc["materials"][particle["material_ID"]]
     speed = physics.particle_speed(particle_container, material, data)
 
-    # Access cell surface data
-    idx = cell["surface_data_idx"]
-    N_surface = cell["N_surface"]
-
     # Iterate over all surfaces
-    idx_end = idx + N_surface
-    while idx < idx_end:
-        candidate_surface_ID = mcdc["cells_data_surface"][idx]
-        surface = mcdc["surfaces"][candidate_surface_ID]
+    for i in range(cell['N_surface']):
+        surface = mcdc_get.surface.from_cell(i, cell, mcdc, data)
         d = get_distance(particle_container, speed, surface)
         if d < distance:
             distance = d
             surface_ID = surface["ID"]
-        idx += 1
     return distance, surface_ID
 
 
