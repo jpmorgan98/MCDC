@@ -57,21 +57,21 @@ mod = mcdc.Cell(region=+cy, fill=mat_mod)
 modi = mcdc.Cell(region=-cy, fill=mat_mod)  # For all-water lattice
 
 # Universes
-u = mcdc.universe([uo2, mod])
-l = mcdc.universe([mox4, mod])
-m = mcdc.universe([mox7, mod])
-n = mcdc.universe([mox8, mod])
-g = mcdc.universe([gt, mod])
-f = mcdc.universe([fc, mod])
-c = mcdc.universe([cr, mod])
-w = mcdc.universe([modi, mod])
+u = mcdc.Universe(cells=[uo2, mod])
+l = mcdc.Universe(cells=[mox4, mod])
+m = mcdc.Universe(cells=[mox7, mod])
+n = mcdc.Universe(cells=[mox8, mod])
+g = mcdc.Universe(cells=[gt, mod])
+f = mcdc.Universe(cells=[fc, mod])
+c = mcdc.Universe(cells=[cr, mod])
+w = mcdc.Universe(cells=[modi, mod])
 
 # =============================================================================
 # Assemblies
 # =============================================================================
 
 # Lattices
-lattice_uo2 = mcdc.lattice(
+lattice_uo2 = mcdc.Lattice(
     x=[-pitch * 17 / 2, pitch, 17],
     y=[-pitch * 17 / 2, pitch, 17],
     universes=[
@@ -95,7 +95,7 @@ lattice_uo2 = mcdc.lattice(
     ],
 )
 
-lattice_mox = mcdc.lattice(
+lattice_mox = mcdc.Lattice(
     x=[-pitch * 17 / 2, pitch, 17],
     y=[-pitch * 17 / 2, pitch, 17],
     universes=[
@@ -119,7 +119,7 @@ lattice_mox = mcdc.lattice(
     ],
 )
 
-lattice_mod = mcdc.lattice(
+lattice_mod = mcdc.Lattice(
     x=[-pitch * 17 / 2, pitch * 17, 1],
     y=[-pitch * 17 / 2, pitch * 17, 1],
     universes=[[w]],
@@ -137,16 +137,16 @@ assembly_mox = mcdc.Cell(region=+x0 & -x1 & +y0 & -y1, fill=lattice_mox)
 assembly_mod = mcdc.Cell(region=+x0 & -x1 & +y0 & -y1, fill=lattice_mod)
 
 # Set assemblies in their respective universes
-u_ = mcdc.universe([assembly_uo2])
-m_ = mcdc.universe([assembly_mox])
-w_ = mcdc.universe([assembly_mod])
+u_ = mcdc.Universe(cells=[assembly_uo2])
+m_ = mcdc.Universe(cells=[assembly_mox])
+w_ = mcdc.Universe(cells=[assembly_mod])
 
 # =============================================================================
 # Root universe: core
 # =============================================================================
 
 # Lattice
-lattice_core = mcdc.lattice(
+lattice_core = mcdc.Lattice(
     x=[-pitch * 17 * 3 / 2, pitch * 17, 3],
     y=[-pitch * 17 * 3 / 2, pitch * 17, 3],
     universes=[[u_, m_, w_], [m_, u_, w_], [w_, w_, w_]],
@@ -166,7 +166,7 @@ core = mcdc.Cell(region=
 )
 
 # Root universe
-mcdc.universe([core], root=True)
+mcdc.Universe(cells=[core], root=True)
 
 # =============================================================================
 # Set source
