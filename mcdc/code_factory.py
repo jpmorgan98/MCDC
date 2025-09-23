@@ -177,7 +177,6 @@ def generate_numba_objects():
     structures = {}
     records = {}
     for object_ in object_list:
-        print(object_.label)
         structures[object_.label] = []
         if isinstance(object_, ObjectNonSingleton):
             records[object_.label] = []
