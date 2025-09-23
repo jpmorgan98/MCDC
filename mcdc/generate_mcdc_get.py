@@ -2,6 +2,7 @@ import ast
 
 targets = {
     "material": [
+        ("nuclide_index", 1),
         ("nuclide_densities", 1),
         ("mgxs_speed", 1),
         ("mgxs_decay_rate", 1),

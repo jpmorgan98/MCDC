@@ -54,7 +54,8 @@ def macro_xs(reaction_type, material, particle_container, mcdc, data):
     # Sum over all nuclides
     total = 0.0
     for i in range(material["N_nuclide"]):
-        nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
+        nuclide_ID = int(mcdc_get.material.nuclide_index(i, material, data))
+        nuclide = mcdc['nuclides'][nuclide_ID]
         nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
         xs = micro_xs(E, reaction_type, nuclide, mcdc, data)
         total += nuclide_density * xs
@@ -120,7 +121,8 @@ def neutron_production_xs(reaction_type, material, particle_container, mcdc, dat
             return 0.0
         total = 0.0
         for i in range(material["N_nuclide"]):
-            nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
+            nuclide_ID = int(mcdc_get.material.nuclide_index(i, material, data))
+            nuclide = mcdc['nuclides'][nuclide_ID]
             if not nuclide['fissionable']:
                 continue
             nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
@@ -157,7 +159,8 @@ def collision(particle_container, prog, data):
     xi = kernel.rng(particle_container) * SigmaT
     total = 0.0
     for i in range(material["N_nuclide"]):
-        nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
+        nuclide_ID = int(mcdc_get.material.nuclide_index(i, material, data))
+        nuclide = mcdc['nuclides'][nuclide_ID]
         nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
         sigmaT = micro_xs(particle["E"], REACTION_TOTAL, nuclide, mcdc, data)
         SigmaT_nuclide = nuclide_density * sigmaT

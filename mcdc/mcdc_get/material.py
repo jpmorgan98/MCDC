@@ -2,6 +2,26 @@ from numba import njit
 
 
 @njit
+def nuclide_index_all(material, data):
+    start = material["nuclide_index_offset"]
+    end = start + material["N_nuclide_index"]
+    return data[start:end]
+
+
+@njit
+def nuclide_index(index, material, data):
+    offset = material["nuclide_index_offset"]
+    return data[offset + index]
+
+
+@njit
+def nuclide_index_chunk(start, size, material, data):
+    start += material["nuclide_index_offset"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
 def nuclide_densities_all(material, data):
     start = material["nuclide_densities_offset"]
     end = start + material["N_nuclide_densities"]

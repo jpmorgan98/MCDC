@@ -96,7 +96,7 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
             # Second table
             start = end
             if idx + 2 == len(grid):
-                end = mcdc_get.multipdf.value_length(multipdf)
+                end = multipdf['N_value']
             else:
                 end = int(mcdc_get.multipdf.offset(idx + 2, multipdf, data))
             val1_min = mcdc_get.multipdf.value(start, multipdf, data)
@@ -113,7 +113,7 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
     # Get the table range
     start = int(mcdc_get.multipdf.offset(idx, multipdf, data))
     if idx + 1 == len(grid):
-        end = mcdc_get.multipdf.value_length(multipdf)
+        end = multipdf['N_value']
     else:
         end = int(mcdc_get.multipdf.offset(idx + 1, multipdf, data))
     size = end - start
