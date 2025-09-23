@@ -7,5 +7,6 @@ import mcdc.mcdc_get.table as table
 import mcdc.mcdc_get.polynomial as polynomial
 import mcdc.mcdc_get.multipdf as multipdf
 import mcdc.mcdc_get.universe as universe
+import mcdc.mcdc_get.lattice as lattice
 import mcdc.mcdc_get.cell as cell
 import mcdc.mcdc_get.surface as surface

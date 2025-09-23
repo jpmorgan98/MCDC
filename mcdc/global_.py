@@ -26,7 +26,6 @@ class InputDeck:
 
     def reset(self):
         self.regions = []
-        self.lattices = []
         self.sources = []
         self.mesh_tallies = []
         self.surface_tallies = []

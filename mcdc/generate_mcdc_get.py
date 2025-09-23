@@ -54,6 +54,9 @@ targets = {
     "universe": [
         ("cell_index", 1),
     ],
+    "lattice": [
+        ("universe_index", 3, ("Ny", "Nz")),
+    ],
     "cell": [
         ("region_RPN_tokens", 1),
         ("surface_index", 1),
@@ -127,6 +130,16 @@ def getter_2d_vector(object_name, attribute_name, stride):
     return text
 
 
+def getter_3d_element(object_name, attribute_name, stride_2, stride_3):
+    text = f"@njit\n"
+    text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data):\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    text += f'    stride_2 = {object_name}["{stride_2}"]\n'
+    text += f'    stride_3 = {object_name}["{stride_3}"]\n'
+    text += f"    return data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3]\n\n\n"
+    return text
+
+
 for object_name in targets:
     with open(f"mcdc_get/{object_name}.py", "w") as f:
         text = "from numba import njit\n\n\n"
@@ -141,6 +154,9 @@ for object_name in targets:
                 stride = attribute[2]
                 text += getter_2d_vector(object_name, attribute_name, stride)
                 text += getter_2d_element(object_name, attribute_name, stride)
+            if attribute_dim == 3:
+                stride = attribute[2]
+                text += getter_3d_element(object_name, attribute_name, stride[0], stride[1])
             text += getter_chunk(object_name, attribute_name)
         f.write(text[:-2])
 

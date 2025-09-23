@@ -104,6 +104,7 @@ mcdc.settings.Settings
     Global simulation settings (singleton).
 """
 
+
 class ObjectBase:
     """
     Root base class for all MCDC objects.
@@ -269,6 +270,7 @@ surfaces = []           # Non-singleton (Surface)
 regions = []            # Non-singleton (Region)
 cells = []              # Non-singleton (Cell)
 universes = [None]      # Non-singleton (Universe); None as root universe placeholder
+lattices = []           # Non-singleton (Lattice)
 settings = None         # Singleton (Settings)
 
 
@@ -315,7 +317,7 @@ def register_object(object_):
     from mcdc.nuclide import Nuclide
     from mcdc.reaction import ReactionBase
     from mcdc.surface import Surface
-    from mcdc.cell import Region, Cell, Universe
+    from mcdc.cell import Region, Cell, Universe, Lattice
 
     global materials, nuclides, reactions, data_containers
 
@@ -335,6 +337,8 @@ def register_object(object_):
         object_list = cells
     elif isinstance(object_, Universe):
         object_list = universes
+    elif isinstance(object_, Lattice):
+        object_list = lattices
 
     if isinstance(object_, ObjectSingleton):
         object_list = object_

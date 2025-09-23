@@ -5,7 +5,6 @@ Docstrings use NumPy formatting.
 
 import mcdc.objects as objects
 
-from mcdc.objects import ObjectBase
 from mcdc.material import MaterialMG
 
 # Instantiate and get the global variable container
@@ -15,11 +14,7 @@ import h5py
 import numpy as np
 import scipy as sp
 
-from pathlib import Path
-
 from mcdc.card import (
-    UniverseCard,
-    LatticeCard,
     SourceCard,
     MeshTallyCard,
 )
@@ -32,67 +27,6 @@ from mcdc.constant import (
     WW_USER,
     WW_WOLLABER,
 )
-
-
-def lattice(x=None, y=None, z=None, universes=None):
-    """
-    Create a lattice card.
-
-    Parameters
-    ----------
-    x : array_like[float], optional
-        x-coordinates that define the lattice grid (default None).
-    y : array_like[float], optional
-        y-coordinates that define the lattice grid (default None).
-    z : array_like[float], optional
-        z-coordinates that define the lattice grid (default None).
-    universes : list of (list of dictionary), optional
-        List of lists of universe cards that fill the lattice (default None).
-
-    Returns
-    -------
-    dictionary
-        Lattice card.
-    """
-    # Make lattice card
-    card = LatticeCard()
-    card.ID = len(global_.input_deck.lattices)
-
-    # Set grid
-    if x is not None:
-        card.x0 = x[0]
-        card.dx = x[1]
-        card.Nx = x[2]
-    if y is not None:
-        card.y0 = y[0]
-        card.dy = y[1]
-        card.Ny = y[2]
-    if z is not None:
-        card.z0 = z[0]
-        card.dz = z[1]
-        card.Nz = z[2]
-
-    # Set universe IDs
-    get_ID = np.vectorize(lambda obj: obj.ID)
-    universe_IDs = get_ID(universes)
-    ax_expand = []
-    if x is None:
-        ax_expand.append(2)
-    if y is None:
-        ax_expand.append(1)
-    if z is None:
-        ax_expand.append(0)
-    for ax in ax_expand:
-        universe_IDs = np.expand_dims(universe_IDs, axis=ax)
-
-    # Change indexing structure: [z(flip), y(flip), x] --> [x, y, z]
-    tmp = np.transpose(universe_IDs)
-    tmp = np.flip(tmp, axis=1)
-    card.universe_IDs = np.flip(tmp, axis=2)
-
-    # Push card
-    global_.input_deck.lattices.append(card)
-    return card
 
 
 def source(**kw):

@@ -17,7 +17,6 @@ import scipy.fft as spfft
 from scipy.stats.qmc import Halton
 import cvxpy as cp
 
-from mcdc.card import UniverseCard
 from mcdc.print_ import (
     print_msg,
 )
@@ -534,7 +533,6 @@ def prepare():
     type_.make_size_rpn(objects.cells)
     type_.make_type_particle(input_deck)
     type_.make_type_particle_record(input_deck)
-    type_.make_type_lattice(input_deck)
     type_.make_type_source(input_deck)
     type_.make_type_mesh_tally(input_deck)
     type_.make_type_surface_tally(input_deck)
@@ -568,29 +566,6 @@ def prepare():
             mcdc[f"{key}s"] = np.array(records[key], dtype=structures[key])
         else:
             mcdc[f"{key}"] = np.array(records[key], dtype=structures[key])
-
-    # =========================================================================
-    # Lattices
-    # =========================================================================
-
-    N_lattice = len(input_deck.lattices)
-    for i in range(N_lattice):
-        for name in type_.lattice.names:
-            if name not in ["universe_IDs", "t0", "dt", "Nt"]:
-                mcdc["lattices"][i][name] = getattr(input_deck.lattices[i], name)
-
-        # Universe IDs
-        Nx = mcdc["lattices"][i]["Nx"]
-        Ny = mcdc["lattices"][i]["Ny"]
-        Nz = mcdc["lattices"][i]["Nz"]
-        mcdc["lattices"][i]["universe_IDs"][:Nx, :Ny, :Nz] = input_deck.lattices[
-            i
-        ].universe_IDs
-
-        # Default for time grid
-        mcdc["lattices"][i]["t0"] = 0.0
-        mcdc["lattices"][i]["dt"] = INF
-        mcdc["lattices"][i]["Nt"] = 1
 
     # =========================================================================
     # Source
@@ -1564,7 +1539,7 @@ def generate_hdf5(data_tally, mcdc):
                 # cardlist_to_h5group(input_deck.surfaces, input_group, "surface")
                 # cardlist_to_h5group(input_deck.cells, input_group, "cell")
                 # cardlist_to_h5group(input_deck.universes, input_group, "universe")
-                cardlist_to_h5group(input_deck.lattices, input_group, "lattice")
+                # cardlist_to_h5group(input_deck.lattices, input_group, "lattice")
                 cardlist_to_h5group(input_deck.sources, input_group, "source")
                 cardlist_to_h5group(
                     input_deck.mesh_tallies, input_group, "mesh_tallies"

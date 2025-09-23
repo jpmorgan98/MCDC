@@ -101,3 +101,11 @@ def cdf_from_pdf(offset, value, pdf):
 
 def is_sorted(a):
     return np.all(a[:-1] <= a[1:])
+
+
+def flatten(lst):
+    for item in lst:
+        if isinstance(item, list):
+            yield from flatten(item)
+        else:
+            yield item

@@ -136,7 +136,7 @@ def inspect_geometry(particle_container, mcdc, data):
                 if outside:
                     event = EVENT_LOST
                     continue
-                universe_ID = lattice["universe_IDs"][ix, iy, iz]
+                universe_ID = int(mcdc_get.lattice.universe_index(ix, iy, iz, lattice, data))
 
                 # Lattice-translate the particle
                 particle["x"] -= lattice["x0"] + (ix + 0.5) * lattice["dx"]
@@ -240,7 +240,7 @@ def locate_particle(particle_container, mcdc, data):
                 if outside:
                     particle_is_lost = True
                     continue
-                universe_ID = lattice["universe_IDs"][ix, iy, iz]
+                universe_ID = int(mcdc_get.lattice.universe_index(ix, iy, iz, lattice, data))
 
                 # Lattice-translate the particle
                 particle["x"] -= lattice["x0"] + (ix + 0.5) * lattice["dx"]

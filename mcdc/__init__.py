@@ -1,5 +1,4 @@
 from mcdc.input_ import (
-    lattice,
     source,
     implicit_capture,
     weighted_emission,
@@ -29,5 +28,5 @@ from mcdc.main import (
 
 from mcdc.material import Material, MaterialMG
 from mcdc.surface import Surface
-from mcdc.cell import Cell, Universe
+from mcdc.cell import Cell, Universe, Lattice
 from mcdc.settings import Settings

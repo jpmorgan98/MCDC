@@ -33,34 +33,6 @@ class InputCard:
         return text
 
 
-class UniverseCard(InputCard):
-    def __init__(self):
-        InputCard.__init__(self, "Universe")
-
-        # Set card data
-        self.ID = None
-        self.cell_IDs = np.zeros(0, dtype=int)
-
-
-class LatticeCard(InputCard):
-    def __init__(self):
-        InputCard.__init__(self, "Lattice")
-
-        # Set card data
-        self.ID = None
-        self.universe_IDs = np.array([[[[0]]]])
-        self.x0 = -INF
-        self.x0 = -INF
-        self.dx = 2 * INF
-        self.Nx = 1
-        self.y0 = -INF
-        self.dy = 2 * INF
-        self.Ny = 1
-        self.z0 = -INF
-        self.dz = 2 * INF
-        self.Nz = 1
-
-
 class SourceCard(InputCard):
     def __init__(self):
         InputCard.__init__(self, "Source")

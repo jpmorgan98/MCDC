@@ -37,8 +37,6 @@ Some types are problem-dependent and defined in code_factory.py
 particle = None
 particle_record = None
 
-lattice = None
-
 source = None
 mesh_tally = None
 surface_tally = None
@@ -311,42 +309,6 @@ def particle_bank(max_size):
             ("particles", particle_record, (max_size,)),
             ("size", int64, (1,)),
             ("tag", str_),
-        ]
-    )
-
-
-# ==============================================================================
-# Lattice
-# ==============================================================================
-
-
-def make_type_lattice(input_deck):
-    global lattice
-
-    # Max dimensional grids
-    Nmax_x = 0
-    Nmax_y = 0
-    Nmax_z = 0
-    for card in input_deck.lattices:
-        Nmax_x = max(Nmax_x, card.Nx)
-        Nmax_y = max(Nmax_y, card.Ny)
-        Nmax_z = max(Nmax_z, card.Nz)
-
-    lattice = into_dtype(
-        [
-            ("x0", float64),
-            ("dx", float64),
-            ("Nx", int64),
-            ("y0", float64),
-            ("dy", float64),
-            ("Ny", int64),
-            ("z0", float64),
-            ("dz", float64),
-            ("Nz", int64),
-            ("t0", float64),
-            ("dt", float64),
-            ("Nt", int64),
-            ("universe_IDs", int64, (Nmax_x, Nmax_y, Nmax_z)),
         ]
     )
 
@@ -1096,7 +1058,6 @@ def make_type_global(input_deck, structures, records):
 
     # Numbers of objects
     N_source = len(input_deck.sources)
-    N_lattice = len(input_deck.lattices)
     N_mesh_tally = len(input_deck.mesh_tallies)
     N_surface_tally = len(input_deck.surface_tallies)
     N_cell_tally = len(input_deck.cell_tallies)
@@ -1159,7 +1120,6 @@ def make_type_global(input_deck, structures, records):
             global_structure += [(f"{key}", structures[key])]
     global_structure += [
         # Universes
-        ("lattices", lattice, (N_lattice,)),
         ("sources", source, (N_source,)),
         ("mesh_tallies", mesh_tally, (N_mesh_tally,)),
         ("surface_tallies", surface_tally, (N_surface_tally,)),

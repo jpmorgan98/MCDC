@@ -11,6 +11,7 @@ from mcdc.objects import (
     ObjectSingleton,
 )
 from mcdc.reaction import ReactionNeutronFission
+from mcdc.util import flatten
 
 # ======================================================================================
 # Python object to Numba structured data converter
@@ -72,23 +73,26 @@ def numbafy_object(object_, structures, records, data):
 
         # List of objects
         elif type(attribute) == list:
-            if not isinstance(attribute[0], ObjectNonSingleton):
+            # Flatten the list
+            attribute_flatten = list(flatten(attribute))
+
+            if not isinstance(attribute_flatten[0], ObjectNonSingleton):
                 print(
                     f"[ERROR] get a list of non-object for {attribute_name}: {attribute}"
                 )
                 exit()
 
             # List of non-polymorphic objects
-            if not isinstance(attribute[0], ObjectPolymorphic):
+            if not isinstance(attribute_flatten[0], ObjectPolymorphic):
                 structure.append((f"N_{attribute_name[:-1]}", "i8"))
                 structure.append((f"{attribute_name[:-1]}_index_offset", "i8"))
 
-                length = len(attribute)
+                length = len(attribute_flatten)
                 offset = len(data)
                 record += (length, offset)
 
                 data.extend([-1] * length)
-                for i, subobject in enumerate(attribute):
+                for i, subobject in enumerate(attribute_flatten):
                     # Generate the numba object
                     if not subobject.numbafied:
                         numbafy_object(subobject, structures, records, data)
@@ -100,13 +104,13 @@ def numbafy_object(object_, structures, records, data):
                 structure.append((f"{attribute_name[:-1]}_type_offset", "i8"))
                 structure.append((f"{attribute_name[:-1]}_index_offset", "i8"))
 
-                length = len(attribute)
+                length = len(attribute_flatten)
                 offset_type = len(data)
                 offset_id = offset_type + length
                 record += (length, offset_type, offset_id)
 
                 data.extend([-1] * length * 2)
-                for i, subobject in enumerate(attribute):
+                for i, subobject in enumerate(attribute_flatten):
                     # Generate the numba object
                     if not subobject.numbafied:
                         numbafy_object(subobject, structures, records, data)
@@ -141,6 +145,7 @@ def generate_numba_objects():
         + objects.surfaces
         + objects.cells
         + objects.universes
+        + objects.lattices
         + [objects.settings]
         + objects.data_containers
     )
@@ -172,6 +177,7 @@ def generate_numba_objects():
     structures = {}
     records = {}
     for object_ in object_list:
+        print(object_.label)
         structures[object_.label] = []
         if isinstance(object_, ObjectNonSingleton):
             records[object_.label] = []

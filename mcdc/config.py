@@ -101,7 +101,6 @@ if MPI.COMM_WORLD.Get_size() > 1:
     MPI.COMM_WORLD.Barrier()
 
 
-from mcdc.card import UniverseCard
 from mcdc.print_ import (
     print_banner,
     print_msg,
