@@ -359,7 +359,7 @@ def check_cell(particle_container, cell, mcdc, data):
     particle = particle_container[0]
 
     # Access RPN data
-    N_token = mcdc_get.cell.region_RPN_tokens_length(cell)
+    N_token = cell['N_RPN_tokens']
     if N_token == 0:
         return True
 

@@ -123,6 +123,7 @@ class Cell(ObjectNonSingleton):
         else:
             self.region_RPN_tokens = []
             self.region_RPN = ""
+        self.N_RPN_tokens = len(self.region_RPN_tokens)
 
         # List surfaces
         self.surfaces = list_surfaces(self.region_RPN_tokens)
