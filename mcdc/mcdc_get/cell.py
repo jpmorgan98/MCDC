@@ -2,14 +2,9 @@ from numba import njit
 
 
 @njit
-def region_RPN_tokens_length(cell):
-    return int(cell["region_RPN_tokens_length"])
-
-
-@njit
 def region_RPN_tokens_all(cell, data):
     start = cell["region_RPN_tokens_offset"]
-    end = start + cell["region_RPN_tokens_length"]
+    end = start + cell["N_region_RPN_tokens"]
     return data[start:end]
 
 
@@ -27,14 +22,9 @@ def region_RPN_tokens_chunk(start, size, cell, data):
 
 
 @njit
-def surface_index_length(cell):
-    return int(cell["surface_index_length"])
-
-
-@njit
 def surface_index_all(cell, data):
     start = cell["surface_index_offset"]
-    end = start + cell["surface_index_length"]
+    end = start + cell["N_surface_index"]
     return data[start:end]
 
 
@@ -52,14 +42,9 @@ def surface_index_chunk(start, size, cell, data):
 
 
 @njit
-def translation_length(cell):
-    return int(cell["translation_length"])
-
-
-@njit
 def translation_all(cell, data):
     start = cell["translation_offset"]
-    end = start + cell["translation_length"]
+    end = start + cell["N_translation"]
     return data[start:end]
 
 
@@ -77,14 +62,9 @@ def translation_chunk(start, size, cell, data):
 
 
 @njit
-def rotation_length(cell):
-    return int(cell["rotation_length"])
-
-
-@njit
 def rotation_all(cell, data):
     start = cell["rotation_offset"]
-    end = start + cell["rotation_length"]
+    end = start + cell["N_rotation"]
     return data[start:end]
 
 

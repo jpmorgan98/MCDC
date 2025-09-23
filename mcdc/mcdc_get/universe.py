@@ -2,14 +2,9 @@ from numba import njit
 
 
 @njit
-def cell_index_length(universe):
-    return int(universe["cell_index_length"])
-
-
-@njit
 def cell_index_all(universe, data):
     start = universe["cell_index_offset"]
-    end = start + universe["cell_index_length"]
+    end = start + universe["N_cell_index"]
     return data[start:end]
 
 

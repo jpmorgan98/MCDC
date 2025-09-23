@@ -56,7 +56,7 @@ def numbafy_object(object_, structures, records, data):
         # Numpy array
         elif type(attribute) == np.ndarray:
             structure.append((f"{attribute_name}_offset", "i8"))
-            structure.append((f"{attribute_name}_length", "i8"))
+            structure.append((f"N_{attribute_name}", "i8"))
 
             offset = len(data)
             length = len(attribute.flatten())

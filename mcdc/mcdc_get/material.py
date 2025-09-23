@@ -2,14 +2,9 @@ from numba import njit
 
 
 @njit
-def nuclide_densities_length(material):
-    return int(material["nuclide_densities_length"])
-
-
-@njit
 def nuclide_densities_all(material, data):
     start = material["nuclide_densities_offset"]
-    end = start + material["nuclide_densities_length"]
+    end = start + material["N_nuclide_densities"]
     return data[start:end]
 
 
@@ -27,14 +22,9 @@ def nuclide_densities_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_speed_length(material):
-    return int(material["mgxs_speed_length"])
-
-
-@njit
 def mgxs_speed_all(material, data):
     start = material["mgxs_speed_offset"]
-    end = start + material["mgxs_speed_length"]
+    end = start + material["N_mgxs_speed"]
     return data[start:end]
 
 
@@ -52,14 +42,9 @@ def mgxs_speed_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_decay_rate_length(material):
-    return int(material["mgxs_decay_rate_length"])
-
-
-@njit
 def mgxs_decay_rate_all(material, data):
     start = material["mgxs_decay_rate_offset"]
-    end = start + material["mgxs_decay_rate_length"]
+    end = start + material["N_mgxs_decay_rate"]
     return data[start:end]
 
 
@@ -77,14 +62,9 @@ def mgxs_decay_rate_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_capture_length(material):
-    return int(material["mgxs_capture_length"])
-
-
-@njit
 def mgxs_capture_all(material, data):
     start = material["mgxs_capture_offset"]
-    end = start + material["mgxs_capture_length"]
+    end = start + material["N_mgxs_capture"]
     return data[start:end]
 
 
@@ -102,14 +82,9 @@ def mgxs_capture_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_scatter_length(material):
-    return int(material["mgxs_scatter_length"])
-
-
-@njit
 def mgxs_scatter_all(material, data):
     start = material["mgxs_scatter_offset"]
-    end = start + material["mgxs_scatter_length"]
+    end = start + material["N_mgxs_scatter"]
     return data[start:end]
 
 
@@ -127,14 +102,9 @@ def mgxs_scatter_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_fission_length(material):
-    return int(material["mgxs_fission_length"])
-
-
-@njit
 def mgxs_fission_all(material, data):
     start = material["mgxs_fission_offset"]
-    end = start + material["mgxs_fission_length"]
+    end = start + material["N_mgxs_fission"]
     return data[start:end]
 
 
@@ -152,14 +122,9 @@ def mgxs_fission_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_total_length(material):
-    return int(material["mgxs_total_length"])
-
-
-@njit
 def mgxs_total_all(material, data):
     start = material["mgxs_total_offset"]
-    end = start + material["mgxs_total_length"]
+    end = start + material["N_mgxs_total"]
     return data[start:end]
 
 
@@ -177,14 +142,9 @@ def mgxs_total_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_nu_s_length(material):
-    return int(material["mgxs_nu_s_length"])
-
-
-@njit
 def mgxs_nu_s_all(material, data):
     start = material["mgxs_nu_s_offset"]
-    end = start + material["mgxs_nu_s_length"]
+    end = start + material["N_mgxs_nu_s"]
     return data[start:end]
 
 
@@ -202,14 +162,9 @@ def mgxs_nu_s_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_nu_p_length(material):
-    return int(material["mgxs_nu_p_length"])
-
-
-@njit
 def mgxs_nu_p_all(material, data):
     start = material["mgxs_nu_p_offset"]
-    end = start + material["mgxs_nu_p_length"]
+    end = start + material["N_mgxs_nu_p"]
     return data[start:end]
 
 
@@ -250,14 +205,9 @@ def mgxs_nu_d_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_nu_d_total_length(material):
-    return int(material["mgxs_nu_d_total_length"])
-
-
-@njit
 def mgxs_nu_d_total_all(material, data):
     start = material["mgxs_nu_d_total_offset"]
-    end = start + material["mgxs_nu_d_total_length"]
+    end = start + material["N_mgxs_nu_d_total"]
     return data[start:end]
 
 
@@ -275,14 +225,9 @@ def mgxs_nu_d_total_chunk(start, size, material, data):
 
 
 @njit
-def mgxs_nu_f_length(material):
-    return int(material["mgxs_nu_f_length"])
-
-
-@njit
 def mgxs_nu_f_all(material, data):
     start = material["mgxs_nu_f_offset"]
-    end = start + material["mgxs_nu_f_length"]
+    end = start + material["N_mgxs_nu_f"]
     return data[start:end]
 
 

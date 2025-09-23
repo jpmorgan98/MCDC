@@ -2,14 +2,9 @@ from numba import njit
 
 
 @njit
-def move_time_grid_length(surface):
-    return int(surface["move_time_grid_length"])
-
-
-@njit
 def move_time_grid_all(surface, data):
     start = surface["move_time_grid_offset"]
-    end = start + surface["move_time_grid_length"]
+    end = start + surface["N_move_time_grid"]
     return data[start:end]
 
 

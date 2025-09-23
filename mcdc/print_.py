@@ -75,7 +75,7 @@ def print_progress(percent, mcdc):
                 )
             else:
                 idx = mcdc["idx_census"] + 1
-                N = mcdc_get.settings.census_time_length(mcdc['settings'])
+                N = mcdc['settings']['N_census_time']
                 sys.stdout.write(
                     " Census %i/%i: [%-28s] %d%%"
                     % (idx, N, "=" * int(percent * 28), percent * 100.0)

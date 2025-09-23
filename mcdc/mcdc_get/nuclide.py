@@ -2,14 +2,9 @@ from numba import njit
 
 
 @njit
-def xs_energy_grid_length(nuclide):
-    return int(nuclide["xs_energy_grid_length"])
-
-
-@njit
 def xs_energy_grid_all(nuclide, data):
     start = nuclide["xs_energy_grid_offset"]
-    end = start + nuclide["xs_energy_grid_length"]
+    end = start + nuclide["N_xs_energy_grid"]
     return data[start:end]
 
 
@@ -27,14 +22,9 @@ def xs_energy_grid_chunk(start, size, nuclide, data):
 
 
 @njit
-def total_xs_length(nuclide):
-    return int(nuclide["total_xs_length"])
-
-
-@njit
 def total_xs_all(nuclide, data):
     start = nuclide["total_xs_offset"]
-    end = start + nuclide["total_xs_length"]
+    end = start + nuclide["N_total_xs"]
     return data[start:end]
 
 
@@ -52,14 +42,9 @@ def total_xs_chunk(start, size, nuclide, data):
 
 
 @njit
-def reaction_type_length(nuclide):
-    return int(nuclide["reaction_type_length"])
-
-
-@njit
 def reaction_type_all(nuclide, data):
     start = nuclide["reaction_type_offset"]
-    end = start + nuclide["reaction_type_length"]
+    end = start + nuclide["N_reaction_type"]
     return data[start:end]
 
 
@@ -77,14 +62,9 @@ def reaction_type_chunk(start, size, nuclide, data):
 
 
 @njit
-def reaction_index_length(nuclide):
-    return int(nuclide["reaction_index_length"])
-
-
-@njit
 def reaction_index_all(nuclide, data):
     start = nuclide["reaction_index_offset"]
-    end = start + nuclide["reaction_index_length"]
+    end = start + nuclide["N_reaction_index"]
     return data[start:end]
 
 

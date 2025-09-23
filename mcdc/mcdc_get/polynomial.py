@@ -2,14 +2,9 @@ from numba import njit
 
 
 @njit
-def coefficients_length(polynomial):
-    return int(polynomial["coefficients_length"])
-
-
-@njit
 def coefficients_all(polynomial, data):
     start = polynomial["coefficients_offset"]
-    end = start + polynomial["coefficients_length"]
+    end = start + polynomial["N_coefficients"]
     return data[start:end]
 
 

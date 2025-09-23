@@ -71,13 +71,6 @@ targets = {
 }
 
 
-def getter_1d_length(object_name, attribute_name):
-    text = f"@njit\n"
-    text += f"def {attribute_name}_length({object_name}):\n"
-    text += f'    return int({object_name}["{attribute_name}_length"])\n\n\n'
-    return text
-
-
 def getter_1d_element(object_name, attribute_name):
     text = f"@njit\n"
     text += f"def {attribute_name}(index, {object_name}, data):\n"
@@ -90,7 +83,7 @@ def getter_1d_all(object_name, attribute_name):
     text = f"@njit\n"
     text += f"def {attribute_name}_all({object_name}, data):\n"
     text += f'    start = {object_name}["{attribute_name}_offset"]\n'
-    text += f'    end = start + {object_name}["{attribute_name}_length"]\n'
+    text += f'    end = start + {object_name}["N_{attribute_name}"]\n'
     text += f"    return data[start:end]\n\n\n"
     return text
 
@@ -147,7 +140,6 @@ for object_name in targets:
             attribute_name = attribute[0]
             attribute_dim = attribute[1]
             if attribute_dim == 1:
-                text += getter_1d_length(object_name, attribute_name)
                 text += getter_1d_all(object_name, attribute_name)
                 text += getter_1d_element(object_name, attribute_name)
             if attribute_dim == 2:
