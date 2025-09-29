@@ -1272,7 +1272,7 @@ def generate_hdf5(mcdc, data):
                 for i in range(tally['scores_length']):
                     score_type = mcdc_get.tally.scores(i, tally, data)
                     score_mean = np.squeeze(mean[i])
-                    score_sdev = np.squeeze(mean[i])
+                    score_sdev = np.squeeze(sdev[i])
                     if score_type == SCORE_FLUX:
                         score_name = "flux"
                     group_name = f"tallies/{tally_name}/{score_name}/"
@@ -1334,7 +1334,7 @@ def generate_hdf5(mcdc, data):
                 for i in range(tally['scores_length']):
                     score_type = mcdc_get.tally.scores(i, tally, data)
                     score_mean = np.squeeze(mean[i])
-                    score_sdev = np.squeeze(mean[i])
+                    score_sdev = np.squeeze(sdev[i])
                     if score_type == SCORE_FLUX:
                         score_name = "flux"
                     group_name = f"tallies/{tally_name}/{score_name}/"

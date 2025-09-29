@@ -32,6 +32,8 @@ class Simulation(ObjectSingleton):
         self.settings = Settings()
         self.tallies = []
 
+        self.non_numba += ['settings']
+
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells
 

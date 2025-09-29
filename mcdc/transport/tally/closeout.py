@@ -4,6 +4,7 @@ import numpy as np
 from numba import njit, objmode
 from mpi4py import MPI
 
+from mcdc.print_ import print_structure
 
 
 # ======================================================================================
@@ -14,9 +15,9 @@ from mpi4py import MPI
 def reduce(mcdc, data):
     for tally in mcdc['cell_tallys']:
         _reduce(tally, mcdc, data)
-    for tally in mcdc['cell_tallys']:
-        _reduce(tally, mcdc, data)
-    for tally in mcdc['cell_tallys']:
+    #for tally in mcdc['surface_tallys']:
+    #    _reduce(tally, mcdc, data)
+    for tally in mcdc['mesh_tallys']:
         _reduce(tally, mcdc, data)
 
 @njit
@@ -59,9 +60,9 @@ def _reduce(tally, mcdc, data):
 def accumulate(mcdc, data):
     for tally in mcdc['cell_tallys']:
         _accumulate(tally, mcdc, data)
-    for tally in mcdc['cell_tallys']:
-        _accumulate(tally, mcdc, data)
-    for tally in mcdc['cell_tallys']:
+    #for tally in mcdc['surface_tallys']:
+    #    _accumulate(tally, mcdc, data)
+    for tally in mcdc['mesh_tallys']:
         _accumulate(tally, mcdc, data)
 
 
@@ -86,13 +87,14 @@ def _accumulate(tally, mcdc, data):
 # Finalize
 # ======================================================================================
 
+
 @njit
 def finalize(mcdc, data):
     for tally in mcdc['cell_tallys']:
         _finalize(tally, mcdc, data)
-    for tally in mcdc['cell_tallys']:
-        _finalize(tally, mcdc, data)
-    for tally in mcdc['cell_tallys']:
+    #for tally in mcdc['surface_tallys']:
+    #    _finalize(tally, mcdc, data)
+    for tally in mcdc['mesh_tallys']:
         _finalize(tally, mcdc, data)
 
 
