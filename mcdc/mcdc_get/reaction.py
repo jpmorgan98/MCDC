@@ -2,20 +2,27 @@ from numba import njit
 
 
 @njit
-def xs_all(reaction, data):
-    start = reaction["xs_offset"]
-    end = start + reaction["N_xs"]
-    return data[start:end]
-
-
-@njit
 def xs(index, reaction, data):
     offset = reaction["xs_offset"]
     return data[offset + index]
 
 
 @njit
-def xs_chunk(start, size, reaction, data):
+def xs_last(reaction, data):
+    start = reaction["xs_offset"]
+    end = start + reaction["xs_length"]
+    return data[end - 1]
+
+
+@njit
+def xs_all(reaction, data):
+    start = reaction["xs_offset"]
+    end = start + reaction["xs_length"]
+    return data[start:end]
+
+
+@njit
+def xs_chunk(start, length, reaction, data):
     start += reaction["xs_offset"]
-    end = start + size
+    end = start + length
     return data[start:end]

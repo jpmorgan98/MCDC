@@ -1,3 +1,31 @@
+# ======================================================================================
+# Simulation building blocks
+# ======================================================================================
+
+# The simulation
+from mcdc.object_.simulation import simulation
+
+# The objects
+from mcdc.object_.cell import Cell, Universe, Lattice
+from mcdc.object_.material import Material, MaterialMG
+from mcdc.object_.mesh import MeshUniform, MeshStructured
+from mcdc.object_.settings import Settings
+from mcdc.object_.surface import Surface
+from mcdc.object_.tally import TallyCell, TallySurface, TallyMesh
+
+# ======================================================================================
+# Runners
+# ======================================================================================
+
+from mcdc.main import run
+
+# ======================================================================================
+# Will be replaced
+# ======================================================================================
+
+from mcdc.togo.input_ import source
+
+"""
 from mcdc.input_ import (
     source,
     implicit_capture,
@@ -13,20 +41,10 @@ from mcdc.input_ import (
     make_particle_bank,
     save_particle_bank,
 )
-import mcdc.tally
 from mcdc.main import (
     prepare,
     run,
     visualize,
     recombine_tallies,
 )
-
-
-# ======================================================================================
-# Model building blocks
-# ======================================================================================
-
-from mcdc.material import Material, MaterialMG
-from mcdc.surface import Surface
-from mcdc.cell import Cell, Universe, Lattice
-from mcdc.settings import Settings
+"""

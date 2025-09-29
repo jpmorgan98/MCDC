@@ -10,3 +10,5 @@ import mcdc.mcdc_get.universe as universe
 import mcdc.mcdc_get.lattice as lattice
 import mcdc.mcdc_get.cell as cell
 import mcdc.mcdc_get.surface as surface
+import mcdc.mcdc_get.tally as tally
+import mcdc.mcdc_get.structured_mesh as structured_mesh

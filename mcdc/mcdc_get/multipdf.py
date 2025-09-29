@@ -2,29 +2,29 @@ from numba import njit
 
 
 @njit
-def grid_all(multipdf, data):
-    start = multipdf["grid_offset"]
-    end = start + multipdf["N_grid"]
-    return data[start:end]
-
-
-@njit
 def grid(index, multipdf, data):
     offset = multipdf["grid_offset"]
     return data[offset + index]
 
 
 @njit
-def grid_chunk(start, size, multipdf, data):
-    start += multipdf["grid_offset"]
-    end = start + size
+def grid_last(multipdf, data):
+    start = multipdf["grid_offset"]
+    end = start + multipdf["grid_length"]
+    return data[end - 1]
+
+
+@njit
+def grid_all(multipdf, data):
+    start = multipdf["grid_offset"]
+    end = start + multipdf["grid_length"]
     return data[start:end]
 
 
 @njit
-def offset_all(multipdf, data):
-    start = multipdf["offset_offset"]
-    end = start + multipdf["N_offset"]
+def grid_chunk(start, length, multipdf, data):
+    start += multipdf["grid_offset"]
+    end = start + length
     return data[start:end]
 
 
@@ -35,16 +35,23 @@ def offset(index, multipdf, data):
 
 
 @njit
-def offset_chunk(start, size, multipdf, data):
-    start += multipdf["offset_offset"]
-    end = start + size
+def offset_last(multipdf, data):
+    start = multipdf["offset_offset"]
+    end = start + multipdf["offset_length"]
+    return data[end - 1]
+
+
+@njit
+def offset_all(multipdf, data):
+    start = multipdf["offset_offset"]
+    end = start + multipdf["offset_length"]
     return data[start:end]
 
 
 @njit
-def value_all(multipdf, data):
-    start = multipdf["value_offset"]
-    end = start + multipdf["N_value"]
+def offset_chunk(start, length, multipdf, data):
+    start += multipdf["offset_offset"]
+    end = start + length
     return data[start:end]
 
 
@@ -55,16 +62,23 @@ def value(index, multipdf, data):
 
 
 @njit
-def value_chunk(start, size, multipdf, data):
-    start += multipdf["value_offset"]
-    end = start + size
+def value_last(multipdf, data):
+    start = multipdf["value_offset"]
+    end = start + multipdf["value_length"]
+    return data[end - 1]
+
+
+@njit
+def value_all(multipdf, data):
+    start = multipdf["value_offset"]
+    end = start + multipdf["value_length"]
     return data[start:end]
 
 
 @njit
-def pdf_all(multipdf, data):
-    start = multipdf["pdf_offset"]
-    end = start + multipdf["N_pdf"]
+def value_chunk(start, length, multipdf, data):
+    start += multipdf["value_offset"]
+    end = start + length
     return data[start:end]
 
 
@@ -75,16 +89,23 @@ def pdf(index, multipdf, data):
 
 
 @njit
-def pdf_chunk(start, size, multipdf, data):
-    start += multipdf["pdf_offset"]
-    end = start + size
+def pdf_last(multipdf, data):
+    start = multipdf["pdf_offset"]
+    end = start + multipdf["pdf_length"]
+    return data[end - 1]
+
+
+@njit
+def pdf_all(multipdf, data):
+    start = multipdf["pdf_offset"]
+    end = start + multipdf["pdf_length"]
     return data[start:end]
 
 
 @njit
-def cdf_all(multipdf, data):
-    start = multipdf["cdf_offset"]
-    end = start + multipdf["N_cdf"]
+def pdf_chunk(start, length, multipdf, data):
+    start += multipdf["pdf_offset"]
+    end = start + length
     return data[start:end]
 
 
@@ -95,7 +116,21 @@ def cdf(index, multipdf, data):
 
 
 @njit
-def cdf_chunk(start, size, multipdf, data):
+def cdf_last(multipdf, data):
+    start = multipdf["cdf_offset"]
+    end = start + multipdf["cdf_length"]
+    return data[end - 1]
+
+
+@njit
+def cdf_all(multipdf, data):
+    start = multipdf["cdf_offset"]
+    end = start + multipdf["cdf_length"]
+    return data[start:end]
+
+
+@njit
+def cdf_chunk(start, length, multipdf, data):
     start += multipdf["cdf_offset"]
-    end = start + size
+    end = start + length
     return data[start:end]

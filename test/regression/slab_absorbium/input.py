@@ -38,12 +38,15 @@ mcdc.source(z=[0.0, 6.0], isotropic=True)
 
 settings = mcdc.Settings(N_particle=100, N_batch=2)
 
+print(s4)
+t1 = mcdc.TallySurface(name='My tally yo!', surfaces=[s4], scores=['flux'])
+print(t1)
+print(s4)
+exit()
 mcdc.tally.mesh_tally(
     z=np.linspace(0.0, 6.0, 61),
     mu=np.linspace(-1.0, 1.0, 32 + 1),
     scores=["flux", "total"],
 )
-
-mcdc.tally.surface_tally(s4)
 
 mcdc.run()

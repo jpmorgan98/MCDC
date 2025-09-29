@@ -55,19 +55,20 @@ mcdc.source(
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Setting
-mcdc.Settings(N_particle=80, N_batch=2)
-
-mcdc.tally.mesh_tally(
-    scores=["flux"],
+# Tallies
+mcdc.TallyCell(cell=source_cell, scores=["flux"])
+mcdc.TallyCell(cell=void_cell, scores=["flux"])
+mcdc.TallyCell(cell=shield_cell, scores=["flux"])
+mesh = mcdc.MeshStructured(
     x=np.linspace(0.0, 60.0, 31),
     y=np.linspace(0.0, 100.0, 51),
     t=np.linspace(0.0, 200.0, 21),
 )
+mcdc.TallyMesh(mesh=mesh, scores=["flux"])
 
-mcdc.tally.cell_tally(source_cell, scores=["flux"])
-mcdc.tally.cell_tally(void_cell, scores=["flux"])
-mcdc.tally.cell_tally(shield_cell, scores=["flux"])
+# Settings
+mcdc.simulation.settings.N_particle = 80
+mcdc.simulation.settings.N_batch = 2
 
 # Run
 mcdc.run()
