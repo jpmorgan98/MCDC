@@ -1,3 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mcdc.object_.cell import Cell
+
+####
+
 import numpy as np
 
 ####
@@ -12,7 +19,11 @@ from mcdc.util import flatten
 
 
 class Universe(ObjectNonSingleton):
-    def __init__(self, name="", cells=[], root=False):
+    # Annotations for Numba mode
+    name: str
+    cells: list[Cell]
+
+    def __init__(self, name: str = "", cells: list[Cell] = [], root: bool = False):
         # Custom treatment for root universe
         label = "universe"
         if root:
@@ -21,9 +32,12 @@ class Universe(ObjectNonSingleton):
         else:
             super().__init__(label)
 
-        self.name = f"{label}_{self.numba_ID}"
-        if name is not None:
+        # Set name
+        if name != "":
             self.name = name
+        else:
+            self.name = f"{label}_{self.numba_ID}"
+
         self.cells = cells
 
     def __repr__(self):
@@ -44,13 +58,35 @@ class Universe(ObjectNonSingleton):
 
 
 class Lattice(ObjectNonSingleton):
-    def __init__(self, name="", x=None, y=None, z=None, universes=None):
+    # Annotations for Numba mode
+    name: str
+    x0: float
+    dx: float
+    Nx: int
+    y0: float
+    dy: float
+    Ny: int
+    z0: float
+    dz: float
+    Nz: int
+    universes: list[Universe]
+
+    def __init__(
+        self,
+        name: str = "",
+        x: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        y: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        z: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        universes: list[Universe] = None
+    ):
         label = "lattice"
         super().__init__(label)
 
-        self.name = f"{label}_{self.numba_ID}"
-        if name is not None:
+        # Set name
+        if name != "":
             self.name = name
+        else:
+            self.name = f"{label}_{self.numba_ID}"
 
         # Default uniform grids
         self.x0 = -INF
