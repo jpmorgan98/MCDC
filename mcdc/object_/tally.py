@@ -1,4 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mcdc.object_.cell import Cell
+    from mcdc.object_.surface import Surface
+
+####
+
 import numpy as np
+
+from numpy import float64
+from numpy.typing import NDArray
+from typing import Annotated
+from types import NoneType
 
 ####
 
@@ -14,6 +27,7 @@ from mcdc.constant import (
     TALLY_MESH,
     TALLY_SURFACE,
 )
+from mcdc.object_.mesh import MeshBase
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array
@@ -25,14 +39,35 @@ from mcdc.print_ import print_1d_array
 
 
 class TallyBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    name: str
+    scores: list[int]
+    mu: NDArray[float64]
+    azi: NDArray[float64]
+    polar_reference: Annotated[NDArray[float64], (3,)]
+    energy: NDArray[float64]
+    time: NDArray[float64]
+    filter_direction: bool
+    filter_energy: bool
+    filter_time: bool
+    bin: NDArray[float64]
+    bin_sum: NDArray[float64]
+    bin_sum_square: NDArray[float64]
+    stride_mu: int
+    stride_azi: int
+    stride_energy: int
+    stride_time: int
+
     def __init__(
         self, label, type_, name, scores, mu, azi, polar_reference, energy, time
     ):
         super().__init__(label, type_)
 
-        self.name = f"{label}_{self.numba_ID}"
-        if name is not None:
+        # Set name
+        if name != "":
             self.name = name
+        else:
+            self.name = f"{label}_{self.numba_ID}"
 
         # Set scores
         self.scores = []
@@ -122,16 +157,19 @@ def decode_score_type(type_):
 
 
 class TallyCell(TallyBase):
+    # Annotations for Numba mode
+    cell: Cell
+
     def __init__(
         self,
-        name=None,
-        cell=None,
-        scores=None,
-        mu=None,
-        azi=None,
-        polar_reference=None,
-        energy=None,
-        time=None,
+        name: str = "",
+        cell: Cell = None,
+        scores: list[str] = ['flux'],
+        mu: NDArray[float64] | NoneType = None,
+        azi: NDArray[float64] | NoneType = None,
+        polar_reference: NDArray[float64] | NoneType = None,
+        energy: NDArray[float64] | str | NoneType = None,
+        time: NDArray[float64] | NoneType = None,
     ):
         label = "cell_tally"
         type_ = TALLY_CELL
@@ -176,16 +214,19 @@ class TallyCell(TallyBase):
 
 
 class TallySurface(TallyBase):
+    # Annotations for Numba mode
+    surface: Surface
+
     def __init__(
         self,
-        name=None,
-        surface=None,
-        scores=None,
-        mu=None,
-        azi=None,
-        polar_reference=None,
-        energy=None,
-        time=None,
+        name: str = "",
+        surface: Surface = None,
+        scores: list[str] = ['flux'],
+        mu: NDArray[float64] | NoneType = None,
+        azi: NDArray[float64] | NoneType = None,
+        polar_reference: NDArray[float64] | NoneType = None,
+        energy: NDArray[float64] | str | NoneType = None,
+        time: NDArray[float64] | NoneType = None,
     ):
         label = "surface_tally"
         type_ = TALLY_SURFACE
@@ -230,15 +271,18 @@ class TallySurface(TallyBase):
 
 
 class TallyMesh(TallyBase):
+    # Annotations for Numba mode
+    mesh: MeshBase
+
     def __init__(
         self,
-        name=None,
-        mesh=None,
-        scores=None,
-        mu=None,
-        azi=None,
-        polar_reference=None,
-        energy=None,
+        name: str = "",
+        mesh: MeshBase = None,
+        scores: list[str] = ['flux'],
+        mu: NDArray[float64] | NoneType = None,
+        azi: NDArray[float64] | NoneType = None,
+        polar_reference: NDArray[float64] | NoneType = None,
+        energy: NDArray[float64] | str | NoneType = None,
     ):
         label = "mesh_tally"
         type_ = TALLY_MESH
