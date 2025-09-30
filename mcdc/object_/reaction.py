@@ -1,5 +1,8 @@
 import numpy as np
 
+from numpy import float64
+from numpy.typing import NDArray
+
 ####
 
 import mcdc.object_.data as data
@@ -11,8 +14,8 @@ from mcdc.constant import (
     REACTION_NEUTRON_FISSION,
 )
 from mcdc.object_.base import ObjectPolymorphic
-from mcdc.object_.data import DataPolynomial, DataTable
-from mcdc.object_.distribution import DistributionMaxwellian, DistributionMultiPDF
+from mcdc.object_.data import DataBase, DataPolynomial, DataTable
+from mcdc.object_.distribution import DistributionBase, DistributionMaxwellian, DistributionMultiPDF
 from mcdc.print_ import print_1d_array
 
 
@@ -22,6 +25,9 @@ from mcdc.print_ import print_1d_array
 
 
 class ReactionBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    xs: NDArray[float64]
+
     def __init__(self, label, type_, xs):
         super().__init__(label, type_)
         self.xs = xs
@@ -66,6 +72,9 @@ class ReactionNeutronCapture(ReactionBase):
 
 
 class ReactionNeutronElasticScattering(ReactionBase):
+    # Annotations for Numba mode
+    mu: DistributionMultiPDF
+
     def __init__(self, xs, mu):
         label = "neutron_elastic_scattering_reaction"
         type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
@@ -99,6 +108,14 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
 
 class ReactionNeutronFission(ReactionBase):
+    # Annotations for Numba mode
+    prompt_yield: DataBase
+    prompt_spectrum: DistributionBase
+    N_delayed: int
+    delayed_yields: list[DataBase]
+    delayed_spectrums: list[DistributionBase]
+    delayed_decay_rates: NDArray[float64]
+
     def __init__(
         self,
         xs,
