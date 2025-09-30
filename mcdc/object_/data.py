@@ -1,3 +1,7 @@
+from typing import Iterable
+
+####
+
 from mcdc.constant import DATA_TABLE, DATA_POLYNOMIAL
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
@@ -32,6 +36,10 @@ def decode_type(type_):
 
 
 class DataTable(DataBase):
+    # Annotations for Numba mode
+    x: Iterable[float]
+    y: Iterable[float]
+
     def __init__(self, x, y):
         label = "data_table"
         type_ = DATA_TABLE
@@ -53,6 +61,9 @@ class DataTable(DataBase):
 
 
 class DataPolynomial(DataBase):
+    # Annotations for Numba mode
+    coefficients: Iterable[float]
+
     def __init__(self, coeffs):
         label = "data_polynomial"
         type_ = DATA_POLYNOMIAL

@@ -1,5 +1,8 @@
 import numpy as np
 
+from numpy import float64
+from numpy.typing import NDArray
+
 ####
 
 from mcdc.constant import INF, MESH_STRUCTURED, MESH_UNIFORM
@@ -13,12 +16,18 @@ from mcdc.print_ import print_1d_array
 
 
 class MeshBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    name: str
+    N_bin: int
+
     def __init__(self, label, type_, name):
         super().__init__(label, type_)
 
-        self.name = f"{label}_{self.numba_ID}"
-        if name is not None:
+        # Set name
+        if name != "":
             self.name = name
+        else:
+            self.name = f"{label}_{self.numba_ID}"
 
         self.N_bin = 0
 
@@ -44,42 +53,45 @@ def decode_type(type_):
 
 
 class MeshUniform(MeshBase):
-    def __init__(self, name=None, x=None, y=None, z=None, t=None):
+    # Annotations for Numba mode
+    x0: float
+    dx: float
+    Nx: int
+    y0: float
+    dy: float
+    Ny: int
+    z0: float
+    dz: float
+    Nz: int
+    t0: float
+    dt: float
+    Nt: int
+
+    def __init__(
+        self,
+        name: str = "",
+        x: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        y: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        z: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        t: tuple[float, float, int] = (-INF, 2 * INF, 1),
+    ):
         label = "uniform_mesh"
         type_ = MESH_UNIFORM
         super().__init__(label, type_, name)
 
-        # Default uniform grids
-        self.x0 = -INF
-        self.dx = 2 * INF
-        self.Nx = 1
-        self.y0 = -INF
-        self.dy = 2 * INF
-        self.Ny = 1
-        self.z0 = -INF
-        self.dz = 2 * INF
-        self.Nz = 1
-        self.t0 = 0.0
-        self.dt = INF
-        self.Nt = 1
-
         # Set the grid
-        if x is not None:
-            self.x0 = x[0]
-            self.dx = x[1]
-            self.Nx = x[2]
-        if y is not None:
-            self.y0 = y[0]
-            self.dy = y[1]
-            self.Ny = y[2]
-        if z is not None:
-            self.z0 = z[0]
-            self.dz = z[1]
-            self.Nz = z[2]
-        if t is not None:
-            self.t0 = t[0]
-            self.dt = t[1]
-            self.Nt = t[2]
+        self.x0 = x[0]
+        self.dx = x[1]
+        self.Nx = x[2]
+        self.y0 = y[0]
+        self.dy = y[1]
+        self.Ny = y[2]
+        self.z0 = z[0]
+        self.dz = z[1]
+        self.Nz = z[2]
+        self.t0 = t[0]
+        self.dt = t[1]
+        self.Nt = t[2]
 
         self.N_bin = self.Nx * self.Ny * self.Nz * self.Nt
 
@@ -99,26 +111,33 @@ class MeshUniform(MeshBase):
 
 
 class MeshStructured(MeshBase):
-    def __init__(self, name=None, x=None, y=None, z=None, t=None):
+    # Annotations for Numba mode
+    x: NDArray[float64]
+    y: NDArray[float64]
+    z: NDArray[float64]
+    t: NDArray[float64]
+    Nx: int
+    Ny: int
+    Nz: int
+    Nt: int
+
+    def __init__(
+        self,
+        name: str = "",
+        x: NDArray[float64] = np.array([-INF, INF]),
+        y: NDArray[float64] = np.array([-INF, INF]),
+        z: NDArray[float64] = np.array([-INF, INF]),
+        t: NDArray[float64] = np.array([-INF, INF]),
+    ):
         label = "structured_mesh"
         type_ = MESH_STRUCTURED
         super().__init__(label, type_, name)
 
-        # Default uniform grids
-        self.x = np.array([-INF, INF])
-        self.y = np.array([-INF, INF])
-        self.z = np.array([-INF, INF])
-        self.t = np.array([0.0, INF])
-
         # Set the grid
-        if x is not None:
-            self.x = x
-        if y is not None:
-            self.y = y
-        if z is not None:
-            self.z = z
-        if t is not None:
-            self.t = t
+        self.x = x
+        self.y = y
+        self.z = z
+        self.t = t
 
         self.Nx = len(self.x) - 1
         self.Ny = len(self.y) - 1

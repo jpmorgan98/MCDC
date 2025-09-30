@@ -1,5 +1,10 @@
+from typing import Iterable
+
+####
+
 from mcdc.constant import DISTRIBUTION_MULTIPDF, DISTRIBUTION_MAXWELLIAN
 from mcdc.object_.base import ObjectPolymorphic
+from mcdc.object_.data import DataTable
 from mcdc.print_ import print_1d_array
 from mcdc.object_.util import cdf_from_pdf
 
@@ -33,6 +38,13 @@ def decode_type(type_):
 
 
 class DistributionMultiPDF(DistributionBase):
+    # Annotations for Numba mode
+    grid: Iterable[float]
+    offset: Iterable[float]
+    value: Iterable[float]
+    pdf: Iterable[float]
+    cdf: Iterable[float]
+
     def __init__(self, grid, offset, value, pdf):
         label = "data_multipdf"
         type_ = DISTRIBUTION_MULTIPDF
@@ -60,6 +72,10 @@ class DistributionMultiPDF(DistributionBase):
 
 
 class DistributionMaxwellian(DistributionBase):
+    # Annotations for Numba mode
+    U: float
+    T: DataTable
+
     def __init__(
         self,
         restriction_energy,

@@ -2,9 +2,13 @@ import h5py
 import numpy as np
 import os
 
+from numpy import float64
+from numpy.typing import NDArray
+
 ####
 
 from mcdc.object_.reaction import (
+    ReactionBase,
     ReactionNeutronCapture,
     ReactionNeutronElasticScattering,
     ReactionNeutronFission,
@@ -19,6 +23,14 @@ from mcdc.print_ import print_1d_array
 
 
 class Nuclide(ObjectNonSingleton):
+    # Annotations for Numba mode
+    name: str
+    atomic_weight_ratio: float
+    xs_energy_grid: NDArray[float64]
+    fissionable: bool
+    reactions: ReactionBase
+    total_xs: NDArray[float64]
+
     def __init__(self, nuclide_name):
         label = "nuclide"
         super().__init__(label)

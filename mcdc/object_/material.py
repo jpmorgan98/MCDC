@@ -17,13 +17,20 @@ from mcdc.print_ import print_1d_array, print_error
 
 
 class MaterialBase(ObjectOverriding):
+    # Annotations for Numba mode
+    name: str
+    fissionable: bool
+
     def __init__(self, type_, name):
         label = "material"
         super().__init__(label, type_)
 
-        self.name = f"{label}_{self.numba_ID}"
+        # Set name
         if name != "":
             self.name = name
+        else:
+            self.name = f"{label}_{self.numba_ID}"
+
         self.fissionable = False
 
     def __repr__(self):
@@ -48,10 +55,16 @@ def decode_type(type_):
 
 
 class Material(MaterialBase):
+    # Annotations for Numba mode
+    nuclide_composition: dict[Nuclide, float]
+    # Numba-only
+    nuclides: list[Nuclide]
+    nuclide_densities: NDArray[float64]
+
     def __init__(
         self,
         name: str = "",
-        nuclide_composition: dict = {},
+        nuclide_composition: dict[Nuclide, float] = {},
     ):
         type_ = MATERIAL
         super().__init__(type_, name)
@@ -59,7 +72,7 @@ class Material(MaterialBase):
         # Dictionary connecting nuclides to respective densities
         self.nuclide_composition = {}
 
-        # For Numba mode: primitive nuclide_composition
+        # Numba representation of nuclide_composition
         self.non_numba += ["nuclide_composition"]
         self.nuclides = []
         self.nuclide_densities = np.zeros(len(nuclide_composition))
@@ -88,6 +101,7 @@ class Material(MaterialBase):
             # Some flags
             if nuclide.fissionable:
                 self.fissionable = True
+        
 
     def __repr__(self):
         text = super().__repr__()
@@ -103,6 +117,24 @@ class Material(MaterialBase):
 
 
 class MaterialMG(MaterialBase):
+    # Annotations for Numba mode
+    G: int
+    J: int
+    mgxs_speed: NDArray[float64]
+    mgxs_decay_rate: NDArray[float64]
+    mgxs_capture: NDArray[float64] 
+    mgxs_scatter: NDArray[float64]
+    mgxs_fission: NDArray[float64]
+    mgxs_total: NDArray[float64]
+    mgxs_nu_s: NDArray[float64]
+    mgxs_nu_p: NDArray[float64]
+    mgxs_nu_d: NDArray[float64]
+    mgxs_nu_d_total: NDArray[float64]
+    mgxs_nu_f: NDArray[float64]
+    mgxs_chi_s: NDArray[float64]
+    mgxs_chi_p: NDArray[float64]
+    mgxs_chi_d: NDArray[float64]
+
     def __init__(
         self,
         name: str = "",

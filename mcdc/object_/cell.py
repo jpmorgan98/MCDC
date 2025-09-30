@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING, Annotated, Iterable
 
 if TYPE_CHECKING:
     from mcdc.object_.surface import Surface
+
 ####
 
 import numpy as np
 import sympy
 
+from numpy import float64
 from operator import attrgetter
 from sympy.logic.boolalg import Boolean
 
@@ -108,8 +110,8 @@ class Cell(ObjectNonSingleton):
     fill: MaterialBase | Universe | Lattice | NoneType
     fill_translated: bool
     fill_rotated: bool
-    translation: Annotated[NDArray[np.float64], (3,)]
-    rotation: Annotated[NDArray[np.float64], (3,)]
+    translation: Annotated[NDArray[float64], (3,)]
+    rotation: Annotated[NDArray[float64], (3,)]
     region_RPN_tokens: list[int]
     region_RPN: Boolean
     surfaces: list[Surface]
