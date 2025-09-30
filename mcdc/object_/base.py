@@ -1,7 +1,3 @@
-from typing import get_type_hints
-
-####
-
 from mcdc.object_.util import check_type
 from mcdc.print_ import print_error
 
@@ -26,10 +22,9 @@ class ObjectBase:
             register_object(self)
     
     def __setattr__(self, key, value):
-        # Resolve hints (handles forward refs, etc.)
-        hints = get_type_hints(self.__class__)
-        if key in hints and not check_type(value, hints[key]):
-            print_error(f"{key} must be {hints[key]!r}, got {value!r}")
+        hints = getattr(self.__class__, "__annotations__", {})
+        if key in hints and not check_type(value, hints[key], self.__class__):
+            raise TypeError(f"{key} must be {hints[key]!r}, got {value!r}")
         super().__setattr__(key, value)
 
 
@@ -73,7 +68,7 @@ class ObjectOverriding(ObjectPolymorphic):
 def register_object(object_):
     from mcdc.object_.simulation import simulation
 
-    from mcdc.object_.cell import Region, Cell,
+    from mcdc.object_.cell import Region, Cell
     from mcdc.object_.universe import Universe, Lattice
     from mcdc.object_.data import DataBase
     from mcdc.object_.distribution import DistributionBase

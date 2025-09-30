@@ -1,6 +1,17 @@
-from operator import attrgetter
+from __future__ import annotations
+from types import NoneType
+from numpy.typing import NDArray
+from typing import TYPE_CHECKING, Annotated, Iterable
+
+if TYPE_CHECKING:
+    from mcdc.object_.surface import Surface
+####
+
 import numpy as np
 import sympy
+
+from operator import attrgetter
+from sympy.logic.boolalg import Boolean
 
 ####
 
@@ -10,12 +21,14 @@ from mcdc.constant import (
     BOOL_OR,
     FILL_LATTICE,
     FILL_MATERIAL,
+    FILL_NONE,
     FILL_UNIVERSE,
     PI,
 )
 from mcdc.object_.base import ObjectNonSingleton
-from mcdc.object_.material import MaterialBase
+from mcdc.object_.material import MaterialBase, MaterialMG
 from mcdc.object_.simulation import simulation
+from mcdc.object_.tally import TallyCell
 from mcdc.object_.universe import Universe, Lattice
 from mcdc.print_ import print_error
 
@@ -37,6 +50,11 @@ def make_region(type_, A, B):
 
 
 class Region(ObjectNonSingleton):
+    # Annotations for Numba mode
+    type: str
+    A: Surface | Region | NoneType
+    B: Region | int | NoneType
+
     def __init__(self, type_, A, B):
         label = "region"
         super().__init__(label)
@@ -84,20 +102,40 @@ class Region(ObjectNonSingleton):
 
 
 class Cell(ObjectNonSingleton):
+    # Annotations for Numba mode
+    name: str
+    region: Region
+    fill: MaterialBase | Universe | Lattice | NoneType
+    fill_translated: bool
+    fill_rotated: bool
+    translation: Annotated[NDArray[np.float64], (3,)]
+    rotation: Annotated[NDArray[np.float64], (3,)]
+    region_RPN_tokens: list[int]
+    region_RPN: Boolean
+    surfaces: list[Surface]
+    cell_tallys: list[TallyCell]
+    # Numba-only
+    fill_type: int
+    fill_ID: int
+    N_tally: int
+    tally_IDs: list[float]
+
     def __init__(
         self,
-        name=None,
-        region=None,
-        fill=None,
-        translation=[0.0, 0.0, 0.0],
-        rotation=[0.0, 0.0, 0.0],
+        region: Region | NoneType = None,
+        fill: MaterialBase | Universe | Lattice | NoneType = None,
+        name: str = "",
+        translation: Iterable[float] = [0.0, 0.0, 0.0],
+        rotation: Iterable[float] = [0.0, 0.0, 0.0],
     ):
         label = "cell"
         super().__init__(label)
 
-        self.name = f"{label}_{self.numba_ID}"
-        if name is not None:
+        # Set name
+        if name != "":
             self.name = name
+        else:
+            self.name = f"{label}_{self.numba_ID}"
 
         # Set region
         if region is None:
@@ -126,7 +164,7 @@ class Cell(ObjectNonSingleton):
             self.region_RPN = generate_RPN(self.region_RPN_tokens)
         else:
             self.region_RPN_tokens = []
-            self.region_RPN = ""
+            self.region_RPN = Boolean(True)
         self.N_RPN_tokens = len(self.region_RPN_tokens)
 
         # List surfaces
@@ -154,6 +192,9 @@ class Cell(ObjectNonSingleton):
         elif isinstance(fill, Lattice):
             self.fill_type = FILL_LATTICE
             self.fill_ID = fill.numba_ID
+        elif fill == None:
+            self.fill_type = FILL_NONE
+            self.fill_ID = -1
         else:
             print_error(f"Unsupported cell fill: {fill}")
 
@@ -213,7 +254,7 @@ def generate_RPN_tokens(region):
             else:
                 print_error(f"Unrecognized token in the generating region RPN: {token}")
 
-    return np.array(rpn_tokens)
+    return rpn_tokens
 
 
 def generate_RPN(rpn_tokens):
