@@ -19,24 +19,25 @@ from mcdc.util import flatten
 
 
 class Universe(ObjectNonSingleton):
+    label: str = 'universe'
+
     # Annotations for Numba mode
     name: str
     cells: list[Cell]
 
     def __init__(self, name: str = "", cells: list[Cell] = [], root: bool = False):
         # Custom treatment for root universe
-        label = "universe"
         if root:
-            super().__init__(label, register=False)
+            super().__init__(register=False)
             self.ID = 0
         else:
-            super().__init__(label)
+            super().__init__()
 
         # Set name
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         self.cells = cells
 
@@ -58,6 +59,8 @@ class Universe(ObjectNonSingleton):
 
 
 class Lattice(ObjectNonSingleton):
+    label: str = 'lattice'
+
     # Annotations for Numba mode
     name: str
     x0: float
@@ -79,14 +82,13 @@ class Lattice(ObjectNonSingleton):
         z: tuple[float, float, int] = (-INF, 2 * INF, 1),
         universes: list[Universe] = None
     ):
-        label = "lattice"
-        super().__init__(label)
+        super().__init__()
 
         # Set name
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         # Default uniform grids
         self.x0 = -INF

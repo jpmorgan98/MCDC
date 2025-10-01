@@ -16,18 +16,20 @@ from mcdc.print_ import print_1d_array
 
 
 class MeshBase(ObjectPolymorphic):
+    label: str = 'mesh'
+
     # Annotations for Numba mode
     name: str
     N_bin: int
 
-    def __init__(self, label, type_, name):
-        super().__init__(label, type_)
+    def __init__(self, type_, name):
+        super().__init__(type_)
 
         # Set name
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         self.N_bin = 0
 
@@ -53,6 +55,8 @@ def decode_type(type_):
 
 
 class MeshUniform(MeshBase):
+    label: str = 'uniform_mesh'
+
     # Annotations for Numba mode
     x0: float
     dx: float
@@ -75,9 +79,8 @@ class MeshUniform(MeshBase):
         z: tuple[float, float, int] = (-INF, 2 * INF, 1),
         t: tuple[float, float, int] = (-INF, 2 * INF, 1),
     ):
-        label = "uniform_mesh"
         type_ = MESH_UNIFORM
-        super().__init__(label, type_, name)
+        super().__init__(type_, name)
 
         # Set the grid
         self.x0 = x[0]
@@ -111,6 +114,8 @@ class MeshUniform(MeshBase):
 
 
 class MeshStructured(MeshBase):
+    label: str = 'structured_mesh'
+
     # Annotations for Numba mode
     x: NDArray[float64]
     y: NDArray[float64]
@@ -129,9 +134,8 @@ class MeshStructured(MeshBase):
         z: NDArray[float64] = np.array([-INF, INF]),
         t: NDArray[float64] = np.array([-INF, INF]),
     ):
-        label = "structured_mesh"
         type_ = MESH_STRUCTURED
-        super().__init__(label, type_, name)
+        super().__init__(type_, name)
 
         # Set the grid
         self.x = x

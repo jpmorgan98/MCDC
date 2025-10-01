@@ -13,8 +13,10 @@ from mcdc.print_ import print_1d_array
 
 
 class DataBase(ObjectPolymorphic):
-    def __init__(self, label, type_):
-        super().__init__(label, type_)
+    label: str = 'data'
+
+    def __init__(self, type_):
+        super().__init__(type_)
 
     def __repr__(self):
         text = "\n"
@@ -36,14 +38,15 @@ def decode_type(type_):
 
 
 class DataTable(DataBase):
+    label: str = 'table_data'
+
     # Annotations for Numba mode
     x: Iterable[float]
     y: Iterable[float]
 
     def __init__(self, x, y):
-        label = "data_table"
         type_ = DATA_TABLE
-        super().__init__(label, type_)
+        super().__init__(type_)
 
         self.x = x
         self.y = y
@@ -61,13 +64,14 @@ class DataTable(DataBase):
 
 
 class DataPolynomial(DataBase):
+    label: str = 'polynomial_data'
+
     # Annotations for Numba mode
     coefficients: Iterable[float]
 
     def __init__(self, coeffs):
-        label = "data_polynomial"
         type_ = DATA_POLYNOMIAL
-        super().__init__(label, type_)
+        super().__init__(type_)
 
         self.coefficients = coeffs
 

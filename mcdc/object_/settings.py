@@ -18,6 +18,8 @@ from mcdc.print_ import print_error
 
 @dataclass
 class Settings(ObjectSingleton):
+    label: str = 'settings'
+
     # Basic
     N_particle: int = 0
     N_batch: int = 1
@@ -61,7 +63,7 @@ class Settings(ObjectSingleton):
     target_gpu: bool = False
 
     def __post_init__(self):
-        super().__init__("settings")
+        super().__init__()
 
     def set_time_census(self, time, tally_frequency=None):
         # Make sure that the time grid points are sorted

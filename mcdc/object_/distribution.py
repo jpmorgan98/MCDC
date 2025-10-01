@@ -15,8 +15,10 @@ from mcdc.object_.util import cdf_from_pdf
 
 
 class DistributionBase(ObjectPolymorphic):
-    def __init__(self, label, type_):
-        super().__init__(label, type_)
+    label: str = 'distribution'
+
+    def __init__(self, type_):
+        super().__init__(type_)
 
     def __repr__(self):
         text = "\n"
@@ -38,6 +40,8 @@ def decode_type(type_):
 
 
 class DistributionMultiPDF(DistributionBase):
+    label: str = 'multipdf_data'
+
     # Annotations for Numba mode
     grid: Iterable[float]
     offset: Iterable[float]
@@ -46,9 +50,8 @@ class DistributionMultiPDF(DistributionBase):
     cdf: Iterable[float]
 
     def __init__(self, grid, offset, value, pdf):
-        label = "data_multipdf"
         type_ = DISTRIBUTION_MULTIPDF
-        super().__init__(label, type_)
+        super().__init__(type_)
 
         self.grid = grid
         self.offset = offset
@@ -72,6 +75,8 @@ class DistributionMultiPDF(DistributionBase):
 
 
 class DistributionMaxwellian(DistributionBase):
+    label: str = 'maxwellian_data'
+
     # Annotations for Numba mode
     U: float
     T: DataTable
@@ -82,9 +87,8 @@ class DistributionMaxwellian(DistributionBase):
         nuclear_temperature_energy_grid,
         nuclear_temperature_value,
     ):
-        label = "data_maxwellian"
         type_ = DISTRIBUTION_MAXWELLIAN
-        super().__init__(label, type_)
+        super().__init__(type_)
 
         self.U = restriction_energy
         self.T = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value)

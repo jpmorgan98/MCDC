@@ -23,6 +23,8 @@ from mcdc.print_ import print_1d_array
 
 
 class Nuclide(ObjectNonSingleton):
+    label: str = 'nuclide'
+
     # Annotations for Numba mode
     name: str
     atomic_weight_ratio: float
@@ -32,8 +34,7 @@ class Nuclide(ObjectNonSingleton):
     total_xs: NDArray[float64]
 
     def __init__(self, nuclide_name):
-        label = "nuclide"
-        super().__init__(label)
+        super().__init__()
 
         # Set attributes from the hdf5 file
         dir_name = os.getenv("MCDC_XSLIB")

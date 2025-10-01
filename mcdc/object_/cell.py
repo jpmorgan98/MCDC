@@ -52,14 +52,15 @@ def make_region(type_, A, B):
 
 
 class Region(ObjectNonSingleton):
+    label: str = 'region'
+
     # Annotations for Numba mode
     type: str
     A: Surface | Region | NoneType
     B: Region | int | NoneType
 
     def __init__(self, type_, A, B):
-        label = "region"
-        super().__init__(label)
+        super().__init__()
 
         self.type = type_
         self.A = A
@@ -104,6 +105,8 @@ class Region(ObjectNonSingleton):
 
 
 class Cell(ObjectNonSingleton):
+    label: str = 'cell'
+
     # Annotations for Numba mode
     name: str
     region: Region
@@ -130,14 +133,13 @@ class Cell(ObjectNonSingleton):
         translation: Iterable[float] = [0.0, 0.0, 0.0],
         rotation: Iterable[float] = [0.0, 0.0, 0.0],
     ):
-        label = "cell"
-        super().__init__(label)
+        super().__init__()
 
         # Set name
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         # Set region
         if region is None:

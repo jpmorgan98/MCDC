@@ -9,12 +9,10 @@ from mcdc.print_ import print_error
 
 class ObjectBase:
     # Annotations for Numba mode
-    label: str
     numbafied: bool
     non_numba: list[str]
 
-    def __init__(self, label, register):
-        self.label = label
+    def __init__(self, register):
         self.numbafied = False
         self.non_numba = ["label", "numbafied", "non_numba"]
 
@@ -27,10 +25,9 @@ class ObjectBase:
             raise TypeError(f"{key} must be {hints[key]!r}, got {value!r}")
         super().__setattr__(key, value)
 
-
 class ObjectSingleton(ObjectBase):
-    def __init__(self, label):
-        super().__init__(label, register=False)
+    def __init__(self):
+        super().__init__(register=False)
 
 
 class ObjectNonSingleton(ObjectBase):
@@ -38,10 +35,10 @@ class ObjectNonSingleton(ObjectBase):
     ID: int
     numba_ID: int
 
-    def __init__(self, label, register=True):
+    def __init__(self, register=True):
         self.ID = -1
         self.numba_ID = -1
-        super().__init__(label, register)
+        super().__init__(register)
         self.non_numba += ["ID", "numba_ID"]
 
 
@@ -49,15 +46,15 @@ class ObjectPolymorphic(ObjectNonSingleton):
     # Annotations for Numba mode
     type: int
 
-    def __init__(self, label, type_, register=True):
+    def __init__(self, type_, register=True):
         self.type = type_
-        super().__init__(label, register)
+        super().__init__(register)
         self.non_numba += ["type"]
 
 
 class ObjectOverriding(ObjectPolymorphic):
-    def __init__(self, label, type_, register=True):
-        super().__init__(label, type_, register)
+    def __init__(self, type_, register=True):
+        super().__init__(type_, register)
 
 
 # ======================================================================================

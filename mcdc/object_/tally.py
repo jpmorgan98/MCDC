@@ -39,6 +39,8 @@ from mcdc.print_ import print_1d_array
 
 
 class TallyBase(ObjectPolymorphic):
+    label: str = 'tally'
+
     # Annotations for Numba mode
     name: str
     scores: list[int]
@@ -59,15 +61,15 @@ class TallyBase(ObjectPolymorphic):
     stride_time: int
 
     def __init__(
-        self, label, type_, name, scores, mu, azi, polar_reference, energy, time
+        self, type_, name, scores, mu, azi, polar_reference, energy, time
     ):
-        super().__init__(label, type_)
+        super().__init__(type_)
 
         # Set name
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         # Set scores
         self.scores = []
@@ -157,6 +159,8 @@ def decode_score_type(type_):
 
 
 class TallyCell(TallyBase):
+    label: str = 'cell_tally'
+
     # Annotations for Numba mode
     cell: Cell
 
@@ -171,10 +175,9 @@ class TallyCell(TallyBase):
         energy: NDArray[float64] | str | NoneType = None,
         time: NDArray[float64] | NoneType = None,
     ):
-        label = "cell_tally"
         type_ = TALLY_CELL
         super().__init__(
-            label, type_, name, scores, mu, azi, polar_reference, energy, time
+            type_, name, scores, mu, azi, polar_reference, energy, time
         )
 
         # Attach cell and attach tally to the cell
@@ -214,6 +217,8 @@ class TallyCell(TallyBase):
 
 
 class TallySurface(TallyBase):
+    label: str = 'surface_tally'
+
     # Annotations for Numba mode
     surface: Surface
 
@@ -228,10 +233,9 @@ class TallySurface(TallyBase):
         energy: NDArray[float64] | str | NoneType = None,
         time: NDArray[float64] | NoneType = None,
     ):
-        label = "surface_tally"
         type_ = TALLY_SURFACE
         super().__init__(
-            label, type_, name, scores, mu, azi, polar_reference, energy, time
+            type_, name, scores, mu, azi, polar_reference, energy, time
         )
 
         # Set surface and attach tally to the surface
@@ -271,6 +275,8 @@ class TallySurface(TallyBase):
 
 
 class TallyMesh(TallyBase):
+    label: str = 'mesh_tally'
+
     # Annotations for Numba mode
     mesh: MeshBase
 
@@ -284,7 +290,6 @@ class TallyMesh(TallyBase):
         polar_reference: NDArray[float64] | NoneType = None,
         energy: NDArray[float64] | str | NoneType = None,
     ):
-        label = "mesh_tally"
         type_ = TALLY_MESH
 
         self.mesh = mesh
@@ -294,7 +299,7 @@ class TallyMesh(TallyBase):
             self.time = mesh.t
 
         super().__init__(
-            label, type_, name, scores, mu, azi, polar_reference, energy, self.time
+            type_, name, scores, mu, azi, polar_reference, energy, self.time
         )
 
         # Allocate the bins

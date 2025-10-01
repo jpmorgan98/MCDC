@@ -24,6 +24,8 @@ from mcdc.object_.settings import Settings
 
 
 class Simulation(ObjectSingleton):
+    label: str = 'simulation'
+
     # Annotations for Numba mode
     data: list[DataBase]
     distributions: list[DistributionBase]
@@ -40,8 +42,7 @@ class Simulation(ObjectSingleton):
     tallies: list[TallyBase]
 
     def __init__(self):
-        label = "simulation"
-        super().__init__(label)
+        super().__init__()
 
         # Physics
         self.data = []

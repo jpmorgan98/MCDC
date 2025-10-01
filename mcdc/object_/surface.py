@@ -87,6 +87,9 @@ class Surface(ObjectNonSingleton):
         Human-readable boundary condition name.
     """
 
+    label: str = 'surface'
+
+    # Annotations for Numba mode
     type: int
     name: str
     boundary_condition: int
@@ -115,15 +118,14 @@ class Surface(ObjectNonSingleton):
     tally_IDs: list[float]
 
     def __init__(self, type_, name, boundary_condition):
-        label = "surface"
-        super().__init__(label)
+        super().__init__()
 
         # Type and name
         self.type = type_
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         # Boundary condition
         if boundary_condition == "none":

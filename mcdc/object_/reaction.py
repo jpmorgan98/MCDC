@@ -25,11 +25,13 @@ from mcdc.print_ import print_1d_array
 
 
 class ReactionBase(ObjectPolymorphic):
+    label: str = 'reaction'
+
     # Annotations for Numba mode
     xs: NDArray[float64]
 
-    def __init__(self, label, type_, xs):
-        super().__init__(label, type_)
+    def __init__(self, type_, xs):
+        super().__init__(type_)
         self.xs = xs
 
     def __repr__(self):
@@ -55,10 +57,11 @@ def decode_type(type_):
 
 
 class ReactionNeutronCapture(ReactionBase):
+    label: str = 'neutron_capture_reaction'
+
     def __init__(self, xs):
-        label = "neutron_capture_reaction"
         type_ = REACTION_NEUTRON_CAPTURE
-        super().__init__(label, type_, xs)
+        super().__init__(type_, xs)
 
     @classmethod
     def from_h5_group(cls, h5_group):
@@ -72,13 +75,14 @@ class ReactionNeutronCapture(ReactionBase):
 
 
 class ReactionNeutronElasticScattering(ReactionBase):
+    label: str = 'neutron_elastic_scattering_reaction'
+
     # Annotations for Numba mode
     mu: DistributionMultiPDF
 
     def __init__(self, xs, mu):
-        label = "neutron_elastic_scattering_reaction"
         type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
-        super().__init__(label, type_, xs)
+        super().__init__(type_, xs)
 
         self.mu = mu
 
@@ -108,6 +112,8 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
 
 class ReactionNeutronFission(ReactionBase):
+    label: str = 'neutron_fission_reaction'
+
     # Annotations for Numba mode
     prompt_yield: DataBase
     prompt_spectrum: DistributionBase
@@ -125,9 +131,8 @@ class ReactionNeutronFission(ReactionBase):
         delayed_spectrums,
         delayed_decay_rates,
     ):
-        label = "neutron_fission_reaction"
         type_ = REACTION_NEUTRON_FISSION
-        super().__init__(label, type_, xs)
+        super().__init__(type_, xs)
 
         self.prompt_yield = prompt_yield
         self.prompt_spectrum = prompt_spectrum

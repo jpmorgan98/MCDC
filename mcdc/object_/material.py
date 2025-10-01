@@ -17,19 +17,20 @@ from mcdc.print_ import print_1d_array, print_error
 
 
 class MaterialBase(ObjectOverriding):
+    label: str = 'material'
+
     # Annotations for Numba mode
     name: str
     fissionable: bool
 
     def __init__(self, type_, name):
-        label = "material"
-        super().__init__(label, type_)
+        super().__init__(type_)
 
         # Set name
         if name != "":
             self.name = name
         else:
-            self.name = f"{label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.numba_ID}"
 
         self.fissionable = False
 
@@ -55,6 +56,8 @@ def decode_type(type_):
 
 
 class Material(MaterialBase):
+    label: str = 'material'
+
     # Annotations for Numba mode
     nuclide_composition: dict[Nuclide, float]
     # Numba-only
@@ -117,6 +120,8 @@ class Material(MaterialBase):
 
 
 class MaterialMG(MaterialBase):
+    label: str = 'multigroup_material'
+
     # Annotations for Numba mode
     G: int
     J: int
