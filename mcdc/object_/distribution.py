@@ -1,4 +1,5 @@
-from typing import Iterable
+from numpy import float64
+from numpy.typing import NDArray
 
 ####
 
@@ -43,11 +44,11 @@ class DistributionMultiPDF(DistributionBase):
     label: str = 'multipdf_data'
 
     # Annotations for Numba mode
-    grid: Iterable[float]
-    offset: Iterable[float]
-    value: Iterable[float]
-    pdf: Iterable[float]
-    cdf: Iterable[float]
+    grid: NDArray[float64]
+    offset: NDArray[float64]
+    value: NDArray[float64]
+    pdf: NDArray[float64]
+    cdf: NDArray[float64]
 
     def __init__(self, grid, offset, value, pdf):
         type_ = DISTRIBUTION_MULTIPDF

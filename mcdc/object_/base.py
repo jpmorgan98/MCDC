@@ -9,12 +9,10 @@ from mcdc.print_ import print_error
 
 class ObjectBase:
     # Annotations for Numba mode
-    numbafied: bool
     non_numba: list[str]
 
     def __init__(self, register):
-        self.numbafied = False
-        self.non_numba = ["label", "numbafied", "non_numba"]
+        self.non_numba = ["label", "non_numba"]
 
         if register and isinstance(self, ObjectNonSingleton):
             register_object(self)
@@ -24,6 +22,7 @@ class ObjectBase:
         if key in hints and not check_type(value, hints[key], self.__class__):
             raise TypeError(f"{key} must be {hints[key]!r}, got {value!r}")
         super().__setattr__(key, value)
+
 
 class ObjectSingleton(ObjectBase):
     def __init__(self):

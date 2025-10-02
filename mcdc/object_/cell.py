@@ -105,9 +105,10 @@ class Region(ObjectNonSingleton):
 
 
 class Cell(ObjectNonSingleton):
-    label: str = 'cell'
-
     # Annotations for Numba mode
+    label: str = 'cell'
+    non_numba: list[str] = ["region", "fill", "region_RPN", "tallies"]
+    # Runtime-determined
     name: str
     region: Region
     fill: MaterialBase | Universe | Lattice | NoneType
@@ -118,7 +119,7 @@ class Cell(ObjectNonSingleton):
     region_RPN_tokens: list[int]
     region_RPN: Boolean
     surfaces: list[Surface]
-    cell_tallys: list[TallyCell]
+    cell_tallies: list[TallyCell]
     # Numba-only
     fill_type: int
     fill_ID: int
@@ -176,9 +177,6 @@ class Cell(ObjectNonSingleton):
 
         # Cell tallies
         self.tallies = []
-        
-        # Non Numba
-        self.non_numba += ["region", "region_RPN", "tallies"]
 
         # ==============================================================================
         # Numba attribute manual set up
@@ -186,7 +184,6 @@ class Cell(ObjectNonSingleton):
 
         # Numba representation of the cell fill
         #   (Because polymorphic Ffill object is not supported)
-        self.non_numba += ["fill"]
         if isinstance(fill, MaterialBase):
             self.fill_type = FILL_MATERIAL
             self.fill_ID = fill.numba_ID

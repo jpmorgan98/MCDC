@@ -86,7 +86,6 @@ class Surface(ObjectNonSingleton):
     decode_BC_type
         Human-readable boundary condition name.
     """
-
     label: str = 'surface'
 
     # Annotations for Numba mode

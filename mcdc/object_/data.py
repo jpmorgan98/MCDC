@@ -1,4 +1,5 @@
-from typing import Iterable
+from numpy import float64
+from numpy.typing import NDArray
 
 ####
 
@@ -41,8 +42,8 @@ class DataTable(DataBase):
     label: str = 'table_data'
 
     # Annotations for Numba mode
-    x: Iterable[float]
-    y: Iterable[float]
+    x: NDArray[float64]
+    y: NDArray[float64]
 
     def __init__(self, x, y):
         type_ = DATA_TABLE
@@ -67,7 +68,7 @@ class DataPolynomial(DataBase):
     label: str = 'polynomial_data'
 
     # Annotations for Numba mode
-    coefficients: Iterable[float]
+    coefficients: NDArray[float64]
 
     def __init__(self, coeffs):
         type_ = DATA_POLYNOMIAL
