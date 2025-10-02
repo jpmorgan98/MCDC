@@ -16,8 +16,6 @@ from mcdc.object_.util import cdf_from_pdf
 
 
 class DistributionBase(ObjectPolymorphic):
-    label: str = 'distribution'
-
     def __init__(self, type_):
         super().__init__(type_)
 

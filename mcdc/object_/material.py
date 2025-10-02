@@ -17,8 +17,6 @@ from mcdc.print_ import print_1d_array, print_error
 
 
 class MaterialBase(ObjectOverriding):
-    label: str = 'material'
-
     # Annotations for Numba mode
     name: str
     fissionable: bool

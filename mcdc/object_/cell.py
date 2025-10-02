@@ -52,8 +52,6 @@ def make_region(type_, A, B):
 
 
 class Region(ObjectNonSingleton):
-    label: str = 'region'
-
     # Annotations for Numba mode
     type: str
     A: Surface | Region | NoneType

@@ -14,8 +14,6 @@ from mcdc.print_ import print_1d_array
 
 
 class DataBase(ObjectPolymorphic):
-    label: str = 'data'
-
     def __init__(self, type_):
         super().__init__(type_)
 

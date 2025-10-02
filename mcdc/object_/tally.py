@@ -39,8 +39,6 @@ from mcdc.print_ import print_1d_array
 
 
 class TallyBase(ObjectPolymorphic):
-    label: str = 'tally'
-
     # Annotations for Numba mode
     name: str
     scores: list[int]

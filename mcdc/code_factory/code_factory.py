@@ -29,7 +29,7 @@ for file_name in file_names:
             isinstance(item, type)
             and issubclass(item, ObjectBase)
             and item not in base_classes
-            and item_name[-4:] != "Base"
+            and 'label' in dir(item)
             and item not in mcdc_classes
         ):
             mcdc_classes.append(item)
