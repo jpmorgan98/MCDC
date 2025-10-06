@@ -16,7 +16,6 @@ from mcdc.print_ import print_1d_array
 
 
 class MeshBase(ObjectPolymorphic):
-    # Annotations for Numba mode
     name: str
     N_bin: int
 
@@ -53,9 +52,9 @@ def decode_type(type_):
 
 
 class MeshUniform(MeshBase):
-    label: str = 'uniform_mesh'
-
     # Annotations for Numba mode
+    label: str = 'uniform_mesh'
+    #
     x0: float
     dx: float
     Nx: int
@@ -112,9 +111,9 @@ class MeshUniform(MeshBase):
 
 
 class MeshStructured(MeshBase):
-    label: str = 'structured_mesh'
-
     # Annotations for Numba mode
+    label: str = 'structured_mesh'
+    #
     x: NDArray[float64]
     y: NDArray[float64]
     z: NDArray[float64]

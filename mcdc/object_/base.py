@@ -8,12 +8,7 @@ from mcdc.print_ import print_error
 
 
 class ObjectBase:
-    # Annotations for Numba mode
-    non_numba: list[str]
-
     def __init__(self, register):
-        self.non_numba = ["label", "non_numba"]
-
         if register and isinstance(self, ObjectNonSingleton):
             register_object(self)
     
@@ -30,28 +25,23 @@ class ObjectSingleton(ObjectBase):
 
 
 class ObjectNonSingleton(ObjectBase):
-    # Annotations for Numba mode
     ID: int
     numba_ID: int
-
     def __init__(self, register=True):
         self.ID = -1
         self.numba_ID = -1
         super().__init__(register)
-        self.non_numba += ["ID", "numba_ID"]
 
 
 class ObjectPolymorphic(ObjectNonSingleton):
-    # Annotations for Numba mode
     type: int
-
     def __init__(self, type_, register=True):
         self.type = type_
         super().__init__(register)
-        self.non_numba += ["type"]
 
 
 class ObjectOverriding(ObjectPolymorphic):
+    abstract: bool = True
     def __init__(self, type_, register=True):
         super().__init__(type_, register)
 

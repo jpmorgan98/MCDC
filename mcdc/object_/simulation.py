@@ -24,9 +24,9 @@ from mcdc.object_.settings import Settings
 
 
 class Simulation(ObjectSingleton):
-    label: str = 'simulation'
-
     # Annotations for Numba mode
+    label: str = 'simulation'
+    #
     data: list[DataBase]
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
@@ -62,8 +62,6 @@ class Simulation(ObjectSingleton):
         self.meshes = []
         self.settings = Settings()
         self.tallies = []
-
-        self.non_numba += ['settings']
 
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells

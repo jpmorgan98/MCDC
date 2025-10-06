@@ -17,7 +17,6 @@ from mcdc.print_ import print_1d_array, print_error
 
 
 class MaterialBase(ObjectOverriding):
-    # Annotations for Numba mode
     name: str
     fissionable: bool
 
@@ -54,11 +53,12 @@ def decode_type(type_):
 
 
 class Material(MaterialBase):
-    label: str = 'material'
-
     # Annotations for Numba mode
+    label: str = 'material'
+    non_numba: list[str] = ["nuclide_composition"]
+    #
     nuclide_composition: dict[Nuclide, float]
-    # Numba-only
+    #
     nuclides: list[Nuclide]
     nuclide_densities: NDArray[float64]
 
@@ -74,7 +74,6 @@ class Material(MaterialBase):
         self.nuclide_composition = {}
 
         # Numba representation of nuclide_composition
-        self.non_numba += ["nuclide_composition"]
         self.nuclides = []
         self.nuclide_densities = np.zeros(len(nuclide_composition))
 
@@ -118,9 +117,9 @@ class Material(MaterialBase):
 
 
 class MaterialMG(MaterialBase):
-    label: str = 'multigroup_material'
-
     # Annotations for Numba mode
+    label: str = 'multigroup_material'
+    #
     G: int
     J: int
     mgxs_speed: NDArray[float64]

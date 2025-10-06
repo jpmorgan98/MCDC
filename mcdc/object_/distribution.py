@@ -39,9 +39,9 @@ def decode_type(type_):
 
 
 class DistributionMultiPDF(DistributionBase):
-    label: str = 'multipdf_data'
-
     # Annotations for Numba mode
+    label: str = 'multipdf_data'
+    #
     grid: NDArray[float64]
     offset: NDArray[float64]
     value: NDArray[float64]
@@ -74,9 +74,9 @@ class DistributionMultiPDF(DistributionBase):
 
 
 class DistributionMaxwellian(DistributionBase):
-    label: str = 'maxwellian_data'
-
     # Annotations for Numba mode
+    label: str = 'maxwellian_data'
+    #
     U: float
     T: DataTable
 

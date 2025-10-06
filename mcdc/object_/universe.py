@@ -19,9 +19,9 @@ from mcdc.util import flatten
 
 
 class Universe(ObjectNonSingleton):
-    label: str = 'universe'
-
     # Annotations for Numba mode
+    label: str = 'universe'
+    #
     name: str
     cells: list[Cell]
 
@@ -59,9 +59,9 @@ class Universe(ObjectNonSingleton):
 
 
 class Lattice(ObjectNonSingleton):
-    label: str = 'lattice'
-
     # Annotations for Numba mode
+    label: str = 'lattice'
+    #
     name: str
     x0: float
     dx: float

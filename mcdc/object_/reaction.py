@@ -25,7 +25,6 @@ from mcdc.print_ import print_1d_array
 
 
 class ReactionBase(ObjectPolymorphic):
-    # Annotations for Numba mode
     xs: NDArray[float64]
 
     def __init__(self, type_, xs):
@@ -55,6 +54,7 @@ def decode_type(type_):
 
 
 class ReactionNeutronCapture(ReactionBase):
+    # Annotations for Numba mode
     label: str = 'neutron_capture_reaction'
 
     def __init__(self, xs):
@@ -73,9 +73,9 @@ class ReactionNeutronCapture(ReactionBase):
 
 
 class ReactionNeutronElasticScattering(ReactionBase):
-    label: str = 'neutron_elastic_scattering_reaction'
-
     # Annotations for Numba mode
+    label: str = 'neutron_elastic_scattering_reaction'
+    #
     mu: DistributionMultiPDF
 
     def __init__(self, xs, mu):
@@ -110,9 +110,9 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
 
 class ReactionNeutronFission(ReactionBase):
-    label: str = 'neutron_fission_reaction'
-
     # Annotations for Numba mode
+    label: str = 'neutron_fission_reaction'
+    #
     prompt_yield: DataBase
     prompt_spectrum: DistributionBase
     N_delayed: int

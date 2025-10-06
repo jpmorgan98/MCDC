@@ -39,7 +39,6 @@ from mcdc.print_ import print_1d_array
 
 
 class TallyBase(ObjectPolymorphic):
-    # Annotations for Numba mode
     name: str
     scores: list[int]
     mu: NDArray[float64]
@@ -157,9 +156,9 @@ def decode_score_type(type_):
 
 
 class TallyCell(TallyBase):
-    label: str = 'cell_tally'
-
     # Annotations for Numba mode
+    label: str = 'cell_tally'
+    #
     cell: Cell
 
     def __init__(
@@ -180,8 +179,6 @@ class TallyCell(TallyBase):
 
         # Attach cell and attach tally to the cell
         self.cell = cell
-        cell.N_tally += 1
-        cell.tally_IDs.append(self.ID)
         cell.tallies.append(self)
 
         # Allocate the bins
@@ -215,9 +212,9 @@ class TallyCell(TallyBase):
 
 
 class TallySurface(TallyBase):
-    label: str = 'surface_tally'
-
     # Annotations for Numba mode
+    label: str = 'surface_tally'
+    #
     surface: Surface
 
     def __init__(
@@ -238,8 +235,6 @@ class TallySurface(TallyBase):
 
         # Set surface and attach tally to the surface
         self.surface = surface
-        surface.N_tally += 1
-        surface.tally_IDs.append(self.ID)
         surface.tallies.append(self)
 
         # Allocate the bins
@@ -273,9 +268,9 @@ class TallySurface(TallyBase):
 
 
 class TallyMesh(TallyBase):
-    label: str = 'mesh_tally'
-
     # Annotations for Numba mode
+    label: str = 'mesh_tally'
+    #
     mesh: MeshBase
 
     def __init__(

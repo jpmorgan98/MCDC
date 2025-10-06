@@ -23,6 +23,7 @@ from mcdc.constant import (
     SURFACE_SPHERE,
 )
 from mcdc.object_.base import ObjectNonSingleton
+from mcdc.object_.tally import TallySurface
 
 
 # ======================================================================================
@@ -86,9 +87,10 @@ class Surface(ObjectNonSingleton):
     decode_BC_type
         Human-readable boundary condition name.
     """
-    label: str = 'surface'
-
     # Annotations for Numba mode
+    label: str = 'surface'
+    non_numba: list[str] = ["tallies"]
+    #
     type: int
     name: str
     boundary_condition: int
@@ -112,9 +114,7 @@ class Surface(ObjectNonSingleton):
     move_durations: NDArray[float64]
     move_time_grid: NDArray[float64]
     move_translations: NDArray[float64]
-    # Numba-only
-    N_tally: int
-    tally_IDs: list[float]
+    tallies: list[TallySurface]
 
     def __init__(self, type_, name, boundary_condition):
         super().__init__()
@@ -163,18 +163,6 @@ class Surface(ObjectNonSingleton):
 
         # Surface tallies
         self.tallies = []
-
-        # Non Numba
-        self.non_numba += ["tallies"]
-        
-        # ==============================================================================
-        # Numba attribute manual set up
-        # ==============================================================================
-        
-        # Numba representation of the surface tally list
-        #   (Because the list can be empty, which is not supported)
-        self.N_tally = 0
-        self.tally_IDs = []
 
 
     def __repr__(self):

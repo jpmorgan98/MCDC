@@ -113,7 +113,7 @@ class Cell(ObjectNonSingleton):
     fill_rotated: bool
     translation: Annotated[NDArray[float64], (3,)]
     rotation: Annotated[NDArray[float64], (3,)]
-    region_RPN_tokens: list[int]
+    region_RPN_tokens: NDArray[float64]
     region_RPN: Boolean
     surfaces: list[Surface]
     tallies: list[TallyCell]
@@ -245,7 +245,7 @@ def generate_RPN_tokens(region):
             else:
                 print_error(f"Unrecognized token in the generating region RPN: {token}")
 
-    return rpn_tokens
+    return np.array(rpn_tokens)
 
 
 def generate_RPN(rpn_tokens):
