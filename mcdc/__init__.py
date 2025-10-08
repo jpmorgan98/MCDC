@@ -10,6 +10,7 @@ settings = simulation.settings
 from mcdc.object_.cell import Cell, Universe, Lattice
 from mcdc.object_.material import Material, MaterialMG
 from mcdc.object_.mesh import MeshUniform, MeshStructured
+from mcdc.object_.source import Source
 from mcdc.object_.surface import Surface
 from mcdc.object_.tally import TallyCell, TallySurface, TallyMesh
 
@@ -22,8 +23,6 @@ from mcdc.main import run
 # ======================================================================================
 # Will be replaced
 # ======================================================================================
-
-from mcdc.togo.input_ import source
 
 """
 from mcdc.input_ import (

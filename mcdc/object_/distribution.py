@@ -3,11 +3,11 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import DISTRIBUTION_MULTIPDF, DISTRIBUTION_MAXWELLIAN
+from mcdc.constant import DISTRIBUTION_MULTIPDF, DISTRIBUTION_MAXWELLIAN, DISTRIBUTION_PDF, DISTRIBUTION_PMF
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataTable
 from mcdc.print_ import print_1d_array
-from mcdc.object_.util import cdf_from_pdf
+from mcdc.object_.util import cdf_from_pdf, multi_cdf_from_pdf, cmf_from_pmf
 
 
 # ======================================================================================
@@ -27,10 +27,71 @@ class DistributionBase(ObjectPolymorphic):
 
 
 def decode_type(type_):
-    if type_ == DISTRIBUTION_MULTIPDF:
-        return "Data (Multi PDF)"
+    if type_ == DISTRIBUTION_PDF:
+        return "Distribution (PDF)"
+    elif type_ == DISTRIBUTION_PMF:
+        return "Distribution (PMF)"
+    elif type_ == DISTRIBUTION_MULTIPDF:
+        return "Distribution (Multi PDF)"
     elif type_ == DISTRIBUTION_MAXWELLIAN:
-        return "Data (Maxwellian spectrum)"
+        return "Distribution (Maxwellian spectrum)"
+
+
+# ======================================================================================
+# PDF distribution
+# ======================================================================================
+
+class DistributionPDF(DistributionBase):
+    # Annotations for Numba mode
+    label: str = 'pdf_data'
+    #
+    value: NDArray[float64]
+    pdf: NDArray[float64]
+    cdf: NDArray[float64]
+
+    def __init__(self, value, pdf):
+        type_ = DISTRIBUTION_PDF
+        super().__init__(type_)
+
+        self.value = value
+        self.pdf = pdf
+
+        self.pdf, self.cdf = cdf_from_pdf(value, pdf)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - value {print_1d_array(self.value)}\n"
+        text += f"  - pdf {print_1d_array(self.pdf)}\n"
+        return text
+
+
+# ======================================================================================
+# PMF distribution
+# ======================================================================================
+
+class DistributionPMF(DistributionBase):
+    # Annotations for Numba mode
+    label: str = 'pmf_data'
+    #
+    value: NDArray[float64]
+    pmf: NDArray[float64]
+    cmf: NDArray[float64]
+
+    def __init__(self, value, pmf):
+        type_ = DISTRIBUTION_PMF
+        super().__init__(type_)
+
+        self.value = value
+        self.pmf = pmf
+
+        self.pmf, self.cdf = cmf_from_pmf(value, pmf)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - value {print_1d_array(self.value)}\n"
+        text += f"  - pmf {print_1d_array(self.pmf)}\n"
+        return text
+
 
 
 # ======================================================================================
@@ -57,7 +118,7 @@ class DistributionMultiPDF(DistributionBase):
         self.value = value
         self.pdf = pdf
 
-        self.pdf, self.cdf = cdf_from_pdf(offset, value, pdf)
+        self.pdf, self.cdf = multi_cdf_from_pdf(offset, value, pdf)
 
     def __repr__(self):
         text = super().__repr__()

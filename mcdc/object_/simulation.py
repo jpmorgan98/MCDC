@@ -97,6 +97,7 @@ class Simulation(ObjectSingleton):
         self.materials = []
         self.nuclides = []
         self.reactions = []
+        self.sources = []
 
         # Geometry
         self.cells = []

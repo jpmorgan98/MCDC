@@ -67,6 +67,7 @@ def register_object(object_):
     from mcdc.object_.mesh import MeshBase
     from mcdc.object_.nuclide import Nuclide
     from mcdc.object_.reaction import ReactionBase
+    from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
     from mcdc.object_.tally import TallyBase
 
@@ -89,6 +90,8 @@ def register_object(object_):
         object_list = simulation.reactions
     elif isinstance(object_, Region):
         object_list = simulation.regions
+    elif isinstance(object_, Source):
+        object_list = simulation.sources
     elif isinstance(object_, Surface):
         object_list = simulation.surfaces
     elif isinstance(object_, TallyBase):

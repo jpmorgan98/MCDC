@@ -47,7 +47,7 @@ shield_cell = mcdc.Cell(region=box & ~void_channel, fill=m)
 # =============================================================================
 # The source pulses in t=[0,5]
 
-mcdc.source(
+mcdc.Source(
     x=[0.0, 10.0], y=[0.0, 10.0], z=[0.0, 10.0], time=[0.0, 50.0], isotropic=True
 )
 

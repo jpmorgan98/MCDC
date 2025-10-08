@@ -1,49 +1,42 @@
 import numpy as np
-import sys
 
 from typing import get_origin, get_args, Union, Annotated
 
 
-def cdf_from_pdf(offset, value, pdf):
-    """
-    Construct cumulative distribution function (CDF) from a piecewise-linear
-    probability density function (PDF), handling multiple disjoint segments.
+def cmf_from_pmf(value, pmf):
+    cmf = np.zeros_like(pmf)
 
-    Parameters
-    ----------
-    offset : array_like of int
-        Segment boundaries in `pdf` and `value`.
-        For each i, the segment is pdf[offset[i]:offset[i+1]].
-        The last entry may point to len(pdf).
-    value : array_like of float
-        Grid of x-values corresponding to pdf.
-        Must have same length as pdf.
-    pdf : array_like of float
-        Probability density values at grid points.
-        Will be modified in-place (normalized by segment).
+    # Build CMF incrementally
+    total = 0.0
+    for idx in range(len(pmf)):
+        total += pmf[idx]
+        cmf[idx] = total
 
-    Returns
-    -------
-    pdf : ndarray
-        Normalized PDF (each segment integrates to 1).
-    cdf : ndarray
-        CDF values at the same grid points, normalized per segment.
+    # Normalize this segment so CDF ends at 1
+    norm = cmf[-1]
+    pmf /= norm
+    cmf /= norm
 
-    Notes
-    -----
-    - Integration uses the trapezoidal rule on each segment.
-    - Each segment [offset[i], offset[i+1]) is normalized separately.
-    - The last segment is defined from offset[-1] to len(pdf).
+    return pmf, cmf
 
-    Example
-    -------
-    >>> value = np.linspace(0, 1, 6)
-    >>> pdf = np.ones_like(value)     # flat pdf
-    >>> offset = [0]
-    >>> pdf_norm, cdf = cdf_from_pdf(offset, value, pdf)
-    >>> cdf[-1]
-    1.0
-    """
+def cdf_from_pdf(value, pdf):
+    cdf = np.zeros_like(pdf)
+
+    # Build CDF incrementally with trapezoidal integration
+    for idx in range(len(pdf) - 1):
+        cdf[idx + 1] = (
+            cdf[idx]
+            + (pdf[idx] + pdf[idx + 1]) * (value[idx + 1] - value[idx]) * 0.5
+        )
+
+    # Normalize this segment so CDF ends at 1
+    norm = cdf[-1]
+    pdf /= norm
+    cdf /= norm
+
+    return pdf, cdf
+
+def multi_cdf_from_pdf(offset, value, pdf):
     cdf = np.zeros_like(pdf)
 
     for i in range(len(offset)):

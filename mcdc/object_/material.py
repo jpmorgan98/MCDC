@@ -1,3 +1,4 @@
+from types import NoneType
 import numpy as np
 
 from numpy import float64
@@ -140,16 +141,16 @@ class MaterialMG(MaterialBase):
     def __init__(
         self,
         name: str = "",
-        capture: NDArray[float64] = None,
-        scatter: NDArray[float64] = None,
-        fission: NDArray[float64] = None,
-        nu_s: NDArray[float64] = None,
-        nu_p: NDArray[float64] = None,
-        nu_d: NDArray[float64] = None,
-        chi_p: NDArray[float64] = None,
-        chi_d: NDArray[float64] = None,
-        speed: NDArray[float64] = None,
-        decay_rate: NDArray[float64] = None,
+        capture: NDArray[float64] | NoneType = None,
+        scatter: NDArray[float64] | NoneType = None,
+        fission: NDArray[float64] | NoneType = None,
+        nu_s: NDArray[float64] | NoneType = None,
+        nu_p: NDArray[float64] | NoneType = None,
+        nu_d: NDArray[float64] | NoneType = None,
+        chi_p: NDArray[float64] | NoneType = None,
+        chi_d: NDArray[float64] | NoneType = None,
+        speed: NDArray[float64] | NoneType = None,
+        decay_rate: NDArray[float64] | NoneType = None,
     ):
         type_ = MATERIAL_MG
         super().__init__(type_, name)
