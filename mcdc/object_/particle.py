@@ -33,3 +33,6 @@ class Particle(ParticleData):
     alive: bool = False
     fresh: bool = False
     event: int = -1
+
+
+#class ParticleBank(ObjectBase):
