@@ -84,7 +84,7 @@ class DistributionPMF(DistributionBase):
         self.value = value
         self.pmf = pmf
 
-        self.pmf, self.cdf = cmf_from_pmf(value, pmf)
+        self.pmf, self.cmf = cmf_from_pmf(value, pmf)
 
     def __repr__(self):
         text = super().__repr__()

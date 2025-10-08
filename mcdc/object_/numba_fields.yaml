@@ -88,6 +88,22 @@ multipdf_data:
     - ('cdf_offset', 'i8')
     - ('cdf_length', 'i8')
 
+pdf_data:
+    - ('value_offset', 'i8')
+    - ('value_length', 'i8')
+    - ('pdf_offset', 'i8')
+    - ('pdf_length', 'i8')
+    - ('cdf_offset', 'i8')
+    - ('cdf_length', 'i8')
+
+pmf_data:
+    - ('value_offset', 'i8')
+    - ('value_length', 'i8')
+    - ('pmf_offset', 'i8')
+    - ('pmf_length', 'i8')
+    - ('cmf_offset', 'i8')
+    - ('cmf_length', 'i8')
+
 material:
     - ('N_nuclide', 'i8')
     - ('nuclide_IDs_offset', 'i8')
@@ -238,6 +254,10 @@ simulation:
     - ('N_maxwellian_data', 'i8')
     - ('multipdf_data', multipdf_data, (0,))
     - ('N_multipdf_data', 'i8')
+    - ('pdf_data', pdf_data, (1,))
+    - ('N_pdf_data', 'i8')
+    - ('pmf_data', pmf_data, (1,))
+    - ('N_pmf_data', 'i8')
     - ('materials', material, (0,))
     - ('N_material', 'i8')
     - ('multigroup_materials', multigroup_material, (2,))
@@ -310,6 +330,29 @@ simulation:
     - ('source_program_pointer', <class 'numpy.uint64'>)
     - ('precursor_program_pointer', <class 'numpy.uint64'>)
     - ('source_seed', <class 'numpy.uint64'>)
+
+source:
+    - ('name', 'U32')
+    - ('point_source', '?')
+    - ('box_source', '?')
+    - ('point', <class 'numpy.float64'>, (3,))
+    - ('x', <class 'numpy.float64'>, (2,))
+    - ('y', <class 'numpy.float64'>, (2,))
+    - ('z', <class 'numpy.float64'>, (2,))
+    - ('isotropic_source', '?')
+    - ('mono_direction', '?')
+    - ('white_direction', '?')
+    - ('direction', <class 'numpy.float64'>, (3,))
+    - ('mono_energetic', '?')
+    - ('energy_group', 'i8')
+    - ('energy', 'f8')
+    - ('energy_group_pmf_ID', 'i8')
+    - ('energy_pdf_ID', 'i8')
+    - ('discrete_time', '?')
+    - ('time', 'f8')
+    - ('time_range', <class 'numpy.float64'>, (2,))
+    - ('particle_type', 'i8')
+    - ('probability', 'f8')
 
 surface:
     - ('name', 'U32')

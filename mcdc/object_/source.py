@@ -1,8 +1,9 @@
-from types import NoneType
-from typing import Iterable
 import numpy as np
-from numpy.typing import NDArray
+
 from numpy import float64, int64
+from numpy.typing import NDArray
+from types import NoneType
+from typing import Annotated, Iterable
 
 ####
 
@@ -26,7 +27,30 @@ def decode_particle_type(type_):
 
 
 class Source(ObjectNonSingleton):
+    # Annotations for Numba mode
     label: str = 'source'
+    #
+    name: str
+    point_source: bool
+    box_source: bool
+    point: Annotated[NDArray[float64], (3,)]
+    x: Annotated[NDArray[float64], (2,)]
+    y: Annotated[NDArray[float64], (2,)]
+    z: Annotated[NDArray[float64], (2,)]
+    isotropic_source: bool
+    mono_direction: bool
+    white_direction: bool
+    direction: Annotated[NDArray[float64], (3,)]
+    mono_energetic: bool
+    energy_group: int
+    energy: float
+    energy_group_pmf: DistributionPMF
+    energy_pdf: DistributionPDF
+    discrete_time: bool
+    time: float
+    time_range: Annotated[NDArray[float64], (2,)]
+    particle_type: int
+    probability: float
 
     def __init__(self,
             name: str = "",
