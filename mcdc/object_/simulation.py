@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Annotated
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
     from mcdc.object_.material import MaterialBase
+    from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
     from mcdc.object_.tally import TallyBase
 
@@ -40,6 +41,7 @@ class Simulation(ObjectSingleton):
     materials: list[MaterialBase]
     nuclides: list[Nuclide]
     reactions: list[ReactionBase]
+    sources: list[Source]
     cells: list[Cell]
     lattices: list[Lattice]
     regions: list[Region]

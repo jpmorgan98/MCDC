@@ -12,7 +12,6 @@ import mcdc.object_.distribution as distribution
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.constant import PARTICLE_NEUTRON
 from mcdc.object_.distribution import DistributionPDF, DistributionPMF
-from mcdc.object_.material import MaterialMG
 from mcdc.object_.simulation import simulation
 
 
@@ -54,7 +53,7 @@ class Source(ObjectNonSingleton):
 
     def __init__(self,
             name: str = "",
-            point: Iterable[float] | NoneType = None,
+            position: Iterable[float] | NoneType = None,
             x: Iterable[float] | NoneType = None,
             y: Iterable[float] | NoneType = None,
             z: Iterable[float] | NoneType = None,
@@ -121,8 +120,8 @@ class Source(ObjectNonSingleton):
         # ==============================================================================
         
         # Position
-        if point is not None:
-            self.point = point
+        if position is not None:
+            self.point = np.array(position)
         else:
             self.point_source = False
             self.box_source = True
@@ -165,7 +164,17 @@ class Source(ObjectNonSingleton):
         else:
             self.discrete_time = False
             self.time_range = np.array(time)
-    
+   
+        # ==============================================================================
+        # Normalize probability
+        # ==============================================================================
+
+        norm = 0.0
+        for source in simulation.sources:
+            norm += source.probability
+            print(source)
+        for source in simulation.sources:
+            source.probability /= norm
 
     def __repr__(self):
         text = "\n"
@@ -173,20 +182,21 @@ class Source(ObjectNonSingleton):
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
         text += f"  - Particle: {decode_particle_type(self.particle_type)}\n"
+        text += f"  - Probability: {self.probability * 100}%\n"
         if self.point_source:
-            text += f"  - Position (x, y, z): {self.point} \n"
+            text += f"  - Position [x, y, z]: {self.point} cm\n"
         else:
             text += f"  - Position\n"
-            text += f"    - x: {self.x}\n"
-            text += f"    - y: {self.y}\n"
-            text += f"    - z: {self.z}\n"
+            text += f"    - x: {self.x} cm\n"
+            text += f"    - y: {self.y} cm\n"
+            text += f"    - z: {self.z} cm\n"
         if self.isotropic_source:
             text += f"  - Direction: Isotropic\n"
         elif self.mono_direction:
-            text += f"  - Direction (ux, uy, yz): {self.direction}\n"
+            text += f"  - Direction [ux, uy, yz]: {self.direction}\n"
         elif self.white_direction:
             text += f"  - Isotropic halfspace: {self.direction}\n"
-        if isinstance(simulation.materials[0], MaterialMG):
+        if simulation.materials[0].label == 'multigroup_material':
             if self.mono_energetic:
                 text += f"  - Energy group: {self.energy_group} \n"
             else:

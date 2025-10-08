@@ -270,6 +270,8 @@ simulation:
     - ('N_neutron_elastic_scattering_reaction', 'i8')
     - ('neutron_fission_reactions', neutron_fission_reaction, (0,))
     - ('N_neutron_fission_reaction', 'i8')
+    - ('sources', source, (1,))
+    - ('N_source', 'i8')
     - ('cells', cell, (3,))
     - ('N_cell', 'i8')
     - ('lattices', lattice, (0,))

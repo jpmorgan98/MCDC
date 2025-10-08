@@ -204,14 +204,6 @@ def prepare():
     # =========================================================================
 
     type_.make_size_rpn(simulation.cells)
-    type_.make_type_particle(input_deck)
-    type_.make_type_particle_record(input_deck)
-    type_.make_type_source(input_deck)
-    type_.make_type_uq(input_deck)
-    type_.make_type_domain_decomp(input_deck)
-    type_.make_type_dd_turnstile_event(input_deck)
-    type_.make_type_technique(input_deck)
-    type_.make_type_global(input_deck, structures, records)
     kernel.adapt_rng(nb.config.DISABLE_JIT)
 
     settings.target_gpu = True if config.target == "gpu" else False
@@ -221,7 +213,7 @@ def prepare():
     #   TODO: Better alternative?
     # =========================================================================
 
-    mcdc_arr = np.zeros(1, dtype=type_.global_)
+    mcdc_arr = np.zeros(1, dtype=code_factory.into_dtype(structures['simulation']))
     mcdc = mcdc_arr[0]
 
     # Now, set up the global variable container
@@ -255,22 +247,6 @@ def prepare():
                 for i in range(size):
                     for sub_item in structures[singular_field]:
                         mcdc[field][i][sub_item[0]] = records[singular_field][i][sub_item[0]]
-
-    # =========================================================================
-    # Source
-    # =========================================================================
-
-    N_source = len(input_deck.sources)
-    for i in range(N_source):
-        for name in type_.source.names:
-            copy_field(mcdc["sources"][i], input_deck.sources[i], name)
-
-    # Normalize source probabilities
-    tot = 1e-16
-    for S in mcdc["sources"]:
-        tot += S["prob"]
-    for S in mcdc["sources"]:
-        S["prob"] /= tot
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc
