@@ -13,11 +13,11 @@ from mcdc.print_ import print_structure
 
 @njit
 def reduce(mcdc, data):
-    for tally in mcdc['cell_tallys']:
+    for tally in mcdc['cell_tallies']:
         _reduce(tally, mcdc, data)
-    #for tally in mcdc['surface_tallys']:
+    #for tally in mcdc['surface_tallies']:
     #    _reduce(tally, mcdc, data)
-    for tally in mcdc['mesh_tallys']:
+    for tally in mcdc['mesh_tallies']:
         _reduce(tally, mcdc, data)
 
 @njit
@@ -58,11 +58,11 @@ def _reduce(tally, mcdc, data):
 
 @njit
 def accumulate(mcdc, data):
-    for tally in mcdc['cell_tallys']:
+    for tally in mcdc['cell_tallies']:
         _accumulate(tally, mcdc, data)
-    #for tally in mcdc['surface_tallys']:
+    #for tally in mcdc['surface_tallies']:
     #    _accumulate(tally, mcdc, data)
-    for tally in mcdc['mesh_tallys']:
+    for tally in mcdc['mesh_tallies']:
         _accumulate(tally, mcdc, data)
 
 
@@ -90,11 +90,11 @@ def _accumulate(tally, mcdc, data):
 
 @njit
 def finalize(mcdc, data):
-    for tally in mcdc['cell_tallys']:
+    for tally in mcdc['cell_tallies']:
         _finalize(tally, mcdc, data)
-    #for tally in mcdc['surface_tallys']:
-    #    _finalize(tally, mcdc, data)
-    for tally in mcdc['mesh_tallys']:
+    for tally in mcdc['surface_tallies']:
+        _finalize(tally, mcdc, data)
+    for tally in mcdc['mesh_tallies']:
         _finalize(tally, mcdc, data)
 
 
@@ -102,6 +102,11 @@ def finalize(mcdc, data):
 def _finalize(tally, mcdc, data):
     N_history = mcdc["settings"]["N_particle"]
     N_batch = mcdc["settings"]["N_batch"]
+    N_bin = tally['bin_length']
+    sum_start = tally['bin_sum_offset']
+    sum_sq_start = tally['bin_sum_square_offset']
+    sum_end = sum_start + N_bin
+    sum_sq_end = sum_sq_start + N_bin
 
     if N_batch > 1:
         N_history = N_batch
@@ -111,13 +116,13 @@ def _finalize(tally, mcdc, data):
 
     elif not mcdc["technique"]["domain_decomposition"]:
         # MPI Reduce
-        buff = np.zeros_like(data[TALLY_SUM])
-        buff_sq = np.zeros_like(data[TALLY_SUM_SQ])
+        buff = np.zeros(N_bin)
+        buff_sq = np.zeros(N_bin)
         with objmode():
-            MPI.COMM_WORLD.Reduce(data[TALLY_SUM], buff, MPI.SUM, 0)
-            MPI.COMM_WORLD.Reduce(data[TALLY_SUM_SQ], buff_sq, MPI.SUM, 0)
-        data[TALLY_SUM] = buff
-        data[TALLY_SUM_SQ] = buff_sq
+            MPI.COMM_WORLD.Reduce(data[sum_start:sum_end], buff, MPI.SUM, 0)
+            MPI.COMM_WORLD.Reduce(data[sum_sq_start:sum_sq_end], buff_sq, MPI.SUM, 0)
+        data[sum_start:sum_end] = buff
+        data[sum_sq_start:sum_sq_end] = buff_sq
 
     else:
         # find number of subdomains

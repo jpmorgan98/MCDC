@@ -1,3 +1,4 @@
+from mcdc.code_factory.code_factory import plural_to_singular, singular_to_plural
 from mpi4py import MPI
 
 ####
@@ -229,12 +230,31 @@ def prepare():
     # Set with records
     # ==================================================================================
 
-    for key in structures.keys():
-        if isinstance(records[key], list):
-            mcdc[f"{key}s"] = np.array(records[key], dtype=structures[key])
-            mcdc[f"N_{key}"] = len(records[key])
+    record = records['simulation']
+    structure = structures['simulation']
+    for item in structure:
+        field = item[0]
+        field_type = item[1]
+        size = -1
+        if len(item) == 3:
+            size = item[2][0]
+
+        # Simple attribute
+        if type(field_type) != np.dtypes.VoidDType:
+            mcdc[field] = record[field]
+
+        # MC/DC objects
         else:
-            mcdc[f"{key}"] = np.array(records[key], dtype=structures[key])
+            # Singleton
+            if size == -1:
+                for sub_item in structures[field]:
+                    mcdc[field][sub_item[0]] = records[field][sub_item[0]]
+            # Non-singleton
+            else:
+                singular_field = plural_to_singular(field)
+                for i in range(size):
+                    for sub_item in structures[singular_field]:
+                        mcdc[field][i][sub_item[0]] = records[singular_field][i][sub_item[0]]
 
     # =========================================================================
     # Source

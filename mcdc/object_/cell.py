@@ -165,7 +165,6 @@ class Cell(ObjectNonSingleton):
         else:
             self.region_RPN_tokens = []
             self.region_RPN = Boolean(True)
-        self.N_RPN_tokens = len(self.region_RPN_tokens)
 
         # List surfaces
         self.surfaces = list_surfaces(self.region_RPN_tokens)
@@ -211,8 +210,8 @@ class Cell(ObjectNonSingleton):
         if self.fill_rotated:
             text += f"  - Rotation: {self.rotation * 180 / PI}\n"
         text += f"  - Bounding surfaces: {[x.ID for x in self.surfaces]}\n"
-        if self.N_tally > 0:
-            text += f"  - Tallies: {self.tally_IDs}\n"
+        if len(self.tallies) > 0:
+            text += f"  - Tallies: {[x.ID for x in self.tallies]}\n"
         return text
 
 

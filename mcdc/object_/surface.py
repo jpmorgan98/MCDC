@@ -223,8 +223,8 @@ class Surface(ObjectNonSingleton):
             text += f"             {self.D}, {self.E}, {self.F},\n"
             text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
 
-        if self.N_tally > 0:
-            text += f"  - Tallies: {self.tally_IDs}\n"
+        if len(self.tallies) > 0:
+            text += f"  - Tallies: {[x.ID for x in self.tallies]}\n"
 
         return text
 

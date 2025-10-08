@@ -78,7 +78,10 @@ import numpy as np
 from typing import get_origin, get_args, Union, Annotated
 
 def _name_from_str(s: str) -> str:
-    return _strip_prefixes(s).split('.')[-1].strip()
+    s = _strip_prefixes(s)
+    # strip generic args like "NDArray[float64]" → "NDArray"
+    s = s.split('[', 1)[0]
+    return s.split('.')[-1].strip()
 
 def _mro_name_match(value, want: str) -> bool:
     """Subclass-friendly match without resolving: compare wanted name to any base in MRO."""
@@ -192,6 +195,13 @@ def check_type(value, hint, cls) -> bool:
     # -------- STRING annotations path (no resolution) --------
     if isinstance(hint, str):
         h = hint.strip()
+
+        # Handle plain "NDArray[...]" (dtype-only) without Annotated
+        if _is_ndarray_base_str(h):
+            if not isinstance(value, np.ndarray):
+                return False
+            dtype_key = _extract_ndarray_dtype_key_from_str(h)
+            return _dtype_matches(value, dtype_key)
 
         # String Annotated[...]
         parsed = _parse_annotated_str(h)

@@ -835,13 +835,7 @@ def make_type_global(input_deck, structures, records):
         bank_source = particle_bank(N_work)
 
     # Set the global structure
-    global_structure = []
-    for key in structures.keys():
-        if isinstance(records[key], list):
-            global_structure += [(f"{key}s", structures[key], (len(records[key]),))]
-            global_structure += [(f"N_{key}", int64)]
-        else:
-            global_structure += [(f"{key}", structures[key])]
+    global_structure = structures['simulation']
     global_structure += [
         ("sources", source, (N_source,)),
         ("technique", technique),
@@ -850,47 +844,6 @@ def make_type_global(input_deck, structures, records):
         ("bank_census", bank_census),
         ("bank_source", bank_source),
         ("bank_future", bank_future),
-        ("rng_seed_base", uint64),
-        ("rng_seed", uint64),
-        ("rng_stride", int64),
-        ("dd_idx", int64),
-        ("dd_N_local_source", int64),
-        ("dd_local_rank", int64),
-        ("k_eff", float64),
-        ("k_cycle", float64, (N_cycle,)),
-        ("k_avg", float64),
-        ("k_sdv", float64),
-        ("n_avg", float64),  # Neutron density
-        ("n_sdv", float64),
-        ("n_max", float64),
-        ("C_avg", float64),  # Precursor density
-        ("C_sdv", float64),
-        ("C_max", float64),
-        ("k_avg_running", float64),
-        ("k_sdv_running", float64),
-        ("gyration_radius", float64, (N_cycle,)),
-        ("idx_cycle", int64),
-        ("cycle_active", bool_),
-        ("eigenvalue_tally_nuSigmaF", float64, (1,)),
-        ("eigenvalue_tally_n", float64, (1,)),
-        ("eigenvalue_tally_C", float64, (1,)),
-        ("idx_census", int64),
-        ("idx_batch", int64),
-        ("mpi_size", int64),
-        ("mpi_rank", int64),
-        ("mpi_master", bool_),
-        ("mpi_work_start", int64),
-        ("mpi_work_size", int64),
-        ("mpi_work_size_total", int64),
-        ("runtime_total", float64),
-        ("runtime_preparation", float64),
-        ("runtime_simulation", float64),
-        ("runtime_output", float64),
-        ("runtime_bank_management", float64),
-        ("mpi_work_iter", int64, (1,)),
-        ("gpu_state_pointer", uintp),
-        ("source_program_pointer", uintp),
-        ("source_seed", uint64),
     ]
 
     # GLobal type

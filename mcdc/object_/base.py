@@ -9,6 +9,11 @@ from mcdc.print_ import print_error
 
 class ObjectBase:
     def __init__(self, register):
+        if "non_numba" in dir(self):
+            self.non_numba += ["non_numba", "label", "ID", "numba_ID", "type"]
+        else:
+            self.non_numba = ["non_numba", "label", "ID", "numba_ID", "type"]
+
         if register and isinstance(self, ObjectNonSingleton):
             register_object(self)
     

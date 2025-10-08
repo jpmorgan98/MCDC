@@ -33,6 +33,7 @@ class Settings(ObjectSingleton):
     # k-eigenvalue
     N_inactive: int = 0
     N_active: int = 0
+    N_cycle: int = 0
     k_init: float = 1.0
     use_gyration_radius: bool = False
     gyration_radius_type: int = GYRATION_RADIUS_ALL

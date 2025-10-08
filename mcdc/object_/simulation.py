@@ -1,10 +1,17 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.surface import Surface
     from mcdc.object_.tally import TallyBase
+
+####
+
+import numpy as np
+
+from numpy import float64, int64, uint64, uintp
+from numpy.typing import NDArray
 
 ####
 
@@ -26,6 +33,7 @@ from mcdc.object_.settings import Settings
 class Simulation(ObjectSingleton):
     # Annotations for Numba mode
     label: str = 'simulation'
+    non_numba: list[str] = ['regions']
     #
     data: list[DataBase]
     distributions: list[DistributionBase]
@@ -40,9 +48,48 @@ class Simulation(ObjectSingleton):
     meshes: list[MeshBase]
     settings: Settings
     tallies: list[TallyBase]
+    idx_cycle: int
+    idx_census: int
+    idx_batch: int
+    dd_idx: int
+    dd_N_local_source: int
+    dd_local_rank: int
+    k_eff: float
+    k_cycle: NDArray[float64]
+    k_avg: float
+    k_sdv: float
+    n_avg: float
+    n_sdv: float
+    n_max: float
+    C_avg: float
+    C_sdv: float
+    C_max: float
+    k_avg_running: float
+    k_sdv_running: float
+    gyration_radius: NDArray[float64]
+    cycle_active: bool
+    eigenvalue_tally_nuSigmaF: Annotated[NDArray[float64], (1,)]
+    eigenvalue_tally_n: Annotated[NDArray[float64], (1,)]
+    eigenvalue_tally_C: Annotated[NDArray[float64], (1,)]
+    mpi_size: int
+    mpi_rank: int
+    mpi_master: bool
+    mpi_work_start: int
+    mpi_work_size: int
+    mpi_work_size_total: int
+    mpi_work_iter: Annotated[NDArray[int64], (1,)]
+    runtime_total: float
+    runtime_preparation: float
+    runtime_simulation: float
+    runtime_output: float
+    runtime_bank_management: float
 
     def __init__(self):
         super().__init__()
+
+        # ==============================================================================
+        # Simulation objects
+        # ==============================================================================
 
         # Physics
         self.data = []
@@ -62,6 +109,55 @@ class Simulation(ObjectSingleton):
         self.meshes = []
         self.settings = Settings()
         self.tallies = []
+
+        # ==============================================================================
+        # Simulation parameters
+        # ==============================================================================
+
+        # Simulation indices
+        self.idx_cycle = 0
+        self.idx_census = 0
+        self.idx_batch = 0
+
+        # Domain decomposition
+        self.dd_idx = 0
+        self.dd_N_local_source = 0
+        self.dd_local_rank = 0
+        
+        # Eigenvalue simulation
+        self.k_eff = 1.0
+        self.k_cycle = np.ones(1)
+        self.k_avg = 1.0
+        self.k_sdv = 0.0
+        self.n_avg = 0.0 # Neutron density
+        self.n_sdv = 0.0
+        self.n_max = 0.0
+        self.C_avg = 0.0  # Precursor density
+        self.C_sdv = 0.0
+        self.C_max = 0.0
+        self.k_avg_running = 0.0
+        self.k_sdv_running = 0.0
+        self.gyration_radius = np.zeros(1)
+        self.cycle_active = False
+        self.eigenvalue_tally_nuSigmaF = np.zeros(1)
+        self.eigenvalue_tally_n = np.zeros(1)
+        self.eigenvalue_tally_C = np.zeros(1)
+       
+        # MPI parameters
+        self.mpi_size = 1
+        self.mpi_rank = 0
+        self.mpi_master = True
+        self.mpi_work_start = 0
+        self.mpi_work_size = 0
+        self.mpi_work_size_total = 0
+        self.mpi_work_iter = np.zeros(1, dtype=int64)
+
+        # Runtime records
+        self.runtime_total = 0.0
+        self.runtime_preparation = 0.0
+        self.runtime_simulation = 0.0
+        self.runtime_output = 0.0
+        self.runtime_bank_management = 0.0
 
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells

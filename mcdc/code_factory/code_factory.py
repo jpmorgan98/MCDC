@@ -14,6 +14,7 @@ import mcdc.object_.base as base
 
 from mcdc.object_.base import ObjectBase, ObjectNonSingleton, ObjectPolymorphic, ObjectSingleton
 from mcdc.print_ import print_error
+from mcdc.util import flatten
 
 base_classes = [
     getattr(base, x)
@@ -67,80 +68,6 @@ polymorphic_bases = [x for x in all_classes if x.__name__[-4:] == "Base"]
 # Numba object creation
 # ======================================================================================
 
-def set_structure(label, structures, annotations):
-    structure = structures[label]
-    annotation = annotations[label]
-
-    for field in annotation:
-        hint = annotation[field]
-        hint_decoded = decode_annotated_ndarray(hint)
-        hint_origin = get_origin(hint)
-        hint_args = get_args(hint)
-
-        # For simulation, skip lists of classes
-        if label == 'simulation' and hint_origin == list and hint_args[0] in all_classes:
-            continue
-
-        # ==========================================================================
-        # Get the type
-        # ==========================================================================
-
-        # Basics
-        simple_scalar = hint in type_map.keys()
-        simple_list = hint_origin == list and hint_args[0] in type_map.keys()
-        numpy_array = hint_origin == np.ndarray
-        fixed_size_array = hint_decoded is not None # Resolved later
-
-        # MC/DC class
-        non_polymorphic = lambda x: issubclass(x, ObjectNonSingleton) and x not in polymorphic_bases
-        polymorphic_base = lambda x: x in polymorphic_bases 
-        singleton = lambda x: issubclass(x, ObjectSingleton)
-
-        # List of MC/DC classes
-        list_of_non_polymorphics = hint_origin == list and non_polymorphic(hint_args[0])
-        list_of_polymorphic_bases = hint_origin == list and polymorphic_base(hint_args[0])
-
-        # ==========================================================================
-        # Set the structure
-        # ==========================================================================
-
-        # Basics
-        if simple_scalar:
-            structure.append((field, type_map[hint]))
-        elif simple_list or numpy_array:
-            structure.append((f"{field}_offset", "i8"))
-            structure.append((f"{field}_length", "i8"))
-        elif fixed_size_array:
-           shape = hint_decoded['shape']
-           type_ = get_args(hint_decoded['dtype'])[0]
-           structure.append((field, shape, type_))
-
-        # MC/DC classes
-        elif non_polymorphic(hint):
-            structure.append((f"{field}_ID", "i8"))
-        elif polymorphic_base(hint):
-            structure.append((f"{field}_type", "i8"))
-            structure.append((f"{field}_ID", "i8"))
-        elif singleton(hint):
-            # Set the singleton if not set yet
-            if len(structures[field]) == 0:
-                set_structure(field, structures, annotations)
-            structure.append((f"{field}", into_dtype(structures[field])))
-
-        # List of MC/DC classes
-        elif list_of_non_polymorphics:
-            structure.append((f"N_{field[:-1]}", "i8"))
-            structure.append((f"{field[:-1]}_IDs_offset", "i8"))
-        elif list_of_polymorphic_bases:
-            structure.append((f"N_{field[:-1]}", "i8"))
-            structure.append((f"{field[:-1]}_types_offset", "i8"))
-            structure.append((f"{field[:-1]}_IDs_offset", "i8"))
-
-        # Unknown type
-        else:
-            print_error(f"Unknown type hint for {label}/{field}: {hint}") 
-
-
 def generate_numba_objects(simulation):
     # ==================================================================================
     # Allocate Python annotations and Numba structures, records, and data for the classes
@@ -160,6 +87,8 @@ def generate_numba_objects(simulation):
         structures[mcdc_class.label] = []
         if issubclass(mcdc_class, ObjectNonSingleton):
             records[mcdc_class.label] = []
+        else:
+            records[mcdc_class.label] = {}
     
     # ==================================================================================
     # Gather the annotations from the classes
@@ -200,9 +129,118 @@ def generate_numba_objects(simulation):
     # Set the structures based on the annotations
     # ==================================================================================
 
+    # Temporary simulation object structure
+    simulation_object_structure = []
+    for field in annotations['simulation']:
+        hint = annotations['simulation'][field]
+        hint_origin = get_origin(hint)
+        hint_args = get_args(hint)
+
+        if hint in all_classes:
+            simulation_object_structure.append((field, hint))
+            continue
+        if hint_origin == list and hint_args[0] in all_classes:
+            simulation_object_structure.append((field, list, hint_args[0]))
+            continue
+
     for label in annotations.keys():
         set_structure(label, structures, annotations)
 
+    # ==================================================================================
+    # Set records and data based on the simulation structures and objects
+    # ==================================================================================
+
+    # Allocate object containers
+    objects = {}
+    for mcdc_class in mcdc_classes:
+        if issubclass(mcdc_class, ObjectNonSingleton):
+            objects[mcdc_class] = []
+        else:
+            objects[mcdc_class] = None
+
+    # Gather the objects from the simulation
+    attribute_names = [
+        x
+        for x in dir(simulation)
+        if (
+            not x.startswith("__")
+            and not callable(getattr(simulation, x))
+            and x not in simulation.non_numba
+        )
+    ]
+    for attribute_name in attribute_names:
+        attribute = getattr(simulation, attribute_name)
+        if type(attribute) in mcdc_classes:
+            objects[type(attribute)] = attribute
+        if type(attribute) == list:
+            for item in attribute:
+                if type(item) in mcdc_classes:
+                    objects[type(item)].append(item)
+
+    # Set the objects
+    for class_ in objects.keys():
+        if issubclass(class_, ObjectNonSingleton):
+            for object_ in objects[class_]:
+                set_object(object_, structures, records, data)
+        else:
+            object_ = objects[class_]
+            if object_ is not None:
+                set_object(object_, structures, records, data)
+
+    # ==================================================================================
+    # Finalize the simulation object structure and set record
+    # ==================================================================================
+
+    new_structure = []
+    record = records['simulation']
+    for item in simulation_object_structure:
+        field = item[0]
+        type_1 = item[1]
+
+        # List of objects
+        if type_1 == list:
+            type_2 = item[2]
+
+            # List of non-polymorphics
+            if item[2] not in polymorphic_bases:
+                N = len(records[item[2].label])
+                new_structure.append((field, into_dtype(structures[item[2].label]), (N,)))
+                new_structure.append((f"N_{plural_to_singular(field)}", "i8"))
+                record[f"N_{plural_to_singular(field)}"] = N
+
+            # List of polymorphics
+            else:
+                for class_ in mcdc_classes:
+                    if issubclass(class_, type_2):
+                        N = len(records[class_.label])
+                        new_structure.append((singular_to_plural(class_.label), into_dtype(structures[class_.label]), (N,)))
+                        new_structure.append((f"N_{class_.label}", "i8"))
+                        record[f"N_{class_.label}"] = N
+
+        # Singleton
+        elif item[1] in mcdc_classes and issubclass(item[1], ObjectSingleton):
+            new_structure.append((field, into_dtype(structures[item[1].label])))
+
+        else:
+            print_error(f"Unknown type: {item}")
+
+    structures['simulation'] = new_structure + structures['simulation']
+
+    # GPU interop.
+    structures['simulation'] += [
+        ("gpu_state_pointer", np.uintp),
+        ("source_program_pointer", np.uintp),
+        ("precursor_program_pointer", np.uintp),
+        ("source_seed", np.uint64),
+    ]
+    records['simulation']['gpu_state_pointer'] = 0
+    records['simulation']['source_program_pointer'] = 0
+    records['simulation']['precursor_program_pointer'] = 0
+    records['simulation']['source_seed'] = 0
+
+    # Set other record and data for simulation
+    set_object(simulation, structures, records, data)
+    
     # Print the fields
     with open(f"{Path(mcdc.__file__).parent}/object_/numba_fields.yaml", "w") as f:
         text = "# The following is automatically generated by code_factory.py\n\n"
@@ -211,11 +249,193 @@ def generate_numba_objects(simulation):
             text += f"{label}:\n"
             structure = structures[label]
             for item in structure:
-                text += f"    - {item}\n"
+                if type(item[1]) != np.dtypes.VoidDType:
+                    text += f"    - {item}\n"
+                else:
+                    if len(item) == 3:
+                        text += f"    - ('{item[0]}', {plural_to_singular(item[0])}, {item[2]})\n"
+                    else:   
+                        text += f"    - ('{item[0]}', {item[0]})\n"
             text += "\n"
 
         f.write(text)
 
+
+    return structures, records, data
+
+
+def set_structure(label, structures, annotations):
+    structure = structures[label]
+    annotation = annotations[label]
+
+    for field in annotation:
+        hint = annotation[field]
+        hint_decoded = decode_annotated_ndarray(hint)
+        hint_origin = get_origin(hint)
+        hint_args = get_args(hint)
+
+        # Skip simulation object structure
+        if label == 'simulation':
+            if hint in all_classes:
+                continue
+            if hint_origin == list and hint_args[0] in all_classes:
+                continue
+
+        # ==========================================================================
+        # Get the type
+        # ==========================================================================
+
+        # Basics
+        simple_scalar = hint in type_map.keys()
+        simple_list = hint_origin == list and hint_args[0] in type_map.keys()
+        numpy_array = hint_origin == np.ndarray
+        fixed_size_array = hint_decoded is not None # Resolved later
+
+        # MC/DC class
+        non_polymorphic = lambda x: issubclass(x, ObjectNonSingleton) and x not in polymorphic_bases
+        polymorphic_base = lambda x: x in polymorphic_bases 
+
+        # List of MC/DC classes
+        list_of_non_polymorphics = hint_origin == list and non_polymorphic(hint_args[0])
+        list_of_polymorphic_bases = hint_origin == list and polymorphic_base(hint_args[0])
+
+        # ==========================================================================
+        # Set the structure
+        # ==========================================================================
+
+        # Basics
+        if simple_scalar:
+            structure.append((field, type_map[hint]))
+        elif simple_list or numpy_array:
+            structure.append((f"{field}_offset", "i8"))
+            structure.append((f"{field}_length", "i8"))
+        elif fixed_size_array:
+           shape = hint_decoded['shape']
+           type_ = get_args(hint_decoded['dtype'])[0]
+           structure.append((field, type_, shape))
+
+        # MC/DC classes
+        elif non_polymorphic(hint):
+            structure.append((f"{field}_ID", "i8"))
+        elif polymorphic_base(hint):
+            structure.append((f"{field}_type", "i8"))
+            structure.append((f"{field}_ID", "i8"))
+
+        # List of MC/DC classes
+        elif list_of_non_polymorphics:
+            singular = plural_to_singular(field)
+            structure.append((f"N_{singular}", "i8"))
+            structure.append((f"{singular}_IDs_offset", "i8"))
+        elif list_of_polymorphic_bases:
+            singular = plural_to_singular(field)
+            structure.append((f"N_{singular}", "i8"))
+            structure.append((f"{singular}_types_offset", "i8"))
+            structure.append((f"{singular}_IDs_offset", "i8"))
+
+        # Unknown type
+        else:
+            print_error(f"Unknown type hint for {label}/{field}: {hint}") 
+
+
+def set_object(object_, structures, records, data):
+    structure = structures[object_.label]
+    record = {}
+
+    if object_.label == 'simulation':
+        record = records['simulation']
+
+    # Straightforwardly set up attributes
+    for key in [x[0] for x in structure]:
+        if key in dir(object_):
+            # Skip if set already
+            if key in record.keys():
+                continue
+            record[key] = getattr(object_, key)
+
+    # Loop over the supported attributes
+    attribute_names = [
+        x
+        for x in dir(object_)
+        if (
+            x[:2] != "__"
+            and not callable(getattr(object_, x))
+        )
+    ]
+    if "non_numba" in dir(object_):
+        attribute_names = list(set(attribute_names) - set(object_.non_numba))
+    for attribute_name in attribute_names:
+        # Skip if set already
+        if attribute_name in record.keys():
+            continue
+
+        attribute = getattr(object_, attribute_name)
+
+        # Convert list of supported types into Numpy array
+        if type(attribute) == list:
+            if len(attribute) == 0 or type(attribute[0]) in type_map.keys():
+                attribute = np.array(attribute)
+
+        # Numpy array
+        if type(attribute) == np.ndarray:
+            attribute_flatten = attribute.flatten()
+            record[f"{attribute_name}_offset"] = len(data)
+            record[f"{attribute_name}_length"] = len(attribute_flatten)
+            data.extend(attribute_flatten)
+        
+        # Polymorphic object
+        elif isinstance(attribute, ObjectPolymorphic):
+            record[f"{attribute_name}_type"] = attribute.type
+            record[f"{attribute_name}_ID"] = attribute.numba_ID
+
+        # Non-polymorphic object
+        elif isinstance(attribute, ObjectNonSingleton):
+            record[f"{attribute_name}_ID"] = attribute.numba_ID
+        
+        # List of Non-singleton objects
+        elif type(attribute) == list:
+            # Flatten the list
+            attribute_flatten = list(flatten(attribute))
+            singular_name = plural_to_singular(attribute_name)
+
+            if not isinstance(attribute_flatten[0], ObjectNonSingleton):
+                print(
+                    f"[ERROR] Get a list of non-object for {attribute_name}: {attribute}"
+                )
+                exit()
+
+            # List of non-polymorphic objects
+            if not isinstance(attribute_flatten[0], ObjectPolymorphic):
+                record[f"N_{singular_name}"] = len(attribute_flatten)
+                record[f"{singular_name}_IDs_offset"] = len(data)
+                data.extend([x.numba_ID for x in attribute_flatten])
+
+            # List of polymorphic objects
+            else:
+                length = len(attribute_flatten)
+                offset_type = len(data)
+                offset_id = offset_type + length
+
+                record[f"N_{singular_name}"] = length
+                record[f"{singular_name}_type_offset"] = offset_type
+                record[f"{singular_name}_IDs_offset"] = offset_id
+                data.extend([x.type for x in attribute_flatten])
+                data.extend([x.numba_ID for x in attribute_flatten])
+
+    # Complete for simulation object
+    if object_.label == 'simulation':
+        return
+
+    # Check structure-record compatibility
+    missing = set([x[0] for x in structure]) - set(record.keys())
+    if len(missing) > 0:
+        print_error(f"Missing structure keys in record for {object_.label}: {missing}")
+
+    # Register the record
+    if isinstance(object_, ObjectSingleton):
+        records[object_.label] = record
+    elif isinstance(object_, ObjectNonSingleton):
+        records[object_.label].append(record)
+        
 
 # ======================================================================================
 # Alignment Logic
@@ -381,3 +601,87 @@ def decode_annotated_ndarray(hint):
                 "dtype": dtype_type,
             }
     return None
+
+
+# ======================================================================================
+# Misc.
+# ======================================================================================
+
+def plural_to_singular(word: str) -> str:
+    """
+    Convert a plural English noun (possibly underscore-separated) to singular.
+    Applies only to the last word and handles common irregulars.
+    """
+    irregulars = {
+        'universes': 'universe',
+        'children': 'child',
+        'men': 'man',
+        'women': 'woman',
+        'people': 'person',
+        'mice': 'mouse',
+        'geese': 'goose',
+        'teeth': 'tooth',
+        'feet': 'foot',
+        'indices': 'index',
+        'matrices': 'matrix',
+        'criteria': 'criterion',
+        'data': 'data'  # invariant
+    }
+
+    parts = word.lower().split('_')
+    w = parts[-1]
+
+    if w in irregulars:
+        parts[-1] = irregulars[w]
+    elif w.endswith('ies') and len(w) > 3:
+        parts[-1] = w[:-3] + 'y'
+    elif w.endswith('ves') and len(w) > 3:
+        parts[-1] = w[:-3] + 'f'
+    elif w.endswith('oes'):
+        parts[-1] = w[:-2]
+    elif any(w.endswith(suffix) for suffix in ('ses', 'xes', 'zes', 'ches', 'shes')):
+        parts[-1] = w[:-2]
+    elif w.endswith('s') and not w.endswith('ss'):
+        parts[-1] = w[:-1]
+
+    return '_'.join(parts)
+
+
+def singular_to_plural(word: str) -> str:
+    """
+    Convert a singular English noun (possibly underscore-separated) to plural.
+    Applies only to the last word and handles common irregulars.
+    """
+    irregulars = {
+        'universe': 'universes',
+        'child': 'children',
+        'man': 'men',
+        'woman': 'women',
+        'person': 'people',
+        'mouse': 'mice',
+        'goose': 'geese',
+        'tooth': 'teeth',
+        'foot': 'feet',
+        'index': 'indices',
+        'matrix': 'matrices',
+        'criterion': 'criteria',
+        'data': 'data'  # invariant
+    }
+
+    parts = word.lower().split('_')
+    w = parts[-1]
+
+    if w in irregulars:
+        parts[-1] = irregulars[w]
+    elif w.endswith('y') and w[-2:] not in ('ay', 'ey', 'iy', 'oy', 'uy'):
+        parts[-1] = w[:-1] + 'ies'
+    elif w.endswith('f'):
+        parts[-1] = w[:-1] + 'ves'
+    elif w.endswith('fe'):
+        parts[-1] = w[:-2] + 'ves'
+    elif w.endswith(('s', 'x', 'z', 'ch', 'sh')):
+        parts[-1] = w + 'es'
+    else:
+        parts[-1] = w + 's'
+
+    return '_'.join(parts)
