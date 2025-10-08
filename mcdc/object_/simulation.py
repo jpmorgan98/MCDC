@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 import numpy as np
 
+from mpi4py import MPI
 from numpy import float64, int64, uint64, uintp
 from numpy.typing import NDArray
 
@@ -147,9 +148,9 @@ class Simulation(ObjectSingleton):
         self.eigenvalue_tally_C = np.zeros(1)
        
         # MPI parameters
-        self.mpi_size = 1
-        self.mpi_rank = 0
-        self.mpi_master = True
+        self.mpi_size = MPI.COMM_WORLD.Get_size()
+        self.mpi_rank = MPI.COMM_WORLD.Get_rank()
+        self.mpi_master = self.mpi_rank == 0
         self.mpi_work_start = 0
         self.mpi_work_size = 0
         self.mpi_work_size_total = 0

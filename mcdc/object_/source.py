@@ -172,7 +172,6 @@ class Source(ObjectNonSingleton):
         norm = 0.0
         for source in simulation.sources:
             norm += source.probability
-            print(source)
         for source in simulation.sources:
             source.probability /= norm
 

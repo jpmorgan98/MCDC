@@ -13,6 +13,7 @@ import mcdc.object_ as object_module
 import mcdc.object_.base as base
 
 from mcdc.object_.base import ObjectBase, ObjectNonSingleton, ObjectPolymorphic, ObjectSingleton
+from mcdc.object_.particle import Particle, ParticleData
 from mcdc.print_ import print_error
 from mcdc.util import flatten
 
@@ -38,8 +39,8 @@ type_map = {
 # Get MC/DC classes
 # ======================================================================================
 
-all_classes = []
-mcdc_classes = []
+all_classes = [ParticleData, Particle]
+mcdc_classes = [ParticleData, Particle]
 polymorphic_bases = []
 
 file_names = [x for x in dir(object_module) if x[:2] != "__" and x != "base"]

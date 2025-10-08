@@ -169,29 +169,30 @@ def prepare():
     if len(simulation.universes[0].cells) == 0:
         simulation.universes[0].cells = simulation.cells
 
+    # Get settings
+    settings = simulation.settings
+
     # Set physics mode
-    simulation.settings.multigroup_mode = isinstance(
+    settings.multigroup_mode = isinstance(
         simulation.materials[0], MaterialMG
+    )
+    
+    # Reset time grid size of all tallies if census-based tally is desired
+    if settings.use_census_based_tally:
+        N_bin = settings.census_tally_frequency
+        for tally in input_deck.mesh_tallies:
+            tally.N_bin *= N_bin / (len(tally.t) - 1)
+            tally.t = np.zeros(N_bin + 1)
+    
+    # Set appropriate time boundary
+    settings.time_boundary = max(
+        [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
     )
 
     # Generate Numba-supported "Objects"
     structures, records, data = code_factory.generate_numba_objects(simulation)
 
-    # Get settings
-    settings = simulation.settings
-
     prepare_domain_decomposition()
-
-    # =========================================================================
-    # Time census-based tally
-    # =========================================================================
-    # Reset time grid size of all tallies if census-based tally is desired
-
-    if simulation.settings.use_census_based_tally:
-        N_bin = simulation.settings.census_tally_frequency
-        for tally in input_deck.mesh_tallies:
-            tally.N_bin *= N_bin / (len(tally.t) - 1)
-            tally.t = np.zeros(N_bin + 1)
 
     # =========================================================================
     # Adapt kernels
@@ -270,252 +271,6 @@ def prepare():
     if config.target == "gpu":
         build_gpu_progs(input_deck, config.args)
     adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
-
-    # =========================================================================
-    # Settings
-    # =========================================================================
-
-    # Set appropriate time boundary
-    settings.time_boundary = max(
-        [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
-    )
-
-    # =========================================================================
-    # Technique
-    # =========================================================================
-
-    # Flags
-    for name in [
-        "weighted_emission",
-        "implicit_capture",
-        "population_control",
-        "weight_window",
-        "domain_decomposition",
-        "weight_roulette",
-        "iQMC",
-        "uq",
-    ]:
-        copy_field(mcdc["technique"], input_deck.technique, name)
-
-    # =========================================================================
-    # Population control
-    # =========================================================================
-
-    # Population control technique (PCT)
-    pct = input_deck.technique["pct"]
-    if pct == "combing":
-        mcdc["technique"]["pct"] = PCT_COMBING
-    elif pct == "combing-weight":
-        mcdc["technique"]["pct"] = PCT_COMBING_WEIGHT
-    elif pct == "splitting-roulette":
-        mcdc["technique"]["pct"] = PCT_SPLITTING_ROULETTE
-    elif pct == "splitting-roulette-weight":
-        mcdc["technique"]["pct"] = PCT_SPLITTING_ROULETTE_WEIGHT
-    mcdc["technique"]["pc_factor"] = input_deck.technique["pc_factor"]
-
-    # =========================================================================
-    # Weight window (WW)
-    # =========================================================================
-
-    # WW mesh
-    for name in type_.mesh_names[:-1]:
-        copy_field(
-            mcdc["technique"]["ww"]["mesh"], input_deck.technique["ww"]["mesh"], name
-        )
-
-    mcdc["technique"]["ww"]["mesh"]["Nx"] = (
-        len(input_deck.technique["ww"]["mesh"]["x"]) - 1
-    )
-    mcdc["technique"]["ww"]["mesh"]["Ny"] = (
-        len(input_deck.technique["ww"]["mesh"]["y"]) - 1
-    )
-    mcdc["technique"]["ww"]["mesh"]["Nz"] = (
-        len(input_deck.technique["ww"]["mesh"]["z"]) - 1
-    )
-    mcdc["technique"]["ww"]["mesh"]["Nt"] = (
-        len(input_deck.technique["ww"]["mesh"]["t"]) - 1
-    )
-
-    # WW parameters
-    mcdc["technique"]["ww"]["width"] = input_deck.technique["ww"]["width"]
-    mcdc["technique"]["ww"]["auto"] = input_deck.technique["ww"]["auto"]
-    mcdc["technique"]["ww"]["epsilon"] = input_deck.technique["ww"]["epsilon"]
-    mcdc["technique"]["ww"]["center"] = input_deck.technique["ww"]["center"]
-    mcdc["technique"]["ww"]["save"] = input_deck.technique["ww"]["save"]
-    mcdc["technique"]["ww"]["tally_idx"] = input_deck.technique["ww"]["tally_idx"]
-    # =========================================================================
-    # Weight roulette
-    # =========================================================================
-
-    # Threshold
-    mcdc["technique"]["wr_threshold"] = input_deck.technique["wr_threshold"]
-
-    # Survival probability
-    mcdc["technique"]["wr_survive"] = input_deck.technique["wr_survive"]
-
-    # =========================================================================
-    # Domain Decomposition
-    # =========================================================================
-
-    # Set domain mesh
-    if input_deck.technique["domain_decomposition"]:
-        for name in ["x", "y", "z", "t", "mu", "azi"]:
-            copy_field(
-                mcdc["technique"]["dd_mesh"], input_deck.technique["dd_mesh"], name
-            )
-        mcdc["technique"]["dd_mesh"]["Nx"] = (
-            input_deck.technique["dd_mesh"]["x"].size - 1
-        )
-        mcdc["technique"]["dd_mesh"]["Ny"] = (
-            input_deck.technique["dd_mesh"]["y"].size - 1
-        )
-        mcdc["technique"]["dd_mesh"]["Nz"] = (
-            input_deck.technique["dd_mesh"]["z"].size - 1
-        )
-        mcdc["technique"]["dd_mesh"]["Nt"] = (
-            input_deck.technique["dd_mesh"]["t"].size - 1
-        )
-        mcdc["technique"]["dd_mesh"]["Nmu"] = (
-            input_deck.technique["dd_mesh"]["mu"].size - 1
-        )
-        mcdc["technique"]["dd_mesh"]["N_azi"] = (
-            input_deck.technique["dd_mesh"]["azi"].size - 1
-        )
-        # Set exchange rate
-        for name in ["dd_exchange_rate"]:
-            copy_field(mcdc["technique"], input_deck.technique, name)
-        # Set domain index
-        copy_field(mcdc, input_deck.technique, "dd_idx")
-        copy_field(mcdc, input_deck.technique, "dd_local_rank")
-        for name in ["xp", "xn", "yp", "yn", "zp", "zn"]:
-            copy_field(mcdc["technique"], input_deck.technique, f"dd_{name}_neigh")
-        copy_field(mcdc["technique"], input_deck.technique, "dd_work_ratio")
-
-    # =========================================================================
-    # Quasi Monte Carlo
-    # =========================================================================
-
-    for name in type_.technique["iqmc"].names:
-        if name not in [
-            "mesh",
-            "residual",
-            "samples",
-            "sweep_count",
-            "total_source",
-            "material_idx",
-            "w_min",
-            "score_list",
-            "score",
-        ]:
-            copy_field(mcdc["technique"]["iqmc"], input_deck.technique["iqmc"], name)
-
-    if input_deck.technique["iQMC"]:
-        # pass in mesh
-        iqmc = mcdc["technique"]["iqmc"]
-        for name in ["x", "y", "z", "t"]:
-            copy_field(iqmc["mesh"], input_deck.technique["iqmc"]["mesh"], name)
-        Nx = len(input_deck.technique["iqmc"]["mesh"]["x"]) - 1
-        Ny = len(input_deck.technique["iqmc"]["mesh"]["y"]) - 1
-        Nz = len(input_deck.technique["iqmc"]["mesh"]["z"]) - 1
-        Nt = len(input_deck.technique["iqmc"]["mesh"]["t"]) - 1
-        iqmc["mesh"]["Nx"] = Nx
-        iqmc["mesh"]["Ny"] = Ny
-        iqmc["mesh"]["Nz"] = Nz
-        iqmc["mesh"]["Nt"] = Nt
-        # pass in score list
-        for name, value in input_deck.technique["iqmc"]["score_list"].items():
-            copy_field(
-                iqmc["score_list"], input_deck.technique["iqmc"]["score_list"], name
-            )
-        # pass in initial tallies
-        for name, value in input_deck.technique["iqmc"]["score"].items():
-            mcdc["technique"]["iqmc"]["score"][name]["bin"] = value
-        # minimum particle weight
-        iqmc["w_min"] = 1e-13
-
-    # =========================================================================
-    # Variance Deconvolution - UQ
-    # =========================================================================
-    if mcdc["technique"]["uq"]:
-        M = len(input_deck.uq_deltas["materials"])
-        for i in range(M):
-            idm = input_deck.uq_deltas["materials"][i].ID
-            mcdc["technique"]["uq_"]["materials"][i]["info"]["ID"] = idm
-            mcdc["technique"]["uq_"]["materials"][i]["info"]["distribution"] = (
-                input_deck.uq_deltas["materials"][i].distribution
-            )
-            for name in input_deck.uq_deltas["materials"][i].flags:
-                mcdc["technique"]["uq_"]["materials"][i]["flags"][name] = True
-                mcdc["technique"]["uq_"]["materials"][i]["delta"][name] = getattr(
-                    input_deck.uq_deltas["materials"][i], name
-                )
-            flags = mcdc["technique"]["uq_"]["materials"][i]["flags"]
-            if flags["capture"] or flags["scatter"] or flags["fission"]:
-                flags["total"] = True
-                flags["speed"] = True
-            if flags["nu_p"] or flags["nu_d"]:
-                flags["nu_f"] = True
-            if mcdc["materials"][idm]["N_nuclide"] > 1:
-                for name in type_.uq_mat.names:
-                    mcdc["technique"]["uq_"]["materials"][i]["mean"][name] = (
-                        input_deck.materials[idm][name]
-                    )
-
-        N = len(input_deck.uq_deltas["nuclides"])
-        for i in range(N):
-            mcdc["technique"]["uq_"]["nuclides"][i]["info"]["distribution"] = (
-                input_deck.uq_deltas["nuclides"][i].distribution
-            )
-            idn = input_deck.uq_deltas["nuclides"][i].ID
-            mcdc["technique"]["uq_"]["nuclides"][i]["info"]["ID"] = idn
-            for name in type_.uq_nuc.names:
-                if name == "scatter":
-                    G = input_deck.nuclides[idn].G
-                    chi_s = input_deck.nuclides[idn].chi_s
-                    scatter = input_deck.nuclides[idn].scatter
-                    scatter_matrix = np.zeros((G, G))
-                    for g in range(G):
-                        scatter_matrix[g, :] = chi_s[g, :] * scatter[g]
-
-                    mcdc["technique"]["uq_"]["nuclides"][i]["mean"][
-                        name
-                    ] = scatter_matrix
-                else:
-                    copy_field(
-                        mcdc["technique"]["uq_"]["nuclides"][i]["mean"],
-                        input_deck.nuclides[idn],
-                        name,
-                    )
-
-            for name in input_deck.uq_deltas["nuclides"][i].flags:
-                if "padding" in name:
-                    continue
-                mcdc["technique"]["uq_"]["nuclides"][i]["flags"][name] = True
-                copy_field(
-                    mcdc["technique"]["uq_"]["nuclides"][i]["delta"],
-                    input_deck.uq_deltas["nuclides"][i],
-                    name,
-                )
-            flags = mcdc["technique"]["uq_"]["nuclides"][i]["flags"]
-            if flags["capture"] or flags["scatter"] or flags["fission"]:
-                flags["total"] = True
-            if flags["nu_p"] or flags["nu_d"]:
-                flags["nu_f"] = True
-
-    # =========================================================================
-    # MPI
-    # =========================================================================
-
-    # MPI parameters
-    mcdc["mpi_size"] = MPI.COMM_WORLD.Get_size()
-    mcdc["mpi_rank"] = MPI.COMM_WORLD.Get_rank()
-    mcdc["mpi_master"] = mcdc["mpi_rank"] == 0
-
-    # Distribute work to MPI ranks
-    if mcdc["technique"]["domain_decomposition"]:
-        kernel.distribute_work_dd(mcdc["setting"]["N_particle"], mcdc)
-    else:
-        kernel.distribute_work(settings.N_particle, mcdc)
 
     # =========================================================================
     # Particle banks
