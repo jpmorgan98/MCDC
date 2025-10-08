@@ -13,7 +13,7 @@ import mcdc.object_ as object_module
 import mcdc.object_.base as base
 
 from mcdc.object_.base import ObjectBase, ObjectNonSingleton, ObjectPolymorphic, ObjectSingleton
-from mcdc.object_.particle import Particle, ParticleData
+from mcdc.object_.particle import Particle, ParticleBank, ParticleData
 from mcdc.print_ import print_error
 from mcdc.util import flatten
 
@@ -34,6 +34,8 @@ type_map = {
     np.uint64: "u8",
     np.str_: "U32",
 }
+
+bank_names = ['bank_active', 'bank_census', 'bank_source', 'bank_future']
 
 # ======================================================================================
 # Get MC/DC classes
@@ -79,10 +81,6 @@ def generate_numba_objects(simulation):
     records = {}
     data = []
 
-    # Simulation-specific items
-    object_list_names = []
-
-    # Allocate with list
     for mcdc_class in mcdc_classes:
         annotations[mcdc_class.label] = {}
         structures[mcdc_class.label] = []
@@ -90,6 +88,11 @@ def generate_numba_objects(simulation):
             records[mcdc_class.label] = []
         else:
             records[mcdc_class.label] = {}
+
+    # Particle banks
+    for name in bank_names:
+        annotations[name] = {}
+        structures[name] = []
 
     # Move simulation to last
     annotations['simulation'] = annotations.pop('simulation')
@@ -130,6 +133,21 @@ def generate_numba_objects(simulation):
                 new_annotations = parse_annotations_dict(new_annotations)
 
             annotations[mcdc_class.label].update(new_annotations)
+    
+    # Particle banks
+    for name in bank_names:
+        annotations[name] = {
+            k: v
+            for k, v in ParticleBank.__annotations__.items()
+            if k not in ["label", "non_numba"]
+            and (
+                "non_numba" not in dir(ParticleBank)
+                or (
+                    "non_numba" in dir(ParticleBank)
+                    and k not in ParticleBank.non_numba
+                )
+            )
+        }
 
     # ==================================================================================
     # Set the structures based on the annotations
@@ -141,7 +159,7 @@ def generate_numba_objects(simulation):
         hint = annotations['simulation'][field]
         hint_origin = get_origin(hint)
         hint_args = get_args(hint)
-
+       
         if hint in all_classes:
             simulation_object_structure.append((field, hint))
             continue
@@ -151,6 +169,14 @@ def generate_numba_objects(simulation):
 
     for label in annotations.keys():
         set_structure(label, structures, annotations)
+    
+    # Add particles to particle banks and add particle banks to the simulation
+    for name in bank_names:
+        bank = getattr(simulation, name)
+        size = int(bank.size[0])
+        structures[name] += [('particles', into_dtype(structures['particle_data']), (size,))]
+        #
+        structures['simulation'] = [(name, into_dtype(structures[name]))] + structures['simulation']
 
     # ==================================================================================
     # Set records and data based on the simulation structures and objects
@@ -267,7 +293,45 @@ def generate_numba_objects(simulation):
 
         f.write(text)
 
-    return structures, records, data
+    # ==================================================================================
+    # Set with records
+    # ==================================================================================
+
+    # The global structure/variable container
+    mcdc_simulation_arr = np.zeros(1, dtype=into_dtype(structures['simulation']))
+    mcdc_simulation = mcdc_simulation_arr[0]
+
+    record = records['simulation']
+    structure = structures['simulation']
+    for item in structure:
+        field = item[0]
+        field_type = item[1]
+        size = -1
+        if len(item) == 3:
+            size = item[2][0]
+
+        # Skip particle banks
+        if field in bank_names:
+            continue
+
+        # Simple attribute
+        if type(field_type) != np.dtypes.VoidDType:
+            mcdc_simulation[field] = record[field]
+
+        # MC/DC objects
+        else:
+            # Singleton
+            if size == -1:
+                for sub_item in structures[field]:
+                    mcdc_simulation[field][sub_item[0]] = records[field][sub_item[0]]
+            # Non-singleton
+            else:
+                singular_field = plural_to_singular(field)
+                for i in range(size):
+                    for sub_item in structures[singular_field]:
+                        mcdc_simulation[field][i][sub_item[0]] = records[singular_field][i][sub_item[0]]
+
+    return mcdc_simulation_arr, data
 
 
 def set_structure(label, structures, annotations):

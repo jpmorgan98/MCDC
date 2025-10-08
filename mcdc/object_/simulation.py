@@ -22,6 +22,7 @@ from mcdc.object_.data import DataBase
 from mcdc.object_.distribution import DistributionBase
 from mcdc.object_.mesh import MeshBase
 from mcdc.object_.nuclide import Nuclide
+from mcdc.object_.particle import ParticleBank
 from mcdc.object_.reaction import ReactionBase
 from mcdc.object_.universe import Universe, Lattice
 from mcdc.object_.settings import Settings
@@ -35,7 +36,7 @@ from mcdc.object_.settings import Settings
 class Simulation(ObjectSingleton):
     # Annotations for Numba mode
     label: str = 'simulation'
-    non_numba: list[str] = ['regions']
+    non_numba: list[str] = ['regions', 'bank_active', 'bank_census', 'bank_source', 'bank_future']
     #
     data: list[DataBase]
     distributions: list[DistributionBase]
@@ -51,6 +52,10 @@ class Simulation(ObjectSingleton):
     meshes: list[MeshBase]
     settings: Settings
     tallies: list[TallyBase]
+    bank_active: ParticleBank
+    bank_census: ParticleBank
+    bank_source: ParticleBank
+    bank_future: ParticleBank
     idx_cycle: int
     idx_census: int
     idx_batch: int
@@ -117,6 +122,11 @@ class Simulation(ObjectSingleton):
         # ==============================================================================
         # Particle banks
         # ==============================================================================
+
+        self.bank_active = ParticleBank(tag="active")
+        self.bank_census = ParticleBank(tag="census")
+        self.bank_source = ParticleBank(tag="source")
+        self.bank_future = ParticleBank(tag="future")
 
         # ==============================================================================
         # Simulation parameters

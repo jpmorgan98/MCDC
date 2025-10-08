@@ -1,10 +1,14 @@
-from dataclasses import dataclass
-from numpy import uint
+import numpy as np
+
+from dataclasses import dataclass, field
+from typing import Annotated
+from numpy import int64, uint
+from numpy.typing import NDArray
 
 ####
 
 from mcdc.constant import PARTICLE_NEUTRON
-from mcdc.object_.base import ObjectBase
+from mcdc.object_.base import ObjectBase, ObjectSingleton
 
 
 @dataclass
@@ -35,4 +39,14 @@ class Particle(ParticleData):
     event: int = -1
 
 
-#class ParticleBank(ObjectBase):
+class ParticleBank(ObjectSingleton):
+    label: str = "particle_bank"
+    non_numba: list[str] = ['particles']
+    particles: list[ParticleData] = []
+    size: Annotated[NDArray[int64], (1,)]
+    tag: str = ""
+
+    def __init__(self, tag):
+        super().__init__()
+        self.tag = tag
+        self.size = np.zeros(1, dtype=int64)

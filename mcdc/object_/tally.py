@@ -113,6 +113,9 @@ class TallyBase(ObjectPolymorphic):
         self.stride_azi = 0
         self.stride_mu = 0
 
+    def _use_census_based_tally(self, frequency):
+        pass # Implemented in subclass
+
     def _phasespace_filter_text(self):
         text = ""
         text += f"  - Scores: {[decode_score_type(x) for x in self.scores]}\n"
@@ -198,6 +201,18 @@ class TallyCell(TallyBase):
         self.stride_azi = N_score * N_time * N_energy
         self.stride_mu = N_score * N_time * N_energy * N_azi
 
+    def _use_census_based_tally(self, frequency):
+        self.time = np.zeros(frequency + 1)
+
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_score = len(self.scores)
+
+        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, N_score))
+        self.bin_sum = np.zeros_like(self.bin)
+        self.bin_sum_square = np.zeros_like(self.bin)
+
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Cell: {self.cell.name}\n"
@@ -253,6 +268,18 @@ class TallySurface(TallyBase):
         self.stride_energy = N_score * N_time
         self.stride_azi = N_score * N_time * N_energy
         self.stride_mu = N_score * N_time * N_energy * N_azi
+
+    def _use_census_based_tally(self, frequency):
+        self.time = np.zeros(frequency + 1)
+
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_score = len(self.scores)
+
+        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, N_score))
+        self.bin_sum = np.zeros_like(self.bin)
+        self.bin_sum_square = np.zeros_like(self.bin)
 
     def __repr__(self):
         text = super().__repr__()
@@ -313,6 +340,20 @@ class TallyMesh(TallyBase):
         self.stride_energy = N_score * mesh.Nz * mesh.Ny * mesh.Nx * mesh.Nt
         self.stride_azi = N_score * mesh.Nz * mesh.Ny * mesh.Nx * mesh.Nt * N_energy
         self.stride_mu = N_score * mesh.Nz * mesh.Ny * mesh.Nx * mesh.Nt * N_energy * N_azi
+
+    def _use_census_based_tally(self, frequency):
+        mesh = self.mesh
+        self.time = np.zeros(frequency + 1)
+        mesh.t = np.zeros(frequency + 1)
+
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_score = len(self.scores)
+
+        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, mesh.Nx, mesh.Ny, mesh.Nz, N_score))
+        self.bin_sum = np.zeros_like(self.bin)
+        self.bin_sum_square = np.zeros_like(self.bin)
 
     def __repr__(self):
         text = super().__repr__()

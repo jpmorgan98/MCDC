@@ -165,9 +165,9 @@ def run():
 
 
 def prepare():
-    # Create root universe if not defined
-    if len(simulation.universes[0].cells) == 0:
-        simulation.universes[0].cells = simulation.cells
+    # =========================================================================
+    # Simulation settings
+    # =========================================================================
 
     # Get settings
     settings = simulation.settings
@@ -180,78 +180,73 @@ def prepare():
     # Reset time grid size of all tallies if census-based tally is desired
     if settings.use_census_based_tally:
         N_bin = settings.census_tally_frequency
-        for tally in input_deck.mesh_tallies:
-            tally.N_bin *= N_bin / (len(tally.t) - 1)
-            tally.t = np.zeros(N_bin + 1)
+        for tally in simulation.tallies:
+            tally._use_census_based_tally(N_bin)
     
     # Set appropriate time boundary
     settings.time_boundary = max(
         [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
     )
+    
+    # =========================================================================
+    # Simulation parameters
+    # =========================================================================
 
+    # Create root universe if not defined
+    if len(simulation.universes[0].cells) == 0:
+        simulation.universes[0].cells = simulation.cells
+
+    # Initial guess
+    simulation.k_eff = settings.k_init
+
+    # Activate tally scoring for fixed-source
+    if not settings.eigenvalue_mode:
+        simulation.cycle_active = True
+    # All active eigenvalue cycle?
+    elif settings.N_inactive == 0:
+        simulation.cycle_active = True
+
+    # ==================================================================================
+    # Set particle bank sizes
+    # ==================================================================================
+
+    # Some sizes
+    N_particle = settings.N_particle
+    N_work = math.ceil(N_particle / MPI.COMM_WORLD.Get_size())
+    N_census = settings.N_census
+
+    # Determine bank size
+    size_active = 1 + settings.active_bank_buffer
+    size_census = 0
+    size_source = 0
+    size_future = 0
+    #
+    if settings.eigenvalue_mode or N_census > 1:
+        size_census = 1 + int((1 + settings.census_bank_buffer_ratio) * N_work)
+        size_source = 1 + int((1 + settings.source_bank_buffer_ratio) * N_work)
+    if N_census > 1:
+        size_future = 1 + int((1 + settings.future_bank_buffer_ratio) * N_work)
+
+    # Set bank size
+    simulation.bank_active.size[0] = size_active
+    simulation.bank_census.size[0] = size_census
+    simulation.bank_source.size[0] = size_source
+    simulation.bank_future.size[0] = size_future
+
+    # ==================================================================================
     # Generate Numba-supported "Objects"
-    structures, records, data = code_factory.generate_numba_objects(simulation)
-
-    prepare_domain_decomposition()
-
-    # =========================================================================
-    # Adapt kernels
-    # =========================================================================
-
-    kernel.adapt_rng(nb.config.DISABLE_JIT)
-
-    # =========================================================================
-    # Make types
-    # =========================================================================
-
-    type_.make_size_rpn(simulation.cells)
-    kernel.adapt_rng(nb.config.DISABLE_JIT)
-
-    settings.target_gpu = True if config.target == "gpu" else False
-
-    # =========================================================================
-    # Create the global variable container
-    #   TODO: Better alternative?
-    # =========================================================================
-
-    mcdc_arr = np.zeros(1, dtype=code_factory.into_dtype(structures['simulation']))
-    mcdc = mcdc_arr[0]
-
-    # Now, set up the global variable container
-
     # ==================================================================================
-    # Set with records
-    # ==================================================================================
-
-    record = records['simulation']
-    structure = structures['simulation']
-    for item in structure:
-        field = item[0]
-        field_type = item[1]
-        size = -1
-        if len(item) == 3:
-            size = item[2][0]
-
-        # Simple attribute
-        if type(field_type) != np.dtypes.VoidDType:
-            mcdc[field] = record[field]
-
-        # MC/DC objects
-        else:
-            # Singleton
-            if size == -1:
-                for sub_item in structures[field]:
-                    mcdc[field][sub_item[0]] = records[field][sub_item[0]]
-            # Non-singleton
-            else:
-                singular_field = plural_to_singular(field)
-                for i in range(size):
-                    for sub_item in structures[singular_field]:
-                        mcdc[field][i][sub_item[0]] = records[singular_field][i][sub_item[0]]
+    
+    mcdc_arr, data = code_factory.generate_numba_objects(simulation)
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc
     # =========================================================================
+
+    # Adapt kernels
+    kernel.adapt_rng(nb.config.DISABLE_JIT)
+    type_.make_size_rpn(simulation.cells)
+    settings.target_gpu = True if config.target == "gpu" else False
 
     if config.target == "gpu":
         if MPI.COMM_WORLD.Get_rank() != 0:
@@ -281,21 +276,6 @@ def prepare():
     mcdc["bank_census"]["tag"] = "census"
     mcdc["bank_source"]["tag"] = "source"
     mcdc["bank_future"]["tag"] = "future"
-
-    # =========================================================================
-    # Eigenvalue (or fixed-source)
-    # =========================================================================
-
-    # Initial guess
-    mcdc["k_eff"] = settings.k_init
-
-    # Activate tally scoring for fixed-source
-    if not settings.eigenvalue_mode:
-        mcdc["cycle_active"] = True
-
-    # All active eigenvalue cycle?
-    elif settings.N_inactive == 0:
-        mcdc["cycle_active"] = True
 
     # =========================================================================
     # Source file
@@ -338,13 +318,7 @@ def prepare():
         )
         physics.neutron.collision = physics.neutron.multigroup.collision
 
-    # Delete objects if running in Numba mode
-    if not nb.config.DISABLE_JIT:
-        simulation.settings = None
-        simulation.materials = None
-        simulation.nuclides = None
-        simulation.reactions = None
-        simulation.data_containers = None
+    # TODO: Delete Python objects if running in Numba mode
 
     return mcdc_arr, data
 
@@ -501,196 +475,6 @@ def copy_field(dst, src, name):
             )
 
     dst[name] = data
-
-
-# =============================================================================
-# prepare domain decomposition
-# =============================================================================
-def get_d_idx(i, j, k, ni, nj):
-    N = i + j * ni + k * ni * nj
-    return N
-
-
-def get_indexes(N, nx, ny):
-    k = int(N / (nx * ny))
-    j = int((N - nx * ny * k) / nx)
-    i = int(N - nx * ny * k - nx * j)
-    return i, j, k
-
-
-def get_neighbors(N, nx, ny, nz):
-    i, j, k = get_indexes(N, nx, ny)
-    if i > 0:
-        xn = get_d_idx(i - 1, j, k, nx, ny)
-    else:
-        xn = None
-    if i < (nx - 1):
-        xp = get_d_idx(i + 1, j, k, nx, ny)
-    else:
-        xp = None
-    if j > 0:
-        yn = get_d_idx(i, j - 1, k, nx, ny)
-    else:
-        yn = None
-    if j < (ny - 1):
-        yp = get_d_idx(i, j + 1, k, nx, ny)
-    else:
-        yp = None
-    if k > 0:
-        zn = get_d_idx(i, j, k - 1, nx, ny)
-    else:
-        zn = None
-    if k < (nz - 1):
-        zp = get_d_idx(i, j, k + 1, nx, ny)
-    else:
-        zp = None
-    return xn, xp, yn, yp, zn, zp
-
-
-def prepare_domain_decomposition():
-    # Key parameters
-    work_ratio = input_deck.technique["dd_work_ratio"]
-    N_proc = MPI.COMM_WORLD.Get_size()
-    # Decomposition mesh sizes
-    d_Nx = input_deck.technique["dd_mesh"]["x"].size - 1
-    d_Ny = input_deck.technique["dd_mesh"]["y"].size - 1
-    d_Nz = input_deck.technique["dd_mesh"]["z"].size - 1
-
-    # Default parameters
-    if input_deck.technique["dd_exchange_rate"] == None:
-        input_deck.technique["dd_exchange_rate"] = 100
-    if work_ratio is None:
-        work_ratio = np.ones(d_Nx * d_Ny * d_Nz, dtype=int)
-        input_deck.technique["dd_work_ratio"] = work_ratio
-    if input_deck.technique["dd_exchange_rate_padding"] == None:
-        if config.args.target == "gpu":
-            padding = config.args.gpu_block_count * 64 * 16
-        else:
-            padding = 0
-        input_deck.technique["dd_exchange_rate_padding"] = padding
-
-    # Check if the combination of work_ratio and MPI rank size is acceptable
-    if (
-        input_deck.technique["domain_decomposition"]
-        and N_proc % np.sum(work_ratio) != 0
-    ):
-        print_msg(
-            "Number of MPI processes (%i) should be a multiple of the sum of the decomposed domain work ratio (%i)"
-            % (N_proc, np.sum(work_ratio))
-        )
-        exit()
-    N_ratio = int(N_proc / np.sum(work_ratio))
-    work_ratio *= N_ratio
-
-    # Assign domain index and processors' numbers in each domain
-    if input_deck.technique["domain_decomposition"]:
-        i = 0
-        rank_info = []
-        for n in range(d_Nx * d_Ny * d_Nz):
-            ranks = []
-            for r in range(work_ratio[n]):
-                ranks.append(i)
-                if MPI.COMM_WORLD.Get_rank() == i:
-                    d_idx = n
-                    local_rank = r
-                i += 1
-            rank_info.append(ranks)
-        input_deck.technique["dd_idx"] = d_idx
-        input_deck.technique["dd_local_rank"] = local_rank
-        xn, xp, yn, yp, zn, zp = get_neighbors(d_idx, d_Nx, d_Ny, d_Nz)
-    else:
-        input_deck.technique["dd_idx"] = 0
-        input_deck.technique["dd_local_rank"] = 0
-        input_deck.technique["dd_xp_neigh"] = []
-        input_deck.technique["dd_xn_neigh"] = []
-        input_deck.technique["dd_yp_neigh"] = []
-        input_deck.technique["dd_yn_neigh"] = []
-        input_deck.technique["dd_zp_neigh"] = []
-        input_deck.technique["dd_zn_neigh"] = []
-        return
-
-    # Assign neighbor processor numbers in all 3x2 sides
-    if xp is not None:
-        input_deck.technique["dd_xp_neigh"] = rank_info[xp]
-    else:
-        input_deck.technique["dd_xp_neigh"] = []
-    if xn is not None:
-        input_deck.technique["dd_xn_neigh"] = rank_info[xn]
-    else:
-        input_deck.technique["dd_xn_neigh"] = []
-
-    if yp is not None:
-        input_deck.technique["dd_yp_neigh"] = rank_info[yp]
-    else:
-        input_deck.technique["dd_yp_neigh"] = []
-    if yn is not None:
-        input_deck.technique["dd_yn_neigh"] = rank_info[yn]
-    else:
-        input_deck.technique["dd_yn_neigh"] = []
-
-    if zp is not None:
-        input_deck.technique["dd_zp_neigh"] = rank_info[zp]
-    else:
-        input_deck.technique["dd_zp_neigh"] = []
-    if zn is not None:
-        input_deck.technique["dd_zn_neigh"] = rank_info[zn]
-    else:
-        input_deck.technique["dd_zn_neigh"] = []
-
-
-def dd_mesh_bounds(idx):
-    """
-    Defining mesh tally boundaries for domain decomposition.
-    Used in prepare() when domain decomposition is active.
-    """
-    # find DD mesh index of subdomain
-    d_idx = input_deck.technique["dd_idx"]  # subdomain index
-    d_Nx = input_deck.technique["dd_mesh"]["x"].size - 1
-    d_Ny = input_deck.technique["dd_mesh"]["y"].size - 1
-    d_Nz = input_deck.technique["dd_mesh"]["z"].size - 1
-    zmesh_idx = d_idx // (d_Nx * d_Ny)
-    ymesh_idx = (d_idx % (d_Nx * d_Ny)) // d_Nx
-    xmesh_idx = d_idx % d_Nx
-
-    # find spatial boundaries of subdomain
-    xn = input_deck.technique["dd_mesh"]["x"][xmesh_idx]
-    xp = input_deck.technique["dd_mesh"]["x"][xmesh_idx + 1]
-    yn = input_deck.technique["dd_mesh"]["y"][ymesh_idx]
-    yp = input_deck.technique["dd_mesh"]["y"][ymesh_idx + 1]
-    zn = input_deck.technique["dd_mesh"]["z"][zmesh_idx]
-    zp = input_deck.technique["dd_mesh"]["z"][zmesh_idx + 1]
-
-    # find boundary indices in tally mesh
-    mesh_xn = int(np.where(input_deck.mesh_tallies[idx].x == xn)[0])
-    mesh_xp = int(np.where(input_deck.mesh_tallies[idx].x == xp)[0]) + 1
-    mesh_yn = int(np.where(input_deck.mesh_tallies[idx].y == yn)[0])
-    mesh_yp = int(np.where(input_deck.mesh_tallies[idx].y == yp)[0]) + 1
-    mesh_zn = int(np.where(input_deck.mesh_tallies[idx].z == zn)[0])
-    mesh_zp = int(np.where(input_deck.mesh_tallies[idx].z == zp)[0]) + 1
-
-    return mesh_xn, mesh_xp, mesh_yn, mesh_yp, mesh_zn, mesh_zp
-
-
-def generate_cs_centers(mcdc, N_dim=3, seed=123456789):
-    N_cs_bins = int(mcdc["cs_tallies"]["filter"]["N_cs_bins"])
-    x_lims = (
-        mcdc["cs_tallies"]["filter"]["x"][0][-1],
-        mcdc["cs_tallies"]["filter"]["x"][0][0],
-    )
-    y_lims = (
-        mcdc["cs_tallies"]["filter"]["y"][0][-1],
-        mcdc["cs_tallies"]["filter"]["y"][0][0],
-    )
-
-    # Generate Halton sequence according to the seed
-    halton_seq = Halton(d=N_dim, seed=seed)
-    points = halton_seq.random(n=N_cs_bins)
-
-    # Extract x and y coordinates as tuples separately, scaled to the problem dimensions
-    x_coords = tuple(points[:, 0] * (x_lims[1] - x_lims[0]) + x_lims[0])
-    y_coords = tuple(points[:, 1] * (y_lims[1] - y_lims[0]) + y_lims[0])
-
-    return (x_coords, y_coords)
 
 
 def cardlist_to_h5group(dictlist, input_group, name):
