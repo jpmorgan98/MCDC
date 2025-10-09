@@ -31,12 +31,11 @@ class Source(ObjectNonSingleton):
     #
     name: str
     point_source: bool
-    box_source: bool
     point: Annotated[NDArray[float64], (3,)]
     x: Annotated[NDArray[float64], (2,)]
     y: Annotated[NDArray[float64], (2,)]
     z: Annotated[NDArray[float64], (2,)]
-    isotropic_source: bool
+    isotropic_direction: bool
     mono_direction: bool
     white_direction: bool
     direction: Annotated[NDArray[float64], (3,)]
@@ -85,14 +84,13 @@ class Source(ObjectNonSingleton):
 
         # Position
         self.point_source = True
-        self.box_source = False
         self.point = np.zeros(3)
         self.x = np.array([0.0, 0.0])
         self.y = np.array([0.0, 0.0])
         self.z = np.array([0.0, 0.0])
 
         # Direction
-        self.isotropic_source = True
+        self.isotropic_direction = True
         self.mono_direction = False
         self.white_direction = False
         self.direction = np.array([0.0, 0.0, 0.0])
@@ -124,7 +122,6 @@ class Source(ObjectNonSingleton):
             self.point = np.array(position)
         else:
             self.point_source = False
-            self.box_source = True
             if x is not None:
                 self.x = np.array(x)
             if y is not None:
@@ -136,11 +133,11 @@ class Source(ObjectNonSingleton):
         if isotropic is not None:
             pass
         elif direction is not None:
-            self.isotropic_source = False
+            self.isotropic_direction = False
             self.mono_direction = True
             self.direction = np.array(direction)
         elif white_direction is not None:
-            self.isotropic_source = False
+            self.isotropic_direction = False
             self.white_direction = False
             self.direction = np.array(white_direction)
 

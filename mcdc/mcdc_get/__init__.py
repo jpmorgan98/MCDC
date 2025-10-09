@@ -1,4 +1,5 @@
 import mcdc.mcdc_get.material as material
+import mcdc.mcdc_get.multigroup_material as multigroup_material
 import mcdc.mcdc_get.nuclide as nuclide
 import mcdc.mcdc_get.settings as settings
 import mcdc.mcdc_get.reaction as reaction

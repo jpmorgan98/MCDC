@@ -42,8 +42,7 @@ def inspect_geometry(particle_container, mcdc, data):
     ux_global = particle["ux"]
     uy_global = particle["uy"]
     uz_global = particle["uz"]
-    material = mcdc["materials"][particle["material_ID"]]
-    speed = physics.particle_speed(particle_container, material, data)
+    speed = physics.particle_speed(particle_container, mcdc, data)
 
     # Default returns
     distance = INF
@@ -364,7 +363,7 @@ def check_cell(particle_container, cell, mcdc, data):
     particle = particle_container[0]
 
     # Access RPN data
-    N_token = cell["N_RPN_tokens"]
+    N_token = cell["region_RPN_tokens_length"]
     if N_token == 0:
         return True
 
@@ -373,8 +372,7 @@ def check_cell(particle_container, cell, mcdc, data):
     N_value = 0
 
     # Particle parameters
-    material = mcdc["materials"][particle["material_ID"]]
-    speed = physics.particle_speed(particle_container, material, data)
+    speed = physics.particle_speed(particle_container, mcdc, data)
 
     # March forward through RPN tokens
     for idx in range(N_token):
@@ -431,13 +429,11 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     """
     Determine the nearest cell surface and the distance to it
     """
-    particle = particle_container[0]
     distance = INF
     surface_ID = -1
 
     # Particle parameters
-    material = mcdc["materials"][particle["material_ID"]]
-    speed = physics.particle_speed(particle_container, material, data)
+    speed = physics.particle_speed(particle_container, mcdc, data)
 
     # Iterate over all surfaces and find the minimum distance
     for i in range(cell["N_surface"]):

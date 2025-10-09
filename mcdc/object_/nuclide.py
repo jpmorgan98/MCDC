@@ -30,7 +30,7 @@ class Nuclide(ObjectNonSingleton):
     atomic_weight_ratio: float
     xs_energy_grid: NDArray[float64]
     fissionable: bool
-    reactions: ReactionBase
+    reactions: list[ReactionBase]
     total_xs: NDArray[float64]
 
     def __init__(self, nuclide_name):

@@ -170,6 +170,11 @@ def generate_numba_objects(simulation):
     for label in annotations.keys():
         set_structure(label, structures, annotations)
     
+    # Add ID for non-singleton
+    for class_ in mcdc_classes:
+        if issubclass(class_, ObjectNonSingleton):
+            structures[class_.label].append(('ID', 'i8'))
+    
     # Add particles to particle banks and add particle banks to the simulation
     for name in bank_names:
         bank = getattr(simulation, name)
@@ -380,9 +385,9 @@ def set_structure(label, structures, annotations):
             structure.append((f"{field}_offset", "i8"))
             structure.append((f"{field}_length", "i8"))
         elif fixed_size_array:
-           shape = hint_decoded['shape']
-           type_ = get_args(hint_decoded['dtype'])[0]
-           structure.append((field, type_map[type_], shape))
+            shape = hint_decoded['shape']
+            type_ = get_args(hint_decoded['dtype'])[0]
+            structure.append((field, type_map[type_], shape))
 
         # MC/DC classes
         elif non_polymorphic(hint):
@@ -405,7 +410,7 @@ def set_structure(label, structures, annotations):
         # Unknown type
         else:
             print_error(f"Unknown type hint for {label}/{field}: {hint}") 
-
+        
 
 def set_object(object_, structures, records, data):
     structure = structures[object_.label]
@@ -494,6 +499,10 @@ def set_object(object_, structures, records, data):
     # Complete for simulation object
     if object_.label == 'simulation':
         return
+
+    # Set ID of non-singleton
+    if isinstance(object_, ObjectNonSingleton):
+        record["ID"] = object_.numba_ID
 
     # Check structure-record compatibility
     missing = set([x[0] for x in structure]) - set(record.keys())

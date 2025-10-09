@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 ####
 
 from mcdc.constant import MATERIAL, MATERIAL_MG
-from mcdc.object_.base import ObjectOverriding
+from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.nuclide import Nuclide
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
@@ -17,7 +17,7 @@ from mcdc.print_ import print_1d_array, print_error
 # ======================================================================================
 
 
-class MaterialBase(ObjectOverriding):
+class MaterialBase(ObjectNonSingleton):
     name: str
     fissionable: bool
 

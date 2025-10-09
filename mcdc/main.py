@@ -216,16 +216,15 @@ def prepare():
     N_census = settings.N_census
 
     # Determine bank size
-    size_active = 1 + settings.active_bank_buffer
-    size_census = 0
-    size_source = 0
-    size_future = 0
-    #
-    if settings.eigenvalue_mode or N_census > 1:
-        size_census = 1 + int((1 + settings.census_bank_buffer_ratio) * N_work)
-        size_source = 1 + int((1 + settings.source_bank_buffer_ratio) * N_work)
-    if N_census > 1:
-        size_future = 1 + int((1 + settings.future_bank_buffer_ratio) * N_work)
+    if settings.eigenvalue_mode or N_census == 1:
+        settings.future_bank_buffer_ratio = 0.0
+    if not settings.eigenvalue_mode and N_census == 1:
+        settings.census_bank_buffer_ratio = 0.0
+        settings.source_bank_buffer_ratio = 0.0
+    size_active = settings.active_bank_buffer
+    size_census = int((settings.census_bank_buffer_ratio) * N_work)
+    size_source = int((settings.source_bank_buffer_ratio) * N_work)
+    size_future = int((settings.future_bank_buffer_ratio) * N_work)
 
     # Set bank size
     simulation.bank_active.size[0] = size_active
@@ -238,6 +237,7 @@ def prepare():
     # ==================================================================================
     
     mcdc_arr, data = code_factory.generate_numba_objects(simulation)
+    mcdc = mcdc_arr[0]
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc
@@ -266,16 +266,6 @@ def prepare():
     if config.target == "gpu":
         build_gpu_progs(input_deck, config.args)
     adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
-
-    # =========================================================================
-    # Particle banks
-    # =========================================================================
-
-    # Particle bank tags
-    mcdc["bank_active"]["tag"] = "active"
-    mcdc["bank_census"]["tag"] = "census"
-    mcdc["bank_source"]["tag"] = "source"
-    mcdc["bank_future"]["tag"] = "future"
 
     # =========================================================================
     # Source file

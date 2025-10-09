@@ -6,6 +6,7 @@ from numba import njit
 
 import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
+from mcdc.print_ import print_structure
 import mcdc.togo.type_ as type_
 import mcdc.transport.kernel as kernel
 
@@ -27,9 +28,10 @@ from mcdc.transport.physics.util import scatter_direction, sample_isotropic_dire
 
 
 @njit
-def particle_speed(particle_container, material, data):
+def particle_speed(particle_container, mcdc, data):
     particle = particle_container[0]
-    return mcdc_get.material.mgxs_speed(particle["g"], material, data)
+    material = mcdc['multigroup_materials'][particle['material_ID']]
+    return mcdc_get.multigroup_material.mgxs_speed(particle["g"], material, data)
 
 
 # ======================================================================================
@@ -38,8 +40,9 @@ def particle_speed(particle_container, material, data):
 
 
 @njit
-def macro_xs(reaction_type, material, particle_container, mcdc, data):
+def macro_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
+    material = mcdc['multigroup_materials'][particle['material_ID']]
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
         return mcdc_get.material.mgxs_total(g, material, data)
@@ -53,8 +56,10 @@ def macro_xs(reaction_type, material, particle_container, mcdc, data):
 
 
 @njit
-def neutron_production_xs(reaction_type, material, particle_container, mcdc, data):
+def neutron_production_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
+    material = mcdc['multigroup_materials'][particle['material_ID']]
+
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
         total = 0.0

@@ -9,14 +9,14 @@ from mcdc.print_ import print_error
 
 class ObjectBase:
     def __init__(self, register):
-        if "non_numba" in dir(self):
-            self.non_numba += ["non_numba", "label", "ID", "numba_ID", "type"]
-        else:
-            self.non_numba = ["non_numba", "label", "ID", "numba_ID", "type"]
-
         if register and isinstance(self, ObjectNonSingleton):
             register_object(self)
     
+        if "non_numba" in dir(self):
+            self.non_numba += ["non_numba", "label"]
+        else:
+            self.non_numba = ["non_numba", "label"]
+
     def __setattr__(self, key, value):
         hints = getattr(self.__class__, "__annotations__", {})
         if key in hints and not check_type(value, hints[key], self.__class__):
@@ -37,18 +37,16 @@ class ObjectNonSingleton(ObjectBase):
         self.numba_ID = -1
         super().__init__(register)
 
+        if "non_numba" in dir(self):
+            self.non_numba += ["ID", "numba_ID"]
+        else:
+            self.non_numba = ["ID", "numba_ID"]
 
 class ObjectPolymorphic(ObjectNonSingleton):
     type: int
     def __init__(self, type_, register=True):
         self.type = type_
         super().__init__(register)
-
-
-class ObjectOverriding(ObjectPolymorphic):
-    abstract: bool = True
-    def __init__(self, type_, register=True):
-        super().__init__(type_, register)
 
 
 # ======================================================================================

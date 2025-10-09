@@ -57,9 +57,9 @@ class Settings(ObjectSingleton):
     # Particle bank-related
     save_particle: bool = False
     active_bank_buffer: int = 100
-    census_bank_buffer_ratio: float = 1.0
-    source_bank_buffer_ratio: float = 1.0
-    future_bank_buffer_ratio: float = 0.5
+    census_bank_buffer_ratio: float = 2.0
+    source_bank_buffer_ratio: float = 2.0
+    future_bank_buffer_ratio: float = 1.5
 
     # Portability
     target_gpu: bool = False

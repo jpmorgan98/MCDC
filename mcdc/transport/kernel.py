@@ -891,42 +891,44 @@ def source_particle(P_rec_arr, seed, mcdc):
     xi = rng(P_rec_arr)
     tot = 0.0
     for source in mcdc["sources"]:
-        tot += source["prob"]
+        tot += source["probability"]
         if tot >= xi:
             break
 
     # Position
-    if source["box"]:
-        x = sample_uniform(source["box_x"][0], source["box_x"][1], P_rec_arr)
-        y = sample_uniform(source["box_y"][0], source["box_y"][1], P_rec_arr)
-        z = sample_uniform(source["box_z"][0], source["box_z"][1], P_rec_arr)
+    if source["point_source"]:
+        x = source['point'][0]
+        y = source['point'][1]
+        z = source['point'][2]
     else:
-        x = source["x"]
-        y = source["y"]
-        z = source["z"]
+        x = sample_uniform(source["x"][0], source["x"][1], P_rec_arr)
+        y = sample_uniform(source["y"][0], source["y"][1], P_rec_arr)
+        z = sample_uniform(source["z"][0], source["z"][1], P_rec_arr)
 
     # Direction
-    if source["isotropic"]:
+    if source["isotropic_direction"]:
         ux, uy, uz = sample_isotropic_direction(P_rec_arr)
-    elif source["white"]:
-        ux, uy, uz = sample_white_direction(
-            source["white_x"], source["white_y"], source["white_z"], P_rec_arr
-        )
-    else:
-        ux = source["ux"]
-        uy = source["uy"]
-        uz = source["uz"]
+    elif source["white_direction"]:
+        rx = source['direction'][0]
+        ry = source['direction'][1]
+        rz = source['direction'][2]
+        ux, uy, uz = sample_white_direction(rx, ry, rz, P_rec_arr)
+    elif source["mono_direction"]:
+        ux = source["direction"][0]
+        uy = source["direction"][1]
+        uz = source["direction"][2]
 
     # Energy and time
     if mcdc["settings"]["multigroup_mode"]:
-        g = sample_discrete(source["group"], P_rec_arr)
         E = 0.0
-    else:
-        g = 0
-        E = sample_piecewise_linear(source["energy"], P_rec_arr)
+        if source["mono_energetic"]:
+            g = source['energy_group']
 
     # Time
-    t = sample_uniform(source["time"][0], source["time"][1], P_rec_arr)
+    if source['discrete_time']:
+        t = source['time']
+    else:
+        t = sample_uniform(source["time_range"][0], source["time_range"][1], P_rec_arr)
 
     # Make and return particle
     P_rec["x"] = x
@@ -939,7 +941,7 @@ def source_particle(P_rec_arr, seed, mcdc):
     P_rec["g"] = g
     P_rec["E"] = E
     P_rec["w"] = 1.0
-    P_rec["type"] = source["particle_type"]
+    P_rec["particle_type"] = source["particle_type"]
 
 
 # =============================================================================
@@ -1027,15 +1029,11 @@ def get_particle(P_arr, bank, mcdc):
     P["g"] = P_rec["g"]
     P["E"] = P_rec["E"]
     P["w"] = P_rec["w"]
-    P["type"] = P_rec["type"]
+    P["particle_type"] = P_rec["particle_type"]
     P["rng_seed"] = P_rec["rng_seed"]
 
-    if mcdc["technique"]["iQMC"]:
-        P["iqmc"]["w"] = P_rec["iqmc"]["w"]
-
-    P["alive"] = True
-
     # Set default IDs and event
+    P["alive"] = True
     P["material_ID"] = -1
     P["cell_ID"] = -1
     P["surface_ID"] = -1
@@ -1547,9 +1545,8 @@ def copy_recordlike(P_new_arr, P_rec_arr):
     P_new["g"] = P_rec["g"]
     P_new["E"] = P_rec["E"]
     P_new["w"] = P_rec["w"]
-    P_new["type"] = P_rec["type"]
+    P_new["particle_type"] = P_rec["particle_type"]
     P_new["rng_seed"] = P_rec["rng_seed"]
-    P_new["iqmc"]["w"] = P_rec["iqmc"]["w"]
 
 
 @njit
@@ -2001,8 +1998,6 @@ def move_to_event(P_arr, mcdc, data):
                 P["event"] = EVENT_LOST
                 return
 
-    material = mcdc["materials"][P["material_ID"]]
-
     # ==================================================================================
     # Geometry inspection
     # ==================================================================================
@@ -2022,12 +2017,8 @@ def move_to_event(P_arr, mcdc, data):
     # ==================================================================================
 
     # Distance to domain
-    speed = physics.particle_speed(P_arr, material, data)
+    speed = physics.particle_speed(P_arr, mcdc, data)
     d_domain = INF
-    if mcdc["technique"]["domain_decomposition"]:
-        d_domain = mesh_.structured.get_crossing_distance(
-            P_arr, speed, mcdc["technique"]["dd_mesh"]
-        )
 
     # Distance to time boundary
     d_time_boundary = speed * (settings["time_boundary"] - P["t"])
@@ -2039,7 +2030,7 @@ def move_to_event(P_arr, mcdc, data):
     )
 
     # Distance to next collision
-    d_collision = physics.collision_distance(P_arr, material, mcdc, data)
+    d_collision = physics.collision_distance(P_arr, mcdc, data)
 
     # =========================================================================
     # Determine event(s)
@@ -2099,7 +2090,7 @@ def move_to_event(P_arr, mcdc, data):
         eigenvalue_tally(P_arr, distance, mcdc, data)
 
     # Move particle
-    move_particle(P_arr, distance, material, data)
+    move_particle(P_arr, distance, mcdc, data)
 
 
 # =============================================================================

@@ -2,6 +2,8 @@ targets = {
     "material": [
         ("nuclide_IDs", 1),
         ("nuclide_densities", 1),
+    ],
+    "multigroup_material": [
         ("mgxs_speed", 1),
         ("mgxs_decay_rate", 1),
         ("mgxs_capture", 1),
