@@ -179,10 +179,9 @@ def generate_numba_objects(simulation):
     # Set the structures and getter targets
     for label in annotations.keys():
         set_structure(label, structures, getter_targets, annotations)
-
+    
     # Generate the getter helper
     generate_mcdc_get(getter_targets)
-    exit()
     
     # Add ID for non-singleton
     for class_ in mcdc_classes:
@@ -360,15 +359,32 @@ def set_structure(label, structures, getter_targets, annotations):
 
     for field in annotation:
         hint = annotation[field]
-        hint_decoded = decode_annotated_ndarray(hint)
         hint_origin = get_origin(hint)
         hint_args = get_args(hint)
+        hint_origin_shape = None
+        hint_inner_dtype = None
+        fixed_size_array = False
+
+        # Process annotation
+        if hint_origin is Annotated:
+            hint_decoded = decode_annotated_ndarray(hint)
+            hint_origin = hint_decoded['origin']
+            hint_origin_shape = hint_decoded['shape']
+            hint_inner_dtype = get_args(hint_decoded['dtype'])[0]
+            fixed_size_array = True
+
+            # Mark as arbitrary size if string is used in shape
+            for dim_size in hint_origin_shape:
+                if type(dim_size) == str:
+                    fixed_size_array = False
+                    break
 
         # Skip simulation object structure
         if label == 'simulation':
             if hint in all_classes:
                 continue
             if hint_origin == list and hint_args[0] in all_classes:
+                hint_origin = np.ndarray
                 continue
 
         # ==========================================================================
@@ -379,7 +395,6 @@ def set_structure(label, structures, getter_targets, annotations):
         simple_scalar = hint in type_map.keys()
         simple_list = hint_origin == list and hint_args[0] in type_map.keys()
         numpy_array = hint_origin == np.ndarray
-        fixed_size_array = hint_decoded is not None # Resolved later
 
         # MC/DC class
         non_polymorphic = lambda x: issubclass(x, ObjectNonSingleton) and x not in polymorphic_bases
@@ -394,16 +409,17 @@ def set_structure(label, structures, getter_targets, annotations):
         # ==========================================================================
 
         # Basics
-        if simple_scalar:
+        if fixed_size_array:
+            structure.append((field, type_map[hint_inner_dtype], hint_origin_shape))
+        elif simple_scalar:
             structure.append((field, type_map[hint]))
         elif simple_list or numpy_array:
             structure.append((f"{field}_offset", "i8"))
             structure.append((f"{field}_length", "i8"))
-            getter_target.append((f"{field}", 1, f"{field}_length"))
-        elif fixed_size_array:
-            shape = hint_decoded['shape']
-            type_ = get_args(hint_decoded['dtype'])[0]
-            structure.append((field, type_map[type_], shape))
+            if hint_origin_shape is not None:
+                getter_target.append((f"{field}", hint_origin_shape))
+            else:
+                getter_target.append((f"{field}", (f"{field}_length",)))
 
         # MC/DC classes
         elif non_polymorphic(hint):
@@ -417,14 +433,21 @@ def set_structure(label, structures, getter_targets, annotations):
             singular = plural_to_singular(field)
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
-            getter_target.append((f"{singular}_IDs", 1, f"N_{singular}"))
+            if hint_origin_shape is not None:
+                getter_target.append((f"{singular}_IDs", hint_origin_shape))
+            else:
+                getter_target.append((f"{singular}_IDs", (f"N_{singular}",)))
         elif list_of_polymorphic_bases:
             singular = plural_to_singular(field)
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_types_offset", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
-            getter_target.append((f"{singular}_IDs", 1, f"N_{singular}"))
-            getter_target.append((f"{singular}_types", 1, f"N_{singular}"))
+            if hint_origin_shape is not None:
+                getter_target.append((f"{singular}_IDs", hint_origin_shape))
+                getter_target.append((f"{singular}_types", hint_origin_shape))
+            else:
+                getter_target.append((f"{singular}_IDs", (f"N_{singular}",)))
+                getter_target.append((f"{singular}_types", (f"N_{singular}",)))
 
         # Unknown type
         else:
@@ -491,10 +514,9 @@ def set_object(object_, structures, records, data):
             singular_name = plural_to_singular(attribute_name)
 
             if not isinstance(attribute_flatten[0], ObjectNonSingleton):
-                print(
+                print_error(
                     f"[ERROR] Get a list of non-object for {attribute_name}: {attribute}"
                 )
-                exit()
 
             # List of non-polymorphic objects
             if not isinstance(attribute_flatten[0], ObjectPolymorphic):
@@ -684,20 +706,16 @@ def parse_annotations_dict(ann: dict[str, str]) -> dict[str, object]:
 
 
 def decode_annotated_ndarray(hint):
-    origin = get_origin(hint)
-    if origin is Annotated:
-        inner, metadata = get_args(hint)
-        inner_origin = get_origin(inner)
-        inner_args = get_args(inner)
-        if inner_origin is np.ndarray:
-            shape_type, dtype_type = inner_args
-            return {
-                "base": inner_origin,
-                "shape": metadata,
-                "shape_type": shape_type,
-                "dtype": dtype_type,
-            }
-    return None
+    inner, metadata = get_args(hint)
+    inner_origin = get_origin(inner)
+    inner_args = get_args(inner)
+    shape_type, dtype_type = inner_args
+    return {
+        "origin": inner_origin,
+        "shape": metadata,
+        "shape_type": shape_type,
+        "dtype": dtype_type,
+    }
 
 
 # ======================================================================================
@@ -711,13 +729,20 @@ def generate_mcdc_get(targets):
 
             for attribute in targets[object_name]:
                 attribute_name = attribute[0]
-                attribute_dim = attribute[1]
+                shape = attribute[1]
 
-                if attribute_dim == 1:
-                    size = attribute[2]
+                if len(shape) == 1:
                     text += _getter_1d_element(object_name, attribute_name)
-                    text += _getter_1d_all(object_name, attribute_name, size)
-                    text += _getter_1d_last(object_name, attribute_name, size)
+                    text += _getter_1d_all(object_name, attribute_name, shape[0])
+                    text += _getter_1d_last(object_name, attribute_name, shape[0])
+            
+                elif len(shape) == 2:
+                    text += _getter_2d_vector(object_name, attribute_name, shape[1])
+                    text += _getter_2d_element(object_name, attribute_name, shape[1])
+                
+                elif len(shape) == 3:
+                    text += _getter_3d_element(object_name, attribute_name, shape[1], shape[2])
+                
                 text += _getter_chunk(object_name, attribute_name)
             
             f.write(text[:-2])

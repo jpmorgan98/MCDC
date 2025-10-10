@@ -176,7 +176,7 @@ def _shape_matches(arr: np.ndarray, shape: tuple[int | None, ...]) -> bool:
     return all(dim is None or dim == s for s, dim in zip(arr.shape, shape))
 
 # ---------- main checker ----------
-def check_type(value, hint, cls) -> bool:
+def check_type(value, hint, cls, obj=None) -> bool:
     """
     Best-effort runtime checker tolerant of *string* annotations (no eval).
     Supports:
@@ -249,6 +249,11 @@ def check_type(value, hint, cls) -> bool:
                     dtype_key = 'float'
                 elif hasattr(dtype_arg, 'name'):  # np.float64
                     dtype_key = dtype_arg.name
+            expected_shape_list = list(expected_shape)
+            for i, item in enumerate(expected_shape):
+                if type(item) == str:
+                    expected_shape_list[i] = getattr(obj, item)
+            expected_shape = tuple(expected_shape_list)
             return _shape_matches(value, expected_shape) and _dtype_matches(value, dtype_key)
         return check_type(value, base, cls)
 

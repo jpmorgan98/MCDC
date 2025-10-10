@@ -238,6 +238,9 @@ def prepare():
     
     mcdc_arr, data = code_factory.generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
+    
+    # Reload mcdc_get
+    importlib.reload(mcdc_get)
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc

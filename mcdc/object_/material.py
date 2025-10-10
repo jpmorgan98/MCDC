@@ -3,6 +3,7 @@ import numpy as np
 
 from numpy import float64
 from numpy.typing import NDArray
+from typing import Annotated
 
 ####
 
@@ -123,20 +124,20 @@ class MaterialMG(MaterialBase):
     #
     G: int
     J: int
-    mgxs_speed: NDArray[float64]
-    mgxs_decay_rate: NDArray[float64]
-    mgxs_capture: NDArray[float64] 
-    mgxs_scatter: NDArray[float64]
-    mgxs_fission: NDArray[float64]
-    mgxs_total: NDArray[float64]
-    mgxs_nu_s: NDArray[float64]
-    mgxs_nu_p: NDArray[float64]
-    mgxs_nu_d: NDArray[float64]
-    mgxs_nu_d_total: NDArray[float64]
-    mgxs_nu_f: NDArray[float64]
-    mgxs_chi_s: NDArray[float64]
-    mgxs_chi_p: NDArray[float64]
-    mgxs_chi_d: NDArray[float64]
+    mgxs_speed: Annotated[NDArray[float64], ("G",)]
+    mgxs_decay_rate: Annotated[NDArray[float64], ("J",)]
+    mgxs_capture: Annotated[NDArray[float64], ("G",)]
+    mgxs_scatter: Annotated[NDArray[float64], ("G",)]
+    mgxs_fission: Annotated[NDArray[float64], ("G",)]
+    mgxs_total: Annotated[NDArray[float64], ("G",)]
+    mgxs_nu_s: Annotated[NDArray[float64], ("G",)]
+    mgxs_nu_p: Annotated[NDArray[float64], ("G",)]
+    mgxs_nu_d: Annotated[NDArray[float64], ("G", "J")]
+    mgxs_nu_d_total: Annotated[NDArray[float64], ("G",)]
+    mgxs_nu_f: Annotated[NDArray[float64], ("G",)]
+    mgxs_chi_s: Annotated[NDArray[float64], ("G", "G")]
+    mgxs_chi_p: Annotated[NDArray[float64], ("G", "G")]
+    mgxs_chi_d: Annotated[NDArray[float64], ("J", "G")]
 
     def __init__(
         self,
