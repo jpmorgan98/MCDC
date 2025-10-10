@@ -45,13 +45,13 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
     material = mcdc['multigroup_materials'][particle['material_ID']]
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
-        return mcdc_get.material.mgxs_total(g, material, data)
+        return mcdc_get.multigroup_material.mgxs_total(g, material, data)
     elif reaction_type == REACTION_NEUTRON_CAPTURE:
-        return mcdc_get.material.mgxs_capture(g, material, data)
+        return mcdc_get.multigroup_material.mgxs_capture(g, material, data)
     elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
-        return mcdc_get.material.mgxs_scatter(g, material, data)
+        return mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
     elif reaction_type == REACTION_NEUTRON_FISSION:
-        return mcdc_get.material.mgxs_fission(g, material, data)
+        return mcdc_get.multigroup_material.mgxs_fission(g, material, data)
     return 0.0
 
 
@@ -75,20 +75,20 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
         )
         return total
     elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
-        nu = mcdc_get.material.mgxs_nu_s(g, material, data)
-        xs = mcdc_get.material.mgxs_scatter(g, material, data)
+        nu = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
+        xs = mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
         return nu * xs
     elif reaction_type == REACTION_NEUTRON_FISSION:
-        nu = mcdc_get.material.mgxs_nu_f(g, material, data)
-        xs = mcdc_get.material.mgxs_fission(g, material, data)
+        nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
+        xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
     elif reaction_type == REACTION_NEUTRON_FISSION_PROMPT:
-        nu = mcdc_get.material.mgxs_nu_p(g, material, data)
-        xs = mcdc_get.material.mgxs_fission(g, material, data)
+        nu = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
+        xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
     elif reaction_type == REACTION_NEUTRON_FISSION_DELAYED:
-        nu = mcdc_get.material.mgxs_nu_d_total(g, material, data)
-        xs = mcdc_get.material.mgxs_fission(g, material, data)
+        nu = mcdc_get.multigroup_material.mgxs_nu_d_total(g, material, data)
+        xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
 
 
@@ -165,7 +165,7 @@ def scattering(particle_container, prog, data):
         weight_new = particle["w"]
 
     # Get number of secondaries
-    nu_s = mcdc_get.material.mgxs_nu_s(g, material, data)
+    nu_s = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
     N = int(math.floor(weight_eff * nu_s + kernel.rng(particle_container)))
 
     # Set up secondary partice container
@@ -191,7 +191,7 @@ def scattering(particle_container, prog, data):
         particle_new["uz"] = uz_new
 
         # Get outgoing spectrum
-        chi_s = mcdc_get.material.mgxs_chi_s_vector(g, material, data)
+        chi_s = mcdc_get.multigroup_material.mgxs_chi_s_vector(g, material, data)
 
         # Sample outgoing energy
         xi = kernel.rng(particle_container_new)
@@ -227,10 +227,10 @@ def fission(particle_container, prog, data):
     material = mcdc["materials"][particle["material_ID"]]
     G = material["G"]
     J = material["J"]
-    nu = mcdc_get.material.mgxs_nu_f(g, material, data)
-    nu_p = mcdc_get.material.mgxs_nu_p(g, material, data)
+    nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
+    nu_p = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
     if J > 0:
-        nu_d = mcdc_get.material.mgxs_nu_d_vector(g, material, data)
+        nu_d = mcdc_get.multigroup_material.mgxs_nu_d_vector(g, material, data)
 
     # Kill the current particle
     particle["alive"] = False
@@ -271,7 +271,7 @@ def fission(particle_container, prog, data):
         total = nu_p
         if xi < total:
             prompt = True
-            spectrum = mcdc_get.material.mgxs_chi_p_vector(g, material, data)
+            spectrum = mcdc_get.multigroup_material.mgxs_chi_p_vector(g, material, data)
         else:
             prompt = False
 
@@ -279,8 +279,8 @@ def fission(particle_container, prog, data):
             for j in range(J):
                 total += nu_d[j]
                 if xi < total:
-                    spectrum = mcdc_get.material.mgxs_chi_d_vector(j, material, data)
-                    decay = mcdc_get.material.mgxs_decay_rate(j, material, data)
+                    spectrum = mcdc_get.multigroup_material.mgxs_chi_d_vector(j, material, data)
+                    decay = mcdc_get.multigroup_material.mgxs_decay_rate(j, material, data)
                     break
 
         # Sample outgoing energy

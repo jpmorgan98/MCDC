@@ -299,6 +299,9 @@ class TallyMesh(TallyBase):
     label: str = 'mesh_tally'
     #
     mesh: MeshBase
+    stride_z: int
+    stride_y: int
+    stride_x: int
 
     def __init__(
         self,

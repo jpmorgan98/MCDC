@@ -19,13 +19,12 @@ from mcdc.transport.tally.filter import (
 @njit
 def cell_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
-    material = mcdc["materials"][particle["material_ID"]]
 
     # Simulation settings
     MG_mode = mcdc["settings"]["multigroup_mode"]
 
     # Particle/track properties
-    ut = 1.0 / physics.particle_speed(particle_container, material, data)
+    ut = 1.0 / physics.particle_speed(particle_container, mcdc, data)
     t = particle["t"]
     t_final = t + ut * distance
 
@@ -56,13 +55,13 @@ def cell_tally(particle_container, distance, tally, mcdc, data):
     # Sweep through the distance
     distance_swept = 0.0
     while distance_swept < distance - COINCIDENCE_TOLERANCE:
-        t_next = mcdc_get.tally.time(i_time + 1, tally, data)
+        t_next = mcdc_get.cell_tally.time(i_time + 1, tally, data)
         distance_scored = (min(t_next, t_final) - t) / ut
 
         # Score
         flux = distance_scored * particle["w"]
         for i_score in range(tally["scores_length"]):
-            score_type = mcdc_get.tally.scores(i_score, tally, data)
+            score_type = mcdc_get.cell_tally.scores(i_score, tally, data)
             score = 0.0
             if score_type == SCORE_FLUX:
                 score = flux
@@ -114,13 +113,13 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
     )
 
     # Flux
-    speed = physics.particle_speed(particle_container, material, data)
+    speed = physics.particle_speed(particle_container, mcdc, data)
     mu = get_normal_component(particle_container, speed, surface, data)
     flux = particle["w"] / abs(mu)
 
     # Score
     for i_score in range(tally["scores_length"]):
-        score_type = mcdc_get.tally.scores(i_score, tally, data)
+        score_type = mcdc_get.cell_tally.scores(i_score, tally, data)
         score = 0.0
         if score_type == SCORE_FLUX:
             score = flux
@@ -130,13 +129,12 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
 @njit
 def mesh_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
-    material = mcdc["materials"][particle["material_ID"]]
     mesh_type = tally["mesh_type"]
     mesh_ID = tally["mesh_ID"]
     if mesh_type == MESH_UNIFORM:
-        mesh = mcdc['uniform_meshs'][mesh_ID]
+        mesh = mcdc['uniform_meshes'][mesh_ID]
     elif mesh_type == MESH_STRUCTURED:
-        mesh = mcdc['structured_meshs'][mesh_ID]
+        mesh = mcdc['structured_meshes'][mesh_ID]
 
     # Simulation settings
     MG_mode = mcdc["settings"]["multigroup_mode"]
@@ -149,7 +147,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
-    ut = 1.0 / physics.particle_speed(particle_container, material, data)
+    ut = 1.0 / physics.particle_speed(particle_container, mcdc, data)
     x_final = x + ux * distance
     y_final = y + uy * distance
     z_final = z + uz * distance
@@ -251,7 +249,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         # Score
         flux = distance_scored * particle["w"]
         for i_score in range(tally["scores_length"]):
-            score_type = mcdc_get.tally.scores(i_score, tally, data)
+            score_type = mcdc_get.cell_tally.scores(i_score, tally, data)
             score = 0.0
             if score_type == SCORE_FLUX:
                 score = flux

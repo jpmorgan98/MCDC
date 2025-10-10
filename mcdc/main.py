@@ -766,7 +766,7 @@ def generate_hdf5(mcdc, data):
                 return
 
             # Cell and surface tallies
-            for tally in mcdc['cell_tallys']:
+            for tally in mcdc['cell_tallies']:
                 tally_name = tally['name']
 
                 # Filter grids
@@ -814,16 +814,16 @@ def generate_hdf5(mcdc, data):
                         f.create_dataset(group_name + "uq_var", data=uq_var)
 
             # Mesh tallies
-            for tally in mcdc['mesh_tallys']:
+            for tally in mcdc['mesh_tallies']:
                 tally_name = tally['name']
 
                 # Get mesh
                 mesh_type = tally['mesh_type']
                 mesh_ID = tally['mesh_ID']
                 if mesh_type == MESH_UNIFORM:
-                    mesh = mcdc['uniform_meshs'][mesh_ID]
+                    mesh = mcdc['uniform_meshes'][mesh_ID]
                 elif mesh_type == MESH_STRUCTURED:
-                    mesh = mcdc['structured_meshs'][mesh_ID]
+                    mesh = mcdc['structured_meshes'][mesh_ID]
 
                 # Filter grids
                 f.create_dataset(f"tallies/{tally_name}/grid/mu", data=mcdc_get.tally.mu_all(tally, data))

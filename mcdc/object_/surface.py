@@ -89,7 +89,6 @@ class Surface(ObjectNonSingleton):
     """
     # Annotations for Numba mode
     label: str = 'surface'
-    non_numba: list[str] = ["tallies"]
     #
     type: int
     name: str

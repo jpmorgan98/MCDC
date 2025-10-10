@@ -231,11 +231,11 @@ def generate_numba_objects(simulation):
     for class_ in objects.keys():
         if issubclass(class_, ObjectNonSingleton):
             for object_ in objects[class_]:
-                set_object(object_, structures, records, data)
+                set_object(object_, annotations, structures, records, data)
         else:
             object_ = objects[class_]
             if object_ is not None:
-                set_object(object_, structures, records, data)
+                set_object(object_, annotations, structures, records, data)
 
     # ==================================================================================
     # Finalize the simulation object structure and set record
@@ -289,7 +289,7 @@ def generate_numba_objects(simulation):
     records['simulation']['source_seed'] = 0
 
     # Set other record and data for simulation
-    set_object(simulation, structures, records, data)
+    set_object(simulation, annotations, structures, records, data)
 
     # Print the fields
     with open(f"{Path(mcdc.__file__).parent}/object_/numba_types.py", "w") as f:
@@ -453,7 +453,8 @@ def set_structure(label, structures, getter_targets, annotations):
         else:
             print_error(f"Unknown type hint for {label}/{field}: {hint}") 
 
-def set_object(object_, structures, records, data):
+def set_object(object_, annotations, structures, records, data):
+    annotation = annotations[object_.label]
     structure = structures[object_.label]
     record = {}
 
@@ -488,7 +489,7 @@ def set_object(object_, structures, records, data):
 
         # Convert list of supported types into Numpy array
         if type(attribute) == list:
-            if len(attribute) == 0 or type(attribute[0]) in type_map.keys():
+            if get_args(annotation[attribute_name])[0] in type_map.keys():
                 attribute = np.array(attribute)
 
         # Numpy array
@@ -509,17 +510,19 @@ def set_object(object_, structures, records, data):
         
         # List of Non-singleton objects
         elif type(attribute) == list:
+            inner_type = get_args(annotation[attribute_name])[0]
+
             # Flatten the list
             attribute_flatten = list(flatten(attribute))
             singular_name = plural_to_singular(attribute_name)
 
-            if not isinstance(attribute_flatten[0], ObjectNonSingleton):
+            if not issubclass(inner_type, ObjectNonSingleton):
                 print_error(
                     f"[ERROR] Get a list of non-object for {attribute_name}: {attribute}"
                 )
 
             # List of non-polymorphic objects
-            if not isinstance(attribute_flatten[0], ObjectPolymorphic):
+            if not issubclass(inner_type, ObjectPolymorphic):
                 record[f"N_{singular_name}"] = len(attribute_flatten)
                 record[f"{singular_name}_IDs_offset"] = len(data)
                 data.extend([x.numba_ID for x in attribute_flatten])

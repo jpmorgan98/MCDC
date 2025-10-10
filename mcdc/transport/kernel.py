@@ -1523,12 +1523,12 @@ def pct_splitting_roulette_weight(seed, mcdc):
 
 
 @njit
-def move_particle(P_arr, distance, material, data):
+def move_particle(P_arr, distance, mcdc, data):
     P = P_arr[0]
     P["x"] += P["ux"] * distance
     P["y"] += P["uy"] * distance
     P["z"] += P["uz"] * distance
-    P["t"] += distance / physics.particle_speed(P_arr, material, data)
+    P["t"] += distance / physics.particle_speed(P_arr, mcdc, data)
 
 
 @njit
@@ -2079,11 +2079,11 @@ def move_to_event(P_arr, mcdc, data):
         cell = mcdc["cells"][P["cell_ID"]]
         for i in range(cell["N_tally"]):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally = mcdc["cell_tallys"][tally_ID]
+            tally = mcdc["cell_tallies"][tally_ID]
             tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
 
         # Mesh tallies
-        for tally in mcdc["mesh_tallys"]:
+        for tally in mcdc["mesh_tallies"]:
             tally_module.score.mesh_tally(P_arr, distance, tally, mcdc, data)
 
     if settings["eigenvalue_mode"]:
