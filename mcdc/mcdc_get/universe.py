@@ -8,17 +8,19 @@ def cell_IDs(index, universe, data):
 
 
 @njit
-def cell_IDs_last(universe, data):
+def cell_IDs_all(universe, data):
     start = universe["cell_IDs_offset"]
-    end = start + universe["cell_IDs_length"]
-    return data[end - 1]
+    size = universe["N_cell"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def cell_IDs_all(universe, data):
+def cell_IDs_last(universe, data):
     start = universe["cell_IDs_offset"]
-    end = start + universe["cell_IDs_length"]
-    return data[start:end]
+    size = universe["N_cell"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit

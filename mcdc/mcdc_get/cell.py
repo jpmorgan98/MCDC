@@ -8,17 +8,19 @@ def region_RPN_tokens(index, cell, data):
 
 
 @njit
-def region_RPN_tokens_last(cell, data):
+def region_RPN_tokens_all(cell, data):
     start = cell["region_RPN_tokens_offset"]
-    end = start + cell["region_RPN_tokens_length"]
-    return data[end - 1]
+    size = cell["region_RPN_tokens_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def region_RPN_tokens_all(cell, data):
+def region_RPN_tokens_last(cell, data):
     start = cell["region_RPN_tokens_offset"]
-    end = start + cell["region_RPN_tokens_length"]
-    return data[start:end]
+    size = cell["region_RPN_tokens_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -35,76 +37,24 @@ def surface_IDs(index, cell, data):
 
 
 @njit
-def surface_IDs_last(cell, data):
+def surface_IDs_all(cell, data):
     start = cell["surface_IDs_offset"]
-    end = start + cell["surface_IDs_length"]
-    return data[end - 1]
+    size = cell["N_surface"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def surface_IDs_all(cell, data):
+def surface_IDs_last(cell, data):
     start = cell["surface_IDs_offset"]
-    end = start + cell["surface_IDs_length"]
-    return data[start:end]
+    size = cell["N_surface"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
 def surface_IDs_chunk(start, length, cell, data):
     start += cell["surface_IDs_offset"]
-    end = start + length
-    return data[start:end]
-
-
-@njit
-def translation(index, cell, data):
-    offset = cell["translation_offset"]
-    return data[offset + index]
-
-
-@njit
-def translation_last(cell, data):
-    start = cell["translation_offset"]
-    end = start + cell["translation_length"]
-    return data[end - 1]
-
-
-@njit
-def translation_all(cell, data):
-    start = cell["translation_offset"]
-    end = start + cell["translation_length"]
-    return data[start:end]
-
-
-@njit
-def translation_chunk(start, length, cell, data):
-    start += cell["translation_offset"]
-    end = start + length
-    return data[start:end]
-
-
-@njit
-def rotation(index, cell, data):
-    offset = cell["rotation_offset"]
-    return data[offset + index]
-
-
-@njit
-def rotation_last(cell, data):
-    start = cell["rotation_offset"]
-    end = start + cell["rotation_length"]
-    return data[end - 1]
-
-
-@njit
-def rotation_all(cell, data):
-    start = cell["rotation_offset"]
-    end = start + cell["rotation_length"]
-    return data[start:end]
-
-
-@njit
-def rotation_chunk(start, length, cell, data):
-    start += cell["rotation_offset"]
     end = start + length
     return data[start:end]
 
@@ -116,17 +66,19 @@ def tally_IDs(index, cell, data):
 
 
 @njit
-def tally_IDs_last(cell, data):
+def tally_IDs_all(cell, data):
     start = cell["tally_IDs_offset"]
-    end = start + cell["tally_IDs_length"]
-    return data[end - 1]
+    size = cell["N_tally"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def tally_IDs_all(cell, data):
+def tally_IDs_last(cell, data):
     start = cell["tally_IDs_offset"]
-    end = start + cell["tally_IDs_length"]
-    return data[start:end]
+    size = cell["N_tally"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit

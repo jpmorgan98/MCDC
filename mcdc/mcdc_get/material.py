@@ -8,17 +8,19 @@ def nuclide_IDs(index, material, data):
 
 
 @njit
-def nuclide_IDs_last(material, data):
+def nuclide_IDs_all(material, data):
     start = material["nuclide_IDs_offset"]
-    end = start + material["nuclide_IDs_length"]
-    return data[end - 1]
+    size = material["N_nuclide"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def nuclide_IDs_all(material, data):
+def nuclide_IDs_last(material, data):
     start = material["nuclide_IDs_offset"]
-    end = start + material["nuclide_IDs_length"]
-    return data[start:end]
+    size = material["N_nuclide"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -35,17 +37,19 @@ def nuclide_densities(index, material, data):
 
 
 @njit
-def nuclide_densities_last(material, data):
+def nuclide_densities_all(material, data):
     start = material["nuclide_densities_offset"]
-    end = start + material["nuclide_densities_length"]
-    return data[end - 1]
+    size = material["nuclide_densities_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def nuclide_densities_all(material, data):
+def nuclide_densities_last(material, data):
     start = material["nuclide_densities_offset"]
-    end = start + material["nuclide_densities_length"]
-    return data[start:end]
+    size = material["nuclide_densities_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit

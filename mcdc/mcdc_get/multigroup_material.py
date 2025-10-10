@@ -8,17 +8,19 @@ def mgxs_speed(index, multigroup_material, data):
 
 
 @njit
-def mgxs_speed_last(multigroup_material, data):
+def mgxs_speed_all(multigroup_material, data):
     start = multigroup_material["mgxs_speed_offset"]
-    end = start + multigroup_material["mgxs_speed_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_speed_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_speed_all(multigroup_material, data):
+def mgxs_speed_last(multigroup_material, data):
     start = multigroup_material["mgxs_speed_offset"]
-    end = start + multigroup_material["mgxs_speed_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_speed_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -35,17 +37,19 @@ def mgxs_decay_rate(index, multigroup_material, data):
 
 
 @njit
-def mgxs_decay_rate_last(multigroup_material, data):
+def mgxs_decay_rate_all(multigroup_material, data):
     start = multigroup_material["mgxs_decay_rate_offset"]
-    end = start + multigroup_material["mgxs_decay_rate_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_decay_rate_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_decay_rate_all(multigroup_material, data):
+def mgxs_decay_rate_last(multigroup_material, data):
     start = multigroup_material["mgxs_decay_rate_offset"]
-    end = start + multigroup_material["mgxs_decay_rate_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_decay_rate_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -62,17 +66,19 @@ def mgxs_capture(index, multigroup_material, data):
 
 
 @njit
-def mgxs_capture_last(multigroup_material, data):
+def mgxs_capture_all(multigroup_material, data):
     start = multigroup_material["mgxs_capture_offset"]
-    end = start + multigroup_material["mgxs_capture_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_capture_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_capture_all(multigroup_material, data):
+def mgxs_capture_last(multigroup_material, data):
     start = multigroup_material["mgxs_capture_offset"]
-    end = start + multigroup_material["mgxs_capture_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_capture_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -89,17 +95,19 @@ def mgxs_scatter(index, multigroup_material, data):
 
 
 @njit
-def mgxs_scatter_last(multigroup_material, data):
+def mgxs_scatter_all(multigroup_material, data):
     start = multigroup_material["mgxs_scatter_offset"]
-    end = start + multigroup_material["mgxs_scatter_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_scatter_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_scatter_all(multigroup_material, data):
+def mgxs_scatter_last(multigroup_material, data):
     start = multigroup_material["mgxs_scatter_offset"]
-    end = start + multigroup_material["mgxs_scatter_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_scatter_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -116,17 +124,19 @@ def mgxs_fission(index, multigroup_material, data):
 
 
 @njit
-def mgxs_fission_last(multigroup_material, data):
+def mgxs_fission_all(multigroup_material, data):
     start = multigroup_material["mgxs_fission_offset"]
-    end = start + multigroup_material["mgxs_fission_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_fission_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_fission_all(multigroup_material, data):
+def mgxs_fission_last(multigroup_material, data):
     start = multigroup_material["mgxs_fission_offset"]
-    end = start + multigroup_material["mgxs_fission_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_fission_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -143,17 +153,19 @@ def mgxs_total(index, multigroup_material, data):
 
 
 @njit
-def mgxs_total_last(multigroup_material, data):
+def mgxs_total_all(multigroup_material, data):
     start = multigroup_material["mgxs_total_offset"]
-    end = start + multigroup_material["mgxs_total_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_total_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_total_all(multigroup_material, data):
+def mgxs_total_last(multigroup_material, data):
     start = multigroup_material["mgxs_total_offset"]
-    end = start + multigroup_material["mgxs_total_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_total_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -170,17 +182,19 @@ def mgxs_nu_s(index, multigroup_material, data):
 
 
 @njit
-def mgxs_nu_s_last(multigroup_material, data):
+def mgxs_nu_s_all(multigroup_material, data):
     start = multigroup_material["mgxs_nu_s_offset"]
-    end = start + multigroup_material["mgxs_nu_s_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_nu_s_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_nu_s_all(multigroup_material, data):
+def mgxs_nu_s_last(multigroup_material, data):
     start = multigroup_material["mgxs_nu_s_offset"]
-    end = start + multigroup_material["mgxs_nu_s_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_nu_s_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -197,17 +211,19 @@ def mgxs_nu_p(index, multigroup_material, data):
 
 
 @njit
-def mgxs_nu_p_last(multigroup_material, data):
+def mgxs_nu_p_all(multigroup_material, data):
     start = multigroup_material["mgxs_nu_p_offset"]
-    end = start + multigroup_material["mgxs_nu_p_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_nu_p_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_nu_p_all(multigroup_material, data):
+def mgxs_nu_p_last(multigroup_material, data):
     start = multigroup_material["mgxs_nu_p_offset"]
-    end = start + multigroup_material["mgxs_nu_p_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_nu_p_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -218,19 +234,25 @@ def mgxs_nu_p_chunk(start, length, multigroup_material, data):
 
 
 @njit
-def mgxs_nu_d_vector(index_1, multigroup_material, data):
+def mgxs_nu_d(index, multigroup_material, data):
     offset = multigroup_material["mgxs_nu_d_offset"]
-    stride = multigroup_material["J"]
-    start = offset + index_1 * stride
-    end = start + stride
+    return data[offset + index]
+
+
+@njit
+def mgxs_nu_d_all(multigroup_material, data):
+    start = multigroup_material["mgxs_nu_d_offset"]
+    size = multigroup_material["mgxs_nu_d_length"]
+    end = start + size
     return data[start:end]
 
 
 @njit
-def mgxs_nu_d(index_1, index_2, multigroup_material, data):
-    offset = multigroup_material["mgxs_nu_d_offset"]
-    stride = multigroup_material["J"]
-    return data[offset + index_1 * stride + index_2]
+def mgxs_nu_d_last(multigroup_material, data):
+    start = multigroup_material["mgxs_nu_d_offset"]
+    size = multigroup_material["mgxs_nu_d_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -247,17 +269,19 @@ def mgxs_nu_d_total(index, multigroup_material, data):
 
 
 @njit
-def mgxs_nu_d_total_last(multigroup_material, data):
+def mgxs_nu_d_total_all(multigroup_material, data):
     start = multigroup_material["mgxs_nu_d_total_offset"]
-    end = start + multigroup_material["mgxs_nu_d_total_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_nu_d_total_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_nu_d_total_all(multigroup_material, data):
+def mgxs_nu_d_total_last(multigroup_material, data):
     start = multigroup_material["mgxs_nu_d_total_offset"]
-    end = start + multigroup_material["mgxs_nu_d_total_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_nu_d_total_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -274,17 +298,19 @@ def mgxs_nu_f(index, multigroup_material, data):
 
 
 @njit
-def mgxs_nu_f_last(multigroup_material, data):
+def mgxs_nu_f_all(multigroup_material, data):
     start = multigroup_material["mgxs_nu_f_offset"]
-    end = start + multigroup_material["mgxs_nu_f_length"]
-    return data[end - 1]
+    size = multigroup_material["mgxs_nu_f_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def mgxs_nu_f_all(multigroup_material, data):
+def mgxs_nu_f_last(multigroup_material, data):
     start = multigroup_material["mgxs_nu_f_offset"]
-    end = start + multigroup_material["mgxs_nu_f_length"]
-    return data[start:end]
+    size = multigroup_material["mgxs_nu_f_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -295,19 +321,25 @@ def mgxs_nu_f_chunk(start, length, multigroup_material, data):
 
 
 @njit
-def mgxs_chi_s_vector(index_1, multigroup_material, data):
+def mgxs_chi_s(index, multigroup_material, data):
     offset = multigroup_material["mgxs_chi_s_offset"]
-    stride = multigroup_material["G"]
-    start = offset + index_1 * stride
-    end = start + stride
+    return data[offset + index]
+
+
+@njit
+def mgxs_chi_s_all(multigroup_material, data):
+    start = multigroup_material["mgxs_chi_s_offset"]
+    size = multigroup_material["mgxs_chi_s_length"]
+    end = start + size
     return data[start:end]
 
 
 @njit
-def mgxs_chi_s(index_1, index_2, multigroup_material, data):
-    offset = multigroup_material["mgxs_chi_s_offset"]
-    stride = multigroup_material["G"]
-    return data[offset + index_1 * stride + index_2]
+def mgxs_chi_s_last(multigroup_material, data):
+    start = multigroup_material["mgxs_chi_s_offset"]
+    size = multigroup_material["mgxs_chi_s_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -318,19 +350,25 @@ def mgxs_chi_s_chunk(start, length, multigroup_material, data):
 
 
 @njit
-def mgxs_chi_p_vector(index_1, multigroup_material, data):
+def mgxs_chi_p(index, multigroup_material, data):
     offset = multigroup_material["mgxs_chi_p_offset"]
-    stride = multigroup_material["G"]
-    start = offset + index_1 * stride
-    end = start + stride
+    return data[offset + index]
+
+
+@njit
+def mgxs_chi_p_all(multigroup_material, data):
+    start = multigroup_material["mgxs_chi_p_offset"]
+    size = multigroup_material["mgxs_chi_p_length"]
+    end = start + size
     return data[start:end]
 
 
 @njit
-def mgxs_chi_p(index_1, index_2, multigroup_material, data):
-    offset = multigroup_material["mgxs_chi_p_offset"]
-    stride = multigroup_material["G"]
-    return data[offset + index_1 * stride + index_2]
+def mgxs_chi_p_last(multigroup_material, data):
+    start = multigroup_material["mgxs_chi_p_offset"]
+    size = multigroup_material["mgxs_chi_p_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -341,19 +379,25 @@ def mgxs_chi_p_chunk(start, length, multigroup_material, data):
 
 
 @njit
-def mgxs_chi_d_vector(index_1, multigroup_material, data):
+def mgxs_chi_d(index, multigroup_material, data):
     offset = multigroup_material["mgxs_chi_d_offset"]
-    stride = multigroup_material["G"]
-    start = offset + index_1 * stride
-    end = start + stride
+    return data[offset + index]
+
+
+@njit
+def mgxs_chi_d_all(multigroup_material, data):
+    start = multigroup_material["mgxs_chi_d_offset"]
+    size = multigroup_material["mgxs_chi_d_length"]
+    end = start + size
     return data[start:end]
 
 
 @njit
-def mgxs_chi_d(index_1, index_2, multigroup_material, data):
-    offset = multigroup_material["mgxs_chi_d_offset"]
-    stride = multigroup_material["G"]
-    return data[offset + index_1 * stride + index_2]
+def mgxs_chi_d_last(multigroup_material, data):
+    start = multigroup_material["mgxs_chi_d_offset"]
+    size = multigroup_material["mgxs_chi_d_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit

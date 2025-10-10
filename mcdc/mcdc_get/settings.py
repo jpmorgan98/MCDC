@@ -8,17 +8,19 @@ def census_time(index, settings, data):
 
 
 @njit
-def census_time_last(settings, data):
+def census_time_all(settings, data):
     start = settings["census_time_offset"]
-    end = start + settings["census_time_length"]
-    return data[end - 1]
+    size = settings["census_time_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def census_time_all(settings, data):
+def census_time_last(settings, data):
     start = settings["census_time_offset"]
-    end = start + settings["census_time_length"]
-    return data[start:end]
+    size = settings["census_time_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit

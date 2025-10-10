@@ -73,17 +73,24 @@ polymorphic_bases = [x for x in all_classes if x.__name__[-4:] == "Base"]
 
 def generate_numba_objects(simulation):
     # ==================================================================================
-    # Allocate Python annotations and Numba structures, records, and data for the classes
+    # Allocate key items for the Numba object:
+    #   - Python annotations
+    #   - Numba structures
+    #   - Records
+    #   - Data: flattened vector to store arbitrary-size arrays
+    #   - Getter targets: to generate getter helpers to easily access data
     # ==================================================================================
 
     annotations = {}
     structures = {}
     records = {}
     data = []
+    getter_targets = {}
 
     for mcdc_class in mcdc_classes:
         annotations[mcdc_class.label] = {}
         structures[mcdc_class.label] = []
+        getter_targets[mcdc_class.label] = []
         if issubclass(mcdc_class, ObjectNonSingleton):
             records[mcdc_class.label] = []
         else:
@@ -93,11 +100,13 @@ def generate_numba_objects(simulation):
     for name in bank_names:
         annotations[name] = {}
         structures[name] = []
+        getter_targets[name] = []
 
     # Move simulation to last
     annotations['simulation'] = annotations.pop('simulation')
     structures['simulation'] = structures.pop('simulation')
     records['simulation'] = records.pop('simulation')
+    getter_targets['simulation'] = getter_targets.pop('simulation')
     
     # ==================================================================================
     # Gather the annotations from the classes
@@ -150,7 +159,7 @@ def generate_numba_objects(simulation):
         }
 
     # ==================================================================================
-    # Set the structures based on the annotations
+    # Set the structures and getter targets based on the annotations
     # ==================================================================================
 
     # Temporary simulation object structure
@@ -167,8 +176,13 @@ def generate_numba_objects(simulation):
             simulation_object_structure.append((field, list, hint_args[0]))
             continue
 
+    # Set the structures and getter targets
     for label in annotations.keys():
-        set_structure(label, structures, annotations)
+        set_structure(label, structures, getter_targets, annotations)
+
+    # Generate the getter helper
+    generate_mcdc_get(getter_targets)
+    exit()
     
     # Add ID for non-singleton
     for class_ in mcdc_classes:
@@ -339,9 +353,10 @@ def generate_numba_objects(simulation):
     return mcdc_simulation_arr, data
 
 
-def set_structure(label, structures, annotations):
+def set_structure(label, structures, getter_targets, annotations):
     structure = structures[label]
     annotation = annotations[label]
+    getter_target = getter_targets[label]
 
     for field in annotation:
         hint = annotation[field]
@@ -384,6 +399,7 @@ def set_structure(label, structures, annotations):
         elif simple_list or numpy_array:
             structure.append((f"{field}_offset", "i8"))
             structure.append((f"{field}_length", "i8"))
+            getter_target.append((f"{field}", 1, f"{field}_length"))
         elif fixed_size_array:
             shape = hint_decoded['shape']
             type_ = get_args(hint_decoded['dtype'])[0]
@@ -401,16 +417,18 @@ def set_structure(label, structures, annotations):
             singular = plural_to_singular(field)
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
+            getter_target.append((f"{singular}_IDs", 1, f"N_{singular}"))
         elif list_of_polymorphic_bases:
             singular = plural_to_singular(field)
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_types_offset", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
+            getter_target.append((f"{singular}_IDs", 1, f"N_{singular}"))
+            getter_target.append((f"{singular}_types", 1, f"N_{singular}"))
 
         # Unknown type
         else:
             print_error(f"Unknown type hint for {label}/{field}: {hint}") 
-        
 
 def set_object(object_, structures, records, data):
     structure = structures[object_.label]
@@ -680,6 +698,114 @@ def decode_annotated_ndarray(hint):
                 "dtype": dtype_type,
             }
     return None
+
+
+# ======================================================================================
+# Helpers for mcdc_get generators
+# ======================================================================================
+
+def generate_mcdc_get(targets):
+    for object_name in targets.keys():
+        with open(f"{Path(mcdc.__file__).parent}/mcdc_get/{object_name}.py", "w") as f:
+            text = "from numba import njit\n\n\n"
+
+            for attribute in targets[object_name]:
+                attribute_name = attribute[0]
+                attribute_dim = attribute[1]
+
+                if attribute_dim == 1:
+                    size = attribute[2]
+                    text += _getter_1d_element(object_name, attribute_name)
+                    text += _getter_1d_all(object_name, attribute_name, size)
+                    text += _getter_1d_last(object_name, attribute_name, size)
+                text += _getter_chunk(object_name, attribute_name)
+            
+            f.write(text[:-2])
+
+    with open(f"{Path(mcdc.__file__).parent}/mcdc_get/__init__.py", "w") as f:
+        text = ""
+        for object_name in targets.keys():
+            text += f"import mcdc.mcdc_get.{object_name} as {object_name}\n"
+        f.write(text[:-1])
+
+def _getter_1d_element(object_name, attribute_name):
+    text = f"@njit\n"
+    text += f"def {attribute_name}(index, {object_name}, data):\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    text += f"    return data[offset + index]\n\n\n"
+    return text
+
+
+def _getter_1d_all(object_name, attribute_name, size):
+    text = f"@njit\n"
+    text += f"def {attribute_name}_all({object_name}, data):\n"
+    text += f'    start = {object_name}["{attribute_name}_offset"]\n'
+    if type(size) == str:
+        text += f'    size = {object_name}["{size}"]\n'
+    else:
+        text += f'    size = {size}\n'
+    text += f'    end = start + size\n'
+    text += f"    return data[start:end]\n\n\n"
+    return text
+
+
+def _getter_1d_last(object_name, attribute_name, size):
+    text = f"@njit\n"
+    text += f"def {attribute_name}_last({object_name}, data):\n"
+    text += f'    start = {object_name}["{attribute_name}_offset"]\n'
+    if type(size) == str:
+        text += f'    size = {object_name}["{size}"]\n'
+    else:
+        text += f'    size = {size}\n'
+    text += f'    end = start + size\n'
+    text += f"    return data[end - 1]\n\n\n"
+    return text
+
+
+def _getter_chunk(object_name, attribute_name):
+    text = f"@njit\n"
+    text += f"def {attribute_name}_chunk(start, length, {object_name}, data):\n"
+    text += f'    start += {object_name}["{attribute_name}_offset"]\n'
+    text += f"    end = start + length\n"
+    text += f"    return data[start:end]\n\n\n"
+    return text
+
+
+def _getter_2d_element(object_name, attribute_name, stride):
+    text = f"@njit\n"
+    text += f"def {attribute_name}(index_1, index_2, {object_name}, data):\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    if isinstance(stride, str):
+        text += f'    stride = {object_name}["{stride}"]\n'
+    else:
+        text += f'    stride = {stride}\n'
+    text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
+    return text
+
+
+def _getter_2d_vector(object_name, attribute_name, stride):
+    text = f"@njit\n"
+    text += f"def {attribute_name}_vector(index_1, {object_name}, data):\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    if isinstance(stride, str):
+        text += f'    stride = {object_name}["{stride}"]\n'
+    else:
+        text += f'    stride = {stride}\n'
+    text += f"    start = offset + index_1 * stride\n"
+    text += f"    end = start + stride\n"
+    text += f"    return data[start:end]\n\n\n"
+    return text
+
+
+def _getter_3d_element(object_name, attribute_name, stride_2, stride_3):
+    text = f"@njit\n"
+    text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data):\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    text += f'    stride_2 = {object_name}["{stride_2}"]\n'
+    text += f'    stride_3 = {object_name}["{stride_3}"]\n'
+    text += f"    return data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3]\n\n\n"
+    return text
+
 
 
 # ======================================================================================

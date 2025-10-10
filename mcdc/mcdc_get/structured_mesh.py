@@ -8,17 +8,19 @@ def x(index, structured_mesh, data):
 
 
 @njit
-def x_last(structured_mesh, data):
+def x_all(structured_mesh, data):
     start = structured_mesh["x_offset"]
-    end = start + structured_mesh["x_length"]
-    return data[end - 1]
+    size = structured_mesh["x_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def x_all(structured_mesh, data):
+def x_last(structured_mesh, data):
     start = structured_mesh["x_offset"]
-    end = start + structured_mesh["x_length"]
-    return data[start:end]
+    size = structured_mesh["x_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -35,17 +37,19 @@ def y(index, structured_mesh, data):
 
 
 @njit
-def y_last(structured_mesh, data):
+def y_all(structured_mesh, data):
     start = structured_mesh["y_offset"]
-    end = start + structured_mesh["y_length"]
-    return data[end - 1]
+    size = structured_mesh["y_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def y_all(structured_mesh, data):
+def y_last(structured_mesh, data):
     start = structured_mesh["y_offset"]
-    end = start + structured_mesh["y_length"]
-    return data[start:end]
+    size = structured_mesh["y_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -62,17 +66,19 @@ def z(index, structured_mesh, data):
 
 
 @njit
-def z_last(structured_mesh, data):
+def z_all(structured_mesh, data):
     start = structured_mesh["z_offset"]
-    end = start + structured_mesh["z_length"]
-    return data[end - 1]
+    size = structured_mesh["z_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def z_all(structured_mesh, data):
+def z_last(structured_mesh, data):
     start = structured_mesh["z_offset"]
-    end = start + structured_mesh["z_length"]
-    return data[start:end]
+    size = structured_mesh["z_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
@@ -89,17 +95,19 @@ def t(index, structured_mesh, data):
 
 
 @njit
-def t_last(structured_mesh, data):
+def t_all(structured_mesh, data):
     start = structured_mesh["t_offset"]
-    end = start + structured_mesh["t_length"]
-    return data[end - 1]
+    size = structured_mesh["t_length"]
+    end = start + size
+    return data[start:end]
 
 
 @njit
-def t_all(structured_mesh, data):
+def t_last(structured_mesh, data):
     start = structured_mesh["t_offset"]
-    end = start + structured_mesh["t_length"]
-    return data[start:end]
+    size = structured_mesh["t_length"]
+    end = start + size
+    return data[end - 1]
 
 
 @njit
