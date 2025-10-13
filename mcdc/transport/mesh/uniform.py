@@ -16,7 +16,6 @@ def get_indices(particle_container, mesh):
     x = particle["x"]
     y = particle["y"]
     z = particle["z"]
-    t = particle["t"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
@@ -25,19 +24,15 @@ def get_indices(particle_container, mesh):
     x0 = mesh["x0"]
     y0 = mesh["y0"]
     z0 = mesh["z0"]
-    t0 = mesh["t0"]
     dx = mesh["dx"]
     dy = mesh["dy"]
     dz = mesh["dz"]
-    dt = mesh["dt"]
     Nx = mesh["Nx"]
     Ny = mesh["Ny"]
     Nz = mesh["Nz"]
-    Nt = mesh["Nt"]
     x_last = x0 + Nx * dx
     y_last = y0 + Ny * dy
     z_last = z0 + Nz * dz
-    t_last = t0 + Nt * dt
 
     # Check if particle is outside the mesh grid
     outside = False
@@ -49,8 +44,6 @@ def get_indices(particle_container, mesh):
         or y > y_last + COINCIDENCE_TOLERANCE
         or z < z0 - COINCIDENCE_TOLERANCE
         or z > z_last + COINCIDENCE_TOLERANCE
-        or t < t0 - COINCIDENCE_TOLERANCE_TIME
-        or t > t_last + COINCIDENCE_TOLERANCE_TIME
         # At the outermost-grid but moving away
         or (abs(x - x0) < COINCIDENCE_TOLERANCE and ux < 0.0)
         or (abs(x - x_last) < COINCIDENCE_TOLERANCE and ux > 0.0)
@@ -58,18 +51,14 @@ def get_indices(particle_container, mesh):
         or (abs(y - y_last) < COINCIDENCE_TOLERANCE and uy > 0.0)
         or (abs(z - z0) < COINCIDENCE_TOLERANCE and uz < 0.0)
         or (abs(z - z_last) < COINCIDENCE_TOLERANCE and uz > 0.0)
-        or (abs(t - t_last) < COINCIDENCE_TOLERANCE_TIME)
     ):
-        return -1, -1, -1, -1
+        return -1, -1, -1
 
     ix = _grid_index(x, ux, x0, dx, COINCIDENCE_TOLERANCE)
     iy = _grid_index(y, uy, y0, dy, COINCIDENCE_TOLERANCE)
     iz = _grid_index(z, uz, z0, dz, COINCIDENCE_TOLERANCE)
-    it = _grid_index(
-        t, 1.0, t0, dt, COINCIDENCE_TOLERANCE_TIME
-    )  # Particle always moves forward in time
 
-    return ix, iy, iz, it
+    return ix, iy, iz
 
 
 @njit
@@ -84,7 +73,6 @@ def get_crossing_distance(particle_container, speed, mesh):
     x = particle["x"]
     y = particle["y"]
     z = particle["z"]
-    t = particle["t"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
@@ -93,25 +81,20 @@ def get_crossing_distance(particle_container, speed, mesh):
     x0 = mesh["x0"]
     y0 = mesh["y0"]
     z0 = mesh["z0"]
-    t0 = mesh["t0"]
     dx = mesh["dx"]
     dy = mesh["dy"]
     dz = mesh["dz"]
-    dt = mesh["dt"]
     Nx = mesh["Nx"]
     Ny = mesh["Ny"]
     Nz = mesh["Nz"]
-    Nt = mesh["Nt"]
     x_last = x0 + Nx * dx
     y_last = y0 + Ny * dy
     z_last = z0 + Nz * dz
-    t_last = t0 + Nt * dt
 
     # Check if particle is outside the mesh grid and moving away
     outside = False
     if (
-        (t > t_last - COINCIDENCE_TOLERANCE_TIME)
-        or (x < x0 + COINCIDENCE_TOLERANCE and ux < 0.0)
+        (x < x0 + COINCIDENCE_TOLERANCE and ux < 0.0)
         or (x > x_last - COINCIDENCE_TOLERANCE and ux > 0.0)
         or (y < y0 + COINCIDENCE_TOLERANCE and uy < 0.0)
         or (y > y_last - COINCIDENCE_TOLERANCE and uy > 0.0)
@@ -124,7 +107,6 @@ def get_crossing_distance(particle_container, speed, mesh):
     d = min(d, _grid_distance(x, ux, x0, dx, COINCIDENCE_TOLERANCE))
     d = min(d, _grid_distance(y, uy, y0, dy, COINCIDENCE_TOLERANCE))
     d = min(d, _grid_distance(z, uz, z0, dz, COINCIDENCE_TOLERANCE))
-    d = min(d, _grid_distance(t, 1.0 / speed, t0, dt, COINCIDENCE_TOLERANCE_TIME))
     return d
 
 

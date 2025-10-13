@@ -19,7 +19,6 @@ def get_indices(particle_container, mesh, data):
     x = particle["x"]
     y = particle["y"]
     z = particle["z"]
-    t = particle["t"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
@@ -28,18 +27,15 @@ def get_indices(particle_container, mesh, data):
     tolerance = COINCIDENCE_TOLERANCE
     ix = find_bin(x, mcdc_get.structured_mesh.x_all(mesh, data), tolerance, ux < 0.0)
     if ix == -1:
-        return -1, -1, -1, -1
+        return -1, -1, -1
     iy = find_bin(y, mcdc_get.structured_mesh.y_all(mesh, data), tolerance, uy < 0.0)
     if iy == -1:
-        return -1, -1, -1, -1
+        return -1, -1, -1
     iz = find_bin(z, mcdc_get.structured_mesh.z_all(mesh, data), tolerance, uz < 0.0)
     if iz == -1:
-        return -1, -1, -1, -1
-    it = find_bin(t, mcdc_get.structured_mesh.t_all(mesh, data), tolerance, go_lower=False)
-    if it == -1:
-        return -1, -1, -1, -1
+        return -1, -1, -1
 
-    return ix, iy, iz, it
+    return ix, iy, iz
 
 
 @njit
@@ -54,7 +50,6 @@ def get_crossing_distance(particle_arr, speed, mesh):
     x = particle["x"]
     y = particle["y"]
     z = particle["z"]
-    t = particle["t"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
@@ -63,13 +58,11 @@ def get_crossing_distance(particle_arr, speed, mesh):
     Nx = mesh["Nx"]
     Ny = mesh["Ny"]
     Nz = mesh["Nz"]
-    Nt = mesh["Nt"]
 
     # Check if particle is outside the mesh grid and moving away
     outside = False
     if (
-        (t > mesh["t"][Nt] - COINCIDENCE_TOLERANCE_TIME)
-        or (x < mesh["x"][0] + COINCIDENCE_TOLERANCE and ux < 0.0)
+        (x < mesh["x"][0] + COINCIDENCE_TOLERANCE and ux < 0.0)
         or (x > mesh["x"][Nx] - COINCIDENCE_TOLERANCE and ux > 0.0)
         or (y < mesh["y"][0] + COINCIDENCE_TOLERANCE and uy < 0.0)
         or (y > mesh["y"][Ny] - COINCIDENCE_TOLERANCE and uy > 0.0)
@@ -82,9 +75,6 @@ def get_crossing_distance(particle_arr, speed, mesh):
     d = min(d, _grid_distance(x, ux, mesh["x"], Nx + 1, COINCIDENCE_TOLERANCE))
     d = min(d, _grid_distance(y, uy, mesh["y"], Ny + 1, COINCIDENCE_TOLERANCE))
     d = min(d, _grid_distance(z, uz, mesh["z"], Nz + 1, COINCIDENCE_TOLERANCE))
-    d = min(
-        d, _grid_distance(t, 1.0 / speed, mesh["t"], Nt + 1, COINCIDENCE_TOLERANCE_TIME)
-    )
     return d
 
 

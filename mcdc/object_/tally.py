@@ -315,26 +315,23 @@ class TallyMesh(TallyBase):
         azi: NDArray[float64] | NoneType = None,
         polar_reference: NDArray[float64] | NoneType = None,
         energy: NDArray[float64] | str | NoneType = None,
+        time: NDArray[float64] | NoneType = None,
     ):
         type_ = TALLY_MESH
+        super().__init__(
+            type_, name, scores, mu, azi, polar_reference, energy, time
+        )
 
         self.mesh = mesh
-        if mesh.type == MESH_UNIFORM:
-            self.time = np.linspace(mesh.t0, mesh.t0 + mesh.Nt * mesh.dt, mesh.Nt + 1)
-        elif mesh.type == MESH_STRUCTURED:
-            self.time = mesh.t
-
-        super().__init__(
-            type_, name, scores, mu, azi, polar_reference, energy, self.time
-        )
 
         # Allocate the bins
         N_mu = len(self.mu) - 1
         N_azi = len(self.azi) - 1
         N_energy = len(self.energy) - 1
+        N_time = len(self.time) - 1
         N_score = len(self.scores)
         #
-        self.bin = np.zeros((N_mu, N_azi, N_energy, mesh.Nt, mesh.Nx, mesh.Ny, mesh.Nz, N_score))
+        self.bin = np.zeros((N_mu, N_azi, N_energy, N_time, mesh.Nx, mesh.Ny, mesh.Nz, N_score))
         self.bin_sum = np.zeros_like(self.bin)
         self.bin_sum_square = np.zeros_like(self.bin)
 
@@ -343,9 +340,9 @@ class TallyMesh(TallyBase):
         self.stride_y = N_score * mesh.Nz
         self.stride_x = N_score * mesh.Nz * mesh.Ny
         self.stride_time = N_score * mesh.Nz * mesh.Ny * mesh.Nx
-        self.stride_energy = N_score * mesh.Nz * mesh.Ny * mesh.Nx * mesh.Nt
-        self.stride_azi = N_score * mesh.Nz * mesh.Ny * mesh.Nx * mesh.Nt * N_energy
-        self.stride_mu = N_score * mesh.Nz * mesh.Ny * mesh.Nx * mesh.Nt * N_energy * N_azi
+        self.stride_energy = N_score * mesh.Nz * mesh.Ny * mesh.Nx * N_time
+        self.stride_azi = N_score * mesh.Nz * mesh.Ny * mesh.Nx * N_time * N_energy
+        self.stride_mu = N_score * mesh.Nz * mesh.Ny * mesh.Nx * N_time * N_energy * N_azi
 
     def _use_census_based_tally(self, frequency):
         mesh = self.mesh

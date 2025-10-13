@@ -86,32 +86,3 @@ def z_chunk(start, length, structured_mesh, data):
     start += structured_mesh["z_offset"]
     end = start + length
     return data[start:end]
-
-
-@njit
-def t(index, structured_mesh, data):
-    offset = structured_mesh["t_offset"]
-    return data[offset + index]
-
-
-@njit
-def t_all(structured_mesh, data):
-    start = structured_mesh["t_offset"]
-    size = structured_mesh["t_length"]
-    end = start + size
-    return data[start:end]
-
-
-@njit
-def t_last(structured_mesh, data):
-    start = structured_mesh["t_offset"]
-    size = structured_mesh["t_length"]
-    end = start + size
-    return data[end - 1]
-
-
-@njit
-def t_chunk(start, length, structured_mesh, data):
-    start += structured_mesh["t_offset"]
-    end = start + length
-    return data[start:end]

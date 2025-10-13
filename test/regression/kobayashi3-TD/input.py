@@ -67,9 +67,8 @@ mcdc.TallyCell(cell=shield_cell, scores=["flux"])
 mesh = mcdc.MeshStructured(
     x=np.linspace(0.0, 60.0, 31),
     y=np.linspace(0.0, 100.0, 51),
-    t=np.linspace(0.0, 200.0, 21),
 )
-mcdc.TallyMesh(mesh=mesh, scores=["flux"])
+mcdc.TallyMesh(mesh=mesh, scores=["flux"], time=np.linspace(0.0, 200.0, 21))
 
 # Settings
 mcdc.settings.N_particle = 80

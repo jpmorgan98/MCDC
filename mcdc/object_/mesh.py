@@ -64,9 +64,6 @@ class MeshUniform(MeshBase):
     z0: float
     dz: float
     Nz: int
-    t0: float
-    dt: float
-    Nt: int
 
     def __init__(
         self,
@@ -74,7 +71,6 @@ class MeshUniform(MeshBase):
         x: tuple[float, float, int] = (-INF, 2 * INF, 1),
         y: tuple[float, float, int] = (-INF, 2 * INF, 1),
         z: tuple[float, float, int] = (-INF, 2 * INF, 1),
-        t: tuple[float, float, int] = (-INF, 2 * INF, 1),
     ):
         type_ = MESH_UNIFORM
         super().__init__(type_, name)
@@ -89,11 +85,8 @@ class MeshUniform(MeshBase):
         self.z0 = z[0]
         self.dz = z[1]
         self.Nz = z[2]
-        self.t0 = t[0]
-        self.dt = t[1]
-        self.Nt = t[2]
 
-        self.N_bin = self.Nx * self.Ny * self.Nz * self.Nt
+        self.N_bin = self.Nx * self.Ny * self.Nz
 
     def __repr__(self):
         text = super().__repr__()
@@ -101,7 +94,6 @@ class MeshUniform(MeshBase):
         text += f"    - x0/dx/Nx: {self.x0}/{self.dx}/{self.Nx} [cm]\n"
         text += f"    - y0/dy/Ny: {self.y0}/{self.dy}/{self.Ny} [cm]\n"
         text += f"    - z0/dz/Nz: {self.z0}/{self.dz}/{self.Nz} [cm]\n"
-        text += f"    - t0/dt/Nt: {self.t0}/{self.dt}/{self.Nt} [s]\n"
         return text
 
 
@@ -117,11 +109,9 @@ class MeshStructured(MeshBase):
     x: NDArray[float64]
     y: NDArray[float64]
     z: NDArray[float64]
-    t: NDArray[float64]
     Nx: int
     Ny: int
     Nz: int
-    Nt: int
 
     def __init__(
         self,
@@ -129,7 +119,6 @@ class MeshStructured(MeshBase):
         x: NDArray[float64] = np.array([-INF, INF]),
         y: NDArray[float64] = np.array([-INF, INF]),
         z: NDArray[float64] = np.array([-INF, INF]),
-        t: NDArray[float64] = np.array([-INF, INF]),
     ):
         type_ = MESH_STRUCTURED
         super().__init__(type_, name)
@@ -138,14 +127,12 @@ class MeshStructured(MeshBase):
         self.x = x
         self.y = y
         self.z = z
-        self.t = t
 
         self.Nx = len(self.x) - 1
         self.Ny = len(self.y) - 1
         self.Nz = len(self.z) - 1
-        self.Nt = len(self.t) - 1
 
-        self.N_bin = self.Nx * self.Ny * self.Nz * self.Nt
+        self.N_bin = self.Nx * self.Ny * self.Nz
 
     def __repr__(self):
         text = super().__repr__()
@@ -153,5 +140,4 @@ class MeshStructured(MeshBase):
         text += f"    - x {print_1d_array(self.x)} cm\n"
         text += f"    - y {print_1d_array(self.y)} cm\n"
         text += f"    - z {print_1d_array(self.z)} cm\n"
-        text += f"    - t {print_1d_array(self.t)} s\n"
         return text

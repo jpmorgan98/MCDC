@@ -28,13 +28,14 @@ mcdc.Cell(region=+s1 & -s2, fill=m)
 # =============================================================================
 # Isotropic pulse at x=t=0
 
-mcdc.source(point=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
+mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
 
 # =============================================================================
 # Set settings, tally, and run mcdc
 # =============================================================================
 
-mcdc.Settings(N_particle=100, N_batch=2)
+mcdc.settings.N_particle=100
+mcdc.settings.N_batch=2
 
 mcdc.tally.mesh_tally(
     scores=["flux"],

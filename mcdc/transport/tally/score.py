@@ -163,7 +163,11 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         i_energy = get_energy_index(particle_container, tally, data, MG_mode)
         if i_energy == -1:
             return
-    i_x, i_y, i_z, i_time = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
+    if tally["filter_time"]:
+        i_time = get_time_index(particle_container, tally, data)
+        if i_time == -1:
+            return
+    i_x, i_y, i_z = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
     if i_time == -1:
         return
 
@@ -224,7 +228,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
             dz = (z_next - z) / uz
 
         # t-direction
-        t_next = mesh_.get_t(i_time + 1, mesh_type, mesh_ID, mcdc, data)
+        t_next = mcdc_get.cell_tally.time(i_time + 1, tally, data)
         dt = (min(t_next, t_final) - t) / ut
 
         # ==============================================================================
@@ -300,6 +304,6 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
                 idx_base -= tally["stride_z"]
         elif axis_crossed == AXIS_T:
             i_time += 1
-            if i_time == mesh["Nt"]:
+            if i_time == tally["time_length"] - 1:
                 break
             idx_base += tally["stride_time"]
