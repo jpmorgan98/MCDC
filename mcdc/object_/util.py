@@ -4,13 +4,13 @@ from typing import get_origin, get_args, Union, Annotated
 
 
 def cmf_from_pmf(value, pmf):
-    cmf = np.zeros_like(pmf)
+    cmf = np.zeros(len(pmf) + 1)
 
     # Build CMF incrementally
     total = 0.0
     for idx in range(len(pmf)):
         total += pmf[idx]
-        cmf[idx] = total
+        cmf[idx + 1] = total
 
     # Normalize this segment so CDF ends at 1
     norm = cmf[-1]

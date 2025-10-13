@@ -13,12 +13,14 @@ import mcdc.transport.kernel as kernel
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
 
+
 from mcdc.constant import *
 from mcdc.print_ import (
     print_header_batch,
     print_progress,
     print_progress_eigenvalue,
 )
+from mcdc.transport.source import source_particle
 
 caching = config.caching
 
@@ -231,7 +233,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     # Get from fixed-source?
     if kernel.get_bank_size(mcdc["bank_source"]) == 0:
         # Sample source
-        kernel.source_particle(P_arr, seed_work, mcdc, data)
+        source_particle(P_arr, seed_work, mcdc, data)
     
     # Get from source bank
     else:

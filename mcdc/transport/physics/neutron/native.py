@@ -23,8 +23,8 @@ from mcdc.constant import (
     SQRD_SPEED_TO_E,
 )
 from mcdc.transport.data import evaluate_data
-from mcdc.transport.distribution import sample_distribution
-from mcdc.transport.physics.util import scatter_direction, sample_isotropic_direction
+from mcdc.transport.distribution import sample_distribution, sample_isotropic_direction
+from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.util import linear_interpolation
 
 

@@ -18,7 +18,8 @@ from mcdc.constant import (
     REACTION_NEUTRON_FISSION_DELAYED,
     REACTION_NEUTRON_FISSION_PROMPT,
 )
-from mcdc.transport.physics.util import scatter_direction, sample_isotropic_direction
+from mcdc.transport.physics.util import scatter_direction
+from mcdc.transport.distribution import sample_isotropic_direction
 
 
 # ======================================================================================

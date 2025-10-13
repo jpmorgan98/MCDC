@@ -13,6 +13,25 @@ from mcdc.transport.util import find_bin
 
 
 @njit
+def sample_uniform(low, high, rng_state):
+    return low + kernel.rng(rng_state) * (high - low)
+
+
+@njit
+def sample_isotropic_direction(rng_state):
+    # Sample polar cosine and azimuthal angle uniformly
+    mu = 2.0 * kernel.rng(rng_state) - 1.0
+    azi = 2.0 * PI * kernel.rng(rng_state)
+
+    # Convert to Cartesian coordinates
+    c = (1.0 - mu**2) ** 0.5
+    y = math.cos(azi) * c
+    z = math.sin(azi) * c
+    x = mu
+    return x, y, z
+
+
+@njit
 def sample_distribution(x, distribution_type, index, rng_state, mcdc, data, scale=False):
     if distribution_type == DISTRIBUTION_MULTIPDF:
         multipdf = mcdc["distribution_multipdfs"][index]
@@ -26,12 +45,40 @@ def sample_distribution(x, distribution_type, index, rng_state, mcdc, data, scal
 
 @njit
 def sample_pmf(pmf, rng_state, data):
-    tot = 0.0
     xi = kernel.rng(rng_state)
-    for i in range(pmf['pmf_length']):
-        tot += mcdc_get.pmf_distribution.pmf(i, pmf, data)
-        if tot > xi:
-            return mcdc_get.pmf_distribution.value(i, pmf, data)
+    idx = find_bin(xi, mcdc_get.pmf_distribution.cmf_all(pmf, data))
+    return mcdc_get.pmf_distribution.value(idx, pmf, data)
+
+
+@njit
+def sample_white_direction(nx, ny, nz, rng_state):
+    # Sample polar cosine
+    mu = math.sqrt(kernel.rng(rng_state))
+
+    # Sample azimuthal direction
+    azi = 2.0 * PI * kernel.rng(rng_state)
+    cos_azi = math.cos(azi)
+    sin_azi = math.sin(azi)
+    Ac = (1.0 - mu**2) ** 0.5
+
+    if nz != 1.0:
+        B = (1.0 - nz**2) ** 0.5
+        C = Ac / B
+
+        x = nx * mu + (nx * nz * cos_azi - ny * sin_azi) * C
+        y = ny * mu + (ny * nz * cos_azi + nx * sin_azi) * C
+        z = nz * mu - cos_azi * Ac * B
+
+    # If dir = 0i + 0j + k, interchange z and y in the formula
+    else:
+        B = (1.0 - ny**2) ** 0.5
+        C = Ac / B
+
+        x = nx * mu + (nx * ny * cos_azi - nz * sin_azi) * C
+        z = nz * mu + (nz * ny * cos_azi + nx * sin_azi) * C
+        y = ny * mu - cos_azi * Ac * B
+    return x, y, z
+
 
 @njit
 def sample_multipdf(x, rng_state, multipdf, data, scale=False):

@@ -21,20 +21,6 @@ def evaluate_xs_energy_grid(e, nuclide, data):
 
 
 @njit
-def sample_isotropic_direction(particle_container):
-    # Sample polar cosine and azimuthal angle uniformly
-    mu = 2.0 * kernel.rng(particle_container) - 1.0
-    azi = 2.0 * PI * kernel.rng(particle_container)
-
-    # Convert to Cartesian coordinates
-    c = (1.0 - mu**2) ** 0.5
-    y = math.cos(azi) * c
-    z = math.sin(azi) * c
-    x = mu
-    return x, y, z
-
-
-@njit
 def scatter_direction(ux, uy, uz, mu0, azi):
     cos_azi = math.cos(azi)
     sin_azi = math.sin(azi)
