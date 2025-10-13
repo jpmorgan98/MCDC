@@ -48,7 +48,12 @@ shield_cell = mcdc.Cell(region=box & ~void_channel, fill=m)
 # The source pulses in t=[0,5]
 
 mcdc.Source(
-    x=[0.0, 10.0], y=[0.0, 10.0], z=[0.0, 10.0], time=[0.0, 50.0], isotropic=True, energy_group=0
+    x=[0.0, 10.0],
+    y=[0.0, 10.0],
+    z=[0.0, 10.0],
+    time=[0.0, 50.0],
+    isotropic=True,
+    energy_group=np.array([[0], [1.0]]),
 )
 
 # =============================================================================
