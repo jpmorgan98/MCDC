@@ -43,7 +43,7 @@ def decode_type(type_):
 
 class DistributionPDF(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'pdf_data'
+    label: str = 'pdf_distribution'
     #
     value: NDArray[float64]
     pdf: NDArray[float64]
@@ -71,7 +71,7 @@ class DistributionPDF(DistributionBase):
 
 class DistributionPMF(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'pmf_data'
+    label: str = 'pmf_distribution'
     #
     value: NDArray[float64]
     pmf: NDArray[float64]
@@ -101,7 +101,7 @@ class DistributionPMF(DistributionBase):
 
 class DistributionMultiPDF(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'multipdf_data'
+    label: str = 'multipdf_distribution'
     #
     grid: NDArray[float64]
     offset: NDArray[float64]
@@ -136,7 +136,7 @@ class DistributionMultiPDF(DistributionBase):
 
 class DistributionMaxwellian(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'maxwellian_data'
+    label: str = 'maxwellian_distribution'
     #
     U: float
     T: DataTable

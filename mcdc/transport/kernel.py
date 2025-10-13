@@ -23,6 +23,7 @@ import mcdc.transport.tally as tally_module
 from mcdc.code_factory.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.print_ import print_error, print_structure
+from mcdc.transport.distribution import sample_pmf
 from mcdc.transport.util import find_bin
 from mcdc.transport.physics.util import sample_isotropic_direction
 
@@ -882,7 +883,7 @@ def rng_array(seed, shape, size):
 
 
 @njit
-def source_particle(P_rec_arr, seed, mcdc):
+def source_particle(P_rec_arr, seed, mcdc, data):
     P_rec = P_rec_arr[0]
     P_rec["rng_seed"] = seed
 
@@ -922,6 +923,10 @@ def source_particle(P_rec_arr, seed, mcdc):
         E = 0.0
         if source["mono_energetic"]:
             g = source['energy_group']
+        else:
+            ID = source['energy_group_pmf_ID']
+            pmf = mcdc['pmf_distributions'][ID]
+            g = sample_pmf(pmf, P_rec_arr, data)
 
     # Time
     if source['discrete_time']:

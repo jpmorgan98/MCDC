@@ -6,10 +6,10 @@ import mcdc.mcdc_get.cell_tally as cell_tally
 import mcdc.mcdc_get.universe as universe
 import mcdc.mcdc_get.polynomial_data as polynomial_data
 import mcdc.mcdc_get.table_data as table_data
-import mcdc.mcdc_get.maxwellian_data as maxwellian_data
-import mcdc.mcdc_get.multipdf_data as multipdf_data
-import mcdc.mcdc_get.pdf_data as pdf_data
-import mcdc.mcdc_get.pmf_data as pmf_data
+import mcdc.mcdc_get.maxwellian_distribution as maxwellian_distribution
+import mcdc.mcdc_get.multipdf_distribution as multipdf_distribution
+import mcdc.mcdc_get.pdf_distribution as pdf_distribution
+import mcdc.mcdc_get.pmf_distribution as pmf_distribution
 import mcdc.mcdc_get.material as material
 import mcdc.mcdc_get.multigroup_material as multigroup_material
 import mcdc.mcdc_get.nuclide as nuclide

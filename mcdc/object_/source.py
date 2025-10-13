@@ -147,7 +147,7 @@ class Source(ObjectNonSingleton):
                 self.energy_group = energy_group
             else:
                 self.mono_energetic = False
-                self.energy_group_pmf = np.array(energy_group)
+                self.energy_group_pmf = DistributionPMF(energy_group[0], energy_group[1])
         elif energy is not None:
             if type(energy) == float:
                 self.energy = energy
@@ -186,7 +186,7 @@ class Source(ObjectNonSingleton):
             text += f"    - x: {self.x} cm\n"
             text += f"    - y: {self.y} cm\n"
             text += f"    - z: {self.z} cm\n"
-        if self.isotropic_source:
+        if self.isotropic_direction:
             text += f"  - Direction: Isotropic\n"
         elif self.mono_direction:
             text += f"  - Direction [ux, uy, yz]: {self.direction}\n"
@@ -196,7 +196,7 @@ class Source(ObjectNonSingleton):
             if self.mono_energetic:
                 text += f"  - Energy group: {self.energy_group} \n"
             else:
-                text += f"  - Energy group: {distribution.decode_type(self.energy_group_pmf)} [ID: {self.energy_group_pmf.ID}]\n"
+                text += f"  - Energy group: {distribution.decode_type(self.energy_group_pmf.type)} [ID: {self.energy_group_pmf.ID}]\n"
         else:
             if self.mono_energetic:
                 text += f"  - Energy: {self.energy} eV\n"

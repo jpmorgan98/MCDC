@@ -1,0 +1,146 @@
+from numba import njit
+
+
+@njit
+def grid(index, multipdf_distribution, data):
+    offset = multipdf_distribution["grid_offset"]
+    return data[offset + index]
+
+
+@njit
+def grid_all(multipdf_distribution, data):
+    start = multipdf_distribution["grid_offset"]
+    size = multipdf_distribution["grid_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def grid_last(multipdf_distribution, data):
+    start = multipdf_distribution["grid_offset"]
+    size = multipdf_distribution["grid_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def grid_chunk(start, length, multipdf_distribution, data):
+    start += multipdf_distribution["grid_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def offset(index, multipdf_distribution, data):
+    offset = multipdf_distribution["offset_offset"]
+    return data[offset + index]
+
+
+@njit
+def offset_all(multipdf_distribution, data):
+    start = multipdf_distribution["offset_offset"]
+    size = multipdf_distribution["offset_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def offset_last(multipdf_distribution, data):
+    start = multipdf_distribution["offset_offset"]
+    size = multipdf_distribution["offset_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def offset_chunk(start, length, multipdf_distribution, data):
+    start += multipdf_distribution["offset_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def value(index, multipdf_distribution, data):
+    offset = multipdf_distribution["value_offset"]
+    return data[offset + index]
+
+
+@njit
+def value_all(multipdf_distribution, data):
+    start = multipdf_distribution["value_offset"]
+    size = multipdf_distribution["value_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def value_last(multipdf_distribution, data):
+    start = multipdf_distribution["value_offset"]
+    size = multipdf_distribution["value_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def value_chunk(start, length, multipdf_distribution, data):
+    start += multipdf_distribution["value_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def pdf(index, multipdf_distribution, data):
+    offset = multipdf_distribution["pdf_offset"]
+    return data[offset + index]
+
+
+@njit
+def pdf_all(multipdf_distribution, data):
+    start = multipdf_distribution["pdf_offset"]
+    size = multipdf_distribution["pdf_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def pdf_last(multipdf_distribution, data):
+    start = multipdf_distribution["pdf_offset"]
+    size = multipdf_distribution["pdf_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def pdf_chunk(start, length, multipdf_distribution, data):
+    start += multipdf_distribution["pdf_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def cdf(index, multipdf_distribution, data):
+    offset = multipdf_distribution["cdf_offset"]
+    return data[offset + index]
+
+
+@njit
+def cdf_all(multipdf_distribution, data):
+    start = multipdf_distribution["cdf_offset"]
+    size = multipdf_distribution["cdf_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def cdf_last(multipdf_distribution, data):
+    start = multipdf_distribution["cdf_offset"]
+    size = multipdf_distribution["cdf_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def cdf_chunk(start, length, multipdf_distribution, data):
+    start += multipdf_distribution["cdf_offset"]
+    end = start + length
+    return data[start:end]

@@ -25,6 +25,15 @@ def sample_distribution(x, distribution_type, index, rng_state, mcdc, data, scal
 
 
 @njit
+def sample_pmf(pmf, rng_state, data):
+    tot = 0.0
+    xi = kernel.rng(rng_state)
+    for i in range(pmf['pmf_length']):
+        tot += mcdc_get.pmf_distribution.pmf(i, pmf, data)
+        if tot > xi:
+            return mcdc_get.pmf_distribution.value(i, pmf, data)
+
+@njit
 def sample_multipdf(x, rng_state, multipdf, data, scale=False):
     grid = mcdc_get.multipdf.grid_all(multipdf, data)
 

@@ -231,7 +231,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     # Get from fixed-source?
     if kernel.get_bank_size(mcdc["bank_source"]) == 0:
         # Sample source
-        kernel.source_particle(P_arr, seed_work, mcdc)
+        kernel.source_particle(P_arr, seed_work, mcdc, data)
     
     # Get from source bank
     else:
@@ -538,9 +538,7 @@ def loop_particle(P_arr, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     while P["alive"]:
-        print('start', P['x'], P['ux'], P['t'])
         step_particle(P_arr, prog, data)
-        print('end', P['x'], P['ux'], P['t'])
 
 
 @njit
