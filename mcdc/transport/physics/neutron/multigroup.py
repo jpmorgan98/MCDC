@@ -6,8 +6,7 @@ from numba import njit
 
 import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
-from mcdc.print_ import print_structure
-import mcdc.togo.type_ as type_
+import mcdc.object_.numba_types as type_
 import mcdc.transport.kernel as kernel
 
 from mcdc.constant import (
@@ -103,22 +102,16 @@ def collision(particle_container, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     # Get the reaction cross-sections
-    material = mcdc["materials"][particle["material_ID"]]
-    SigmaT = macro_xs(REACTION_TOTAL, material, particle_container, mcdc, data)
+    SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
     SigmaS = macro_xs(
-        REACTION_NEUTRON_ELASTIC_SCATTERING, material, particle_container, mcdc, data
+        REACTION_NEUTRON_ELASTIC_SCATTERING, particle_container, mcdc, data
     )
     SigmaC = macro_xs(
-        REACTION_NEUTRON_CAPTURE, material, particle_container, mcdc, data
+        REACTION_NEUTRON_CAPTURE, particle_container, mcdc, data
     )
     SigmaF = macro_xs(
-        REACTION_NEUTRON_FISSION, material, particle_container, mcdc, data
+        REACTION_NEUTRON_FISSION, particle_container, mcdc, data
     )
-
-    # Implicit capture
-    if mcdc["technique"]["implicit_capture"]:
-        particle["w"] *= (SigmaT - SigmaC) / SigmaT
-        SigmaT -= SigmaC
 
     # Sample reaction type and perform the reaction
     xi = kernel.rng(particle_container) * SigmaT
@@ -150,32 +143,27 @@ def scattering(particle_container, prog, data):
     uz = particle["uz"]
 
     # Material attributes
-    material = mcdc["materials"][particle["material_ID"]]
+    material = mcdc["multigroup_materials"][particle["material_ID"]]
     G = material["G"]
 
     # Kill the current particle
     particle["alive"] = False
 
     # Get effective and new weight
-    if mcdc["technique"]["weighted_emission"]:
-        weight_eff = particle["w"]
-        weight_new = 1.0
-    else:
-        weight_eff = 1.0
-        weight_new = particle["w"]
+    weight_new = particle["w"]
 
     # Get number of secondaries
     nu_s = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
-    N = int(math.floor(weight_eff * nu_s + kernel.rng(particle_container)))
+    N = int(math.floor(nu_s + kernel.rng(particle_container)))
 
     # Set up secondary partice container
-    particle_container_new = adapt.local_array(1, type_.particle_record)
+    particle_container_new = adapt.local_array(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries
     for n in range(N):
         # Set default attributes
-        kernel.split_as_record(particle_container_new, particle_container)
+        kernel.split_as_data(particle_container_new, particle_container)
 
         # Set weight
         particle_new["w"] = weight_new
@@ -224,7 +212,7 @@ def fission(particle_container, prog, data):
     g = particle["g"]
 
     # Material attributes
-    material = mcdc["materials"][particle["material_ID"]]
+    material = mcdc["multigroup_materials"][particle["material_ID"]]
     G = material["G"]
     J = material["J"]
     nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
@@ -236,26 +224,21 @@ def fission(particle_container, prog, data):
     particle["alive"] = False
 
     # Get effective and new weight
-    if mcdc["technique"]["weighted_emission"]:
-        weight_eff = particle["w"]
-        weight_new = 1.0
-    else:
-        weight_eff = 1.0
-        weight_new = particle["w"]
+    weight_new = particle["w"]
 
     # Get number of secondaries
     N = int(
-        math.floor(weight_eff * nu / mcdc["k_eff"] + kernel.rng(particle_container))
+        math.floor(nu / mcdc["k_eff"] + kernel.rng(particle_container))
     )
 
     # Set up secondary partice container
-    particle_container_new = adapt.local_array(1, type_.particle_record)
+    particle_container_new = adapt.local_array(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries
     for n in range(N):
         # Set default attributes
-        kernel.split_as_record(particle_container_new, particle_container)
+        kernel.split_as_data(particle_container_new, particle_container)
 
         # Set weight
         particle_new["w"] = weight_new

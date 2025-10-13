@@ -1,27 +1,23 @@
-import mcdc.mcdc_get as mcdc_get
-import mcdc.transport.physics as physics
-
 from mpi4py import MPI
 from numba import njit, objmode
 from numba.misc.special import literally
 
+####
+
+import mcdc.mcdc_get as mcdc_get
 import mcdc.config as config
 import mcdc.code_factory.adapt as adapt
 import mcdc.object_.numba_types as type_
 import mcdc.transport.geometry as geometry
 import mcdc.transport.kernel as kernel
+import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
 
 from mcdc.constant import *
 from mcdc.print_ import (
     print_header_batch,
-    print_iqmc_eigenvalue_progress,
-    print_iqmc_eigenvalue_exit_code,
-    print_msg,
     print_progress,
     print_progress_eigenvalue,
-    print_progress_iqmc,
-    print_structure,
 )
 
 caching = config.caching
@@ -149,24 +145,13 @@ def fixed_source_simulation(mcdc_arr, data):
             kernel.set_bank_size(mcdc["bank_source"], 0)
             kernel.set_bank_size(mcdc["bank_future"], 0)
 
-            # DD closeout
-            if mcdc["technique"]["domain_decomposition"]:
-                mcdc["dd_N_local_source"] = 0
-                mcdc["domain_decomp"]["work_done"] = False
-
             if not use_census_based_tally:
                 # Tally history closeout
                 tally_module.reduce(mcdc, data)
                 tally_module.accumulate(mcdc, data)
 
-                # Uq closeout
-                if mcdc["technique"]["uq"]:
-                    kernel.uq_tally_closeout_batch(mcdc, data)
-
     # Tally closeout
     if not use_census_based_tally:
-        if mcdc["technique"]["uq"]:
-            kernel.uq_tally_closeout(mcdc, data)
         tally_module.finalize(mcdc, data)
 
 
@@ -334,10 +319,6 @@ def source_closeout(prog, idx_work, N_prog, data):
         if not mcdc["settings"]["use_census_based_tally"]:
             kernel.tally_accumulate(data, mcdc)
 
-    # Tally history closeout for multi-batch uq simulation
-    if mcdc["technique"]["uq"]:
-        kernel.uq_tally_closeout_history(data_tally, mcdc)
-
     # Progress printout
     percent = (idx_work + 1.0) / mcdc["mpi_work_size"]
     if mcdc["settings"]["use_progress_bar"] and int(percent * 100.0) > N_prog:
@@ -418,9 +399,6 @@ def loop_source(seed, mcdc, data):
         exhaust_active_bank(mcdc, data)
 
         source_closeout(mcdc, idx_work, N_prog, data)
-
-    if mcdc["technique"]["domain_decomposition"]:
-        source_dd_resolution(mcdc, data)
 
 
 def gpu_sources_spec():
@@ -597,16 +575,6 @@ def step_particle(P_arr, prog, data):
     # Time boundary crossing
     if P["event"] & EVENT_TIME_BOUNDARY:
         P["alive"] = False
-
-    # Apply weight window
-    if P["alive"] and mcdc["technique"]["weight_window"]:
-        kernel.weight_window(P_arr, prog)
-
-    # Apply weight roulette
-    if P["alive"] and mcdc["technique"]["weight_roulette"]:
-        # check if weight has fallen below threshold
-        if abs(P["w"]) <= mcdc["technique"]["wr_threshold"]:
-            kernel.weight_roulette(P_arr, mcdc)
 
 
 def build_gpu_progs(input_deck, args):

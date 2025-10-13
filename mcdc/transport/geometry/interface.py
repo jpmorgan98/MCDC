@@ -4,13 +4,12 @@ from numba import njit
 
 ####
 
+import mcdc.code_factory.code_factory as code_factory
 import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
-import mcdc.transport.kernel as kernel
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
-import mcdc.togo.type_ as type_
 
 from mcdc.code_factory.adapt import for_cpu, for_gpu
 from mcdc.constant import *
@@ -368,7 +367,7 @@ def check_cell(particle_container, cell, mcdc, data):
         return True
 
     # Create local value array
-    value = adapt.local_array(type_.rpn_buffer_size(), type_.bool_)
+    value = adapt.local_array(code_factory.rpn_buffer_size(), bool)
     N_value = 0
 
     # Particle parameters

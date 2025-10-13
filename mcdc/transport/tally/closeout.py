@@ -31,24 +31,11 @@ def _reduce(tally, mcdc, data):
     for i in range(N):
         data[start + i] /= N_particle
 
-    # Reduce
-    if not mcdc["technique"]["domain_decomposition"]:
-        # MPI Reduce
-        buff = np.zeros(N)
-        with objmode():
-            MPI.COMM_WORLD.Reduce(data[start:end], buff, MPI.SUM, 0)
-        data[start:end] = buff
-
-    else:
-        # find number of subdomains
-        N_dd = 1
-        N_dd *= mcdc["technique"]["dd_mesh"]["x"].size - 1
-        N_dd *= mcdc["technique"]["dd_mesh"]["y"].size - 1
-        N_dd *= mcdc["technique"]["dd_mesh"]["z"].size - 1
-        # DD Reduce if multiple processors per subdomain
-        if N_dd != mcdc["mpi_size"]:
-            pass
-            # TODO: dd_reduce(data, mcdc)
+    # MPI Reduce
+    buff = np.zeros(N)
+    with objmode():
+        MPI.COMM_WORLD.Reduce(data[start:end], buff, MPI.SUM, 0)
+    data[start:end] = buff
 
 
 # ======================================================================================

@@ -17,7 +17,6 @@ import mcdc.transport.geometry as geometry
 
 import mcdc.code_factory.adapt as adapt
 import mcdc.transport.mesh as mesh_
-import mcdc.togo.type_ as type_
 
 import mcdc.transport.tally as tally_module
 
@@ -294,7 +293,7 @@ def dd_distribute_bank(mcdc, bank, dest_list):
             sub_bank = np.array(bank["particles"][start:end])
             if sub_bank.shape[0] > 0:
                 req = MPI.COMM_WORLD.Isend(
-                    [sub_bank, type_.particle_record_mpi], dest=dest, tag=1
+                    [sub_bank, type_.particle_data_mpi], dest=dest, tag=1
                 )
                 save_request((req, sub_bank))
                 send_delta += end - start
@@ -357,13 +356,13 @@ def dd_recv_particles(mcdc):
 
     buff = np.zeros(
         mcdc["domain_decomp"]["bank_zp"]["particles"].shape[0],
-        dtype=type_.particle_record,
+        dtype=type_.particle_data,
     )
 
     with objmode(size="int64"):
         status = MPI.Status()
-        MPI.COMM_WORLD.Recv([buff, type_.particle_record_mpi], status=status)
-        size = status.Get_count(type_.particle_record_mpi)
+        MPI.COMM_WORLD.Recv([buff, type_.particle_data_mpi], status=status)
+        size = status.Get_count(type_.particle_data_mpi)
         rank = MPI.COMM_WORLD.Get_rank()
 
     mcdc["domain_decomp"]["recv_count"] += size
@@ -649,7 +648,7 @@ def source_particle_dd(seed, mcdc):
     d_y = [domain_mesh["y"][d_iy], domain_mesh["y"][d_iy + 1]]
     d_z = [domain_mesh["z"][d_iz], domain_mesh["z"][d_iz + 1]]
 
-    P_arr = np.zeros(1, dtype=type_.particle_record)
+    P_arr = np.zeros(1, dtype=type_.particle_data)
     P = P_arr[0]
 
     P["rng_seed"] = seed
@@ -1052,7 +1051,7 @@ def check_future_bank(mcdc, data):
     )
 
     # Particle container
-    P_arr = adapt.local_array(1, type_.particle_record)
+    P_arr = adapt.local_array(1, type_.particle_data)
     P = P_arr[0]
 
     # Loop over all particles in future bank
@@ -1090,6 +1089,7 @@ def manage_particle_banks(seed, mcdc):
         normalize_weight(mcdc["bank_census"], mcdc["settings"]["N_particle"])
 
     # Population control
+    '''
     if mcdc["technique"]["population_control"]:
         population_control(seed, mcdc)
     else:
@@ -1100,10 +1100,10 @@ def manage_particle_banks(seed, mcdc):
             :size
         ]
     # TODO: Population control future bank?
+    '''
 
     # MPI rebalance
-    if not mcdc["technique"]["domain_decomposition"]:
-        bank_rebalance(mcdc)
+    bank_rebalance(mcdc)
 
     # Zero out census bank
     set_bank_size(mcdc["bank_census"], 0)
@@ -1233,7 +1233,7 @@ def bank_rebalance(mcdc):
 
     # MPI nearest-neighbor send/receive
     buff = np.zeros(
-        mcdc["bank_source"]["particles"].shape[0], dtype=type_.particle_record
+        mcdc["bank_source"]["particles"].shape[0], dtype=type_.particle_data
     )
 
     with objmode(size="int64"):
@@ -1362,7 +1362,7 @@ def pct_combing(seed, mcdc):
     # Last hiting tooth
     tooth_end = math.floor((idx_end - offset) / td) + 1
 
-    P_rec_arr = adapt.local_array(1, type_.particle_record)
+    P_rec_arr = adapt.local_array(1, type_.particle_data)
     P_rec = P_rec_arr[0]
 
     # Locally sample particles from census bank
@@ -1370,7 +1370,7 @@ def pct_combing(seed, mcdc):
     for i in range(tooth_start, tooth_end):
         tooth = i * td + offset
         idx = math.floor(tooth) - idx_start
-        split_as_record(P_rec_arr, bank_census["particles"][idx : idx + 1])
+        split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
         # Set weight
         P_rec["w"] *= td
         adapt.add_source(P_rec_arr, mcdc)
@@ -1406,7 +1406,7 @@ def pct_combing_weight(seed, mcdc):
     # Last hiting tooth
     tooth_end = math.floor((w_end - offset) / td) + 1
 
-    P_rec_arr = adapt.local_array(1, type_.particle_record)
+    P_rec_arr = adapt.local_array(1, type_.particle_data)
     P_rec = P_rec_arr[0]
 
     # Locally sample particles from census bank
@@ -1415,7 +1415,7 @@ def pct_combing_weight(seed, mcdc):
     for i in range(tooth_start, tooth_end):
         tooth = i * td + offset
         idx += binary_search(tooth, w_cdf[idx:])
-        split_as_record(P_rec_arr, bank_census["particles"][idx : idx + 1])
+        split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
         # Set weight
         P_rec["w"] = td
         adapt.add_source(P_rec_arr, mcdc)
@@ -1444,7 +1444,7 @@ def pct_splitting_roulette(seed, mcdc):
     # Update population control factor
     mcdc["technique"]["pc_factor"] *= ws
 
-    P_rec_arr = adapt.local_array(1, type_.particle_record)
+    P_rec_arr = adapt.local_array(1, type_.particle_data)
     P_rec = P_rec_arr[0]
 
     # Perform split-roulette to all particles in local bank
@@ -1464,7 +1464,7 @@ def pct_splitting_roulette(seed, mcdc):
 
         # Split the particle
         for i in range(N_split):
-            split_as_record(P_rec_arr, bank_census["particles"][idx : idx + 1])
+            split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
             # Set weight
             P_rec["w"] = w_survive
             adapt.add_source(P_rec_arr, mcdc)
@@ -1491,7 +1491,7 @@ def pct_splitting_roulette_weight(seed, mcdc):
     # Update population control factor
     mcdc["technique"]["pc_factor"] *= w_survive  # This may be incorrect
 
-    P_rec_arr = adapt.local_array(1, type_.particle_record)
+    P_rec_arr = adapt.local_array(1, type_.particle_data)
     P_rec = P_rec_arr[0]
 
     # Perform split-roulette to all particles in local bank
@@ -1511,7 +1511,7 @@ def pct_splitting_roulette_weight(seed, mcdc):
 
         # Split the particle
         for i in range(N_split):
-            split_as_record(P_rec_arr, bank_census["particles"][idx : idx + 1])
+            split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
             # Set weight
             P_rec["w"] = w_survive
             adapt.add_source(P_rec_arr, mcdc)
@@ -1588,7 +1588,7 @@ def recordlike_to_particle(P_new_arr, P_rec_arr):
 
 
 @njit
-def split_as_record(P_new_rec_arr, P_rec_arr):
+def split_as_data(P_new_rec_arr, P_rec_arr):
     P_rec = P_rec_arr[0]
     P_new_rec = P_new_rec_arr[0]
     copy_recordlike(P_new_rec_arr, P_rec_arr)
@@ -2120,7 +2120,7 @@ def weight_window(P_arr, prog):
     # Window width
     width = mcdc["technique"]["ww"]["width"]
 
-    P_new_arr = adapt.local_array(1, type_.particle_record)
+    P_new_arr = adapt.local_array(1, type_.particle_data)
 
     # If above target
     if p > width:
@@ -2130,14 +2130,14 @@ def weight_window(P_arr, prog):
         # Splitting (keep the original particle)
         n_split = math.floor(p)
         for i in range(n_split - 1):
-            split_as_record(P_new_arr, P_arr)
+            split_as_data(P_new_arr, P_arr)
             adapt.add_active(P_new_arr, prog)
 
         # Russian roulette
         p -= n_split
         xi = rng(P_arr)
         if xi <= p:
-            split_as_record(P_new_arr, P_arr)
+            split_as_data(P_new_arr, P_arr)
             adapt.add_active(P_new_arr, prog)
 
     # Below target

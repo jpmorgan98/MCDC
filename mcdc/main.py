@@ -1,57 +1,6 @@
-from mcdc.code_factory.code_factory import plural_to_singular, singular_to_plural
+import math
+
 from mpi4py import MPI
-
-####
-
-import mcdc.code_factory as code_factory
-import mcdc.config as config
-import mcdc.transport.physics as physics
-import mcdc.mcdc_get as mcdc_get
-
-from mcdc.object_.material import MaterialMG
-from mcdc.object_.simulation import simulation
-from mcdc.print_ import (
-    print_banner,
-    print_configuration,
-    print_eigenvalue_header,
-    print_error,
-    print_msg,
-    print_runtime,
-    print_structure,
-)
-from mcdc.transport.simulation import (
-    fixed_source_simulation,
-    eigenvalue_simulation,
-    build_gpu_progs,
-    teardown_gpu,
-    setup_gpu,
-)
-
-########################################################################################
-
-import importlib.metadata
-import matplotlib.pyplot as plt
-import numba as nb
-from matplotlib import colors as mpl_colors
-import scipy.fft as spfft
-from scipy.stats.qmc import Halton
-import cvxpy as cp
-
-import h5py
-import numpy as np
-
-
-import mcdc.transport.kernel as kernel
-import mcdc.togo.type_ as type_
-
-import mcdc.code_factory.adapt as adapt
-from mcdc.constant import *
-import mcdc.transport.geometry as geometry
-
-# Get input_deck
-import mcdc.togo.global_ as mcdc_
-
-input_deck = mcdc_.input_deck
 
 
 # ======================================================================================
@@ -60,16 +9,17 @@ input_deck = mcdc_.input_deck
 
 
 def run():
+    import mcdc.print_ as print_module
+
     # Timer: total
     time_total_start = MPI.Wtime()
 
+    from mcdc.object_.simulation import simulation
     settings = simulation.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
 
-    # ==================================================================================
     # Override settings with command-line arguments
-    # ==================================================================================
-
+    import mcdc.config as config
     if config.args.N_particle is not None:
         settings.N_particle = config.args.N_particle
     if config.args.output is not None:
@@ -84,16 +34,16 @@ def run():
     # Timer: preparation
     time_prep_start = MPI.Wtime()
 
-    mcdc_arr, data = prepare()
+    mcdc_arr, data = preparation()
     mcdc = mcdc_arr[0]
 
     # Print headers
     if master:
-        print_banner()
-        print_configuration()
+        print_module.print_banner()
+        print_module.print_configuration()
         print(" Now running TNT...")
         if settings.eigenvalue_mode:
-            print_eigenvalue_header(mcdc)
+            print_module.print_eigenvalue_header(mcdc)
 
     # Timer: preparation
     time_prep_end = MPI.Wtime()
@@ -106,10 +56,11 @@ def run():
     time_simulation_start = MPI.Wtime()
 
     # Run simulation
+    import mcdc.transport.simulation as simulation_module
     if settings.eigenvalue_mode:
-        eigenvalue_simulation(mcdc_arr, data)
+        simulation_module.eigenvalue_simulation(mcdc_arr, data)
     else:
-        fixed_source_simulation(mcdc_arr, data)
+        simulation_module.fixed_source_simulation(mcdc_arr, data)
 
     # Timer: simulation
     time_simulation_end = MPI.Wtime()
@@ -120,13 +71,6 @@ def run():
 
     # Timer: output
     time_output_start = MPI.Wtime()
-
-    # Compressed sensing reconstruction
-    '''
-    N_cs_bins = mcdc["cs_tallies"]["filter"]["N_cs_bins"][0]
-    if N_cs_bins != 0:
-        cs_reconstruct(mcdc)
-    '''
 
     # Generate hdf5 output files
     generate_hdf5(mcdc, data)
@@ -151,23 +95,25 @@ def run():
     mcdc["runtime_output"] = time_output_end - time_output_start
     if master:
         save_runtime(mcdc)
-        print_runtime(mcdc)
+        print_module.print_runtime(mcdc)
 
     # GPU closeout
+    from mcdc.transport.simulation import teardown_gpu
     teardown_gpu(mcdc)
 
-    input_deck.reset()
-
 
 # ======================================================================================
-# Prepare
+# Preparation
 # ======================================================================================
 
 
-def prepare():
-    # =========================================================================
+def preparation():
+    from mcdc.object_.simulation import simulation
+    from mcdc.object_.material import MaterialMG
+
+    # ==================================================================================
     # Simulation settings
-    # =========================================================================
+    # ==================================================================================
 
     # Get settings
     settings = simulation.settings
@@ -188,9 +134,9 @@ def prepare():
         [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
     )
     
-    # =========================================================================
+    # ==================================================================================
     # Simulation parameters
-    # =========================================================================
+    # ==================================================================================
 
     # Create root universe if not defined
     if len(simulation.universes[0].cells) == 0:
@@ -235,20 +181,26 @@ def prepare():
     # ==================================================================================
     # Generate Numba-supported "Objects"
     # ==================================================================================
-    
+   
+    import mcdc.code_factory.code_factory as code_factory
     mcdc_arr, data = code_factory.generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
     
     # Reload mcdc_get
+    import importlib
+    import mcdc.mcdc_get as mcdc_get
     importlib.reload(mcdc_get)
 
-    # =========================================================================
+    # ==================================================================================
     # Platform Targeting, Adapters, Toggles, etc
-    # =========================================================================
+    # ==================================================================================
 
     # Adapt kernels
+    import numba as nb
+    import mcdc.config as config
+    import mcdc.transport.kernel as kernel
     kernel.adapt_rng(nb.config.DISABLE_JIT)
-    type_.make_size_rpn(simulation.cells)
+    code_factory.make_size_rpn(simulation.cells)
     settings.target_gpu = True if config.target == "gpu" else False
 
     if config.target == "gpu":
@@ -262,18 +214,17 @@ def prepare():
             )
         adapt.gpu_forward_declare(config.args)
 
-    # adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
-    adapt.set_toggle("domain_decomp", input_deck.technique["domain_decomposition"])
-    adapt.eval_toggle()
-    adapt.target_for(config.target)
+    from mcdc.code_factory.adapt import eval_toggle, target_for, nopython_mode
+    eval_toggle()
+    target_for(config.target)
     if config.target == "gpu":
         build_gpu_progs(input_deck, config.args)
-    adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
+    nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
 
-    # =========================================================================
+    # ==================================================================================
     # Source file
     #   TODO: Use parallel h5py
-    # =========================================================================
+    # ==================================================================================
 
     # All ranks, take turn
     for i in range(mcdc["mpi_size"]):
@@ -296,13 +247,15 @@ def prepare():
                     mcdc["bank_source"]["size"] = N_local
         MPI.COMM_WORLD.Barrier()
 
-    # =========================================================================
+    # ==================================================================================
     # Finalize data: wrapping into a tuple
-    # =========================================================================
+    # ==================================================================================
 
+    from mcdc.transport.simulation import setup_gpu
     setup_gpu(mcdc)
 
     # Pick physics model
+    import mcdc.transport.physics as physics
     if settings.multigroup_mode:
         physics.neutron.particle_speed = physics.neutron.multigroup.particle_speed
         physics.neutron.macro_xs = physics.neutron.multigroup.macro_xs
@@ -316,159 +269,9 @@ def prepare():
     return mcdc_arr, data
 
 
-def calculate_cs_A(data, mcdc):
-    x_grid = mcdc["mesh_tallies"]["filter"]["x"][0]
-    y_grid = mcdc["mesh_tallies"]["filter"]["y"][0]
-    Nx = len(x_grid) - 1
-    Ny = len(y_grid) - 1
-
-    N_cs_bins = mcdc["cs_tallies"]["filter"]["N_cs_bins"][0]
-    cs_bin_size = mcdc["cs_tallies"]["filter"]["cs_bin_size"][0]
-
-    S = [[] for _ in range(N_cs_bins)]
-
-    [x_centers, y_centers] = mcdc["cs_tallies"]["filter"]["cs_centers"][0]
-    x_centers[-1] = (x_grid[-1] + x_grid[0]) / 2
-    y_centers[-1] = (y_grid[-1] + y_grid[0]) / 2
-
-    # Calculate the overlap grid for each bin, and flatten into a row of S
-    for ibin in range(N_cs_bins):
-        if ibin == N_cs_bins - 1:
-            # could just change to -INF, INF
-            cs_bin_size = np.array([x_grid[-1] + x_grid[0], y_grid[-1] + y_grid[0]])
-
-        bin_x_min = x_centers[ibin] - cs_bin_size[0] / 2
-        bin_x_max = x_centers[ibin] + cs_bin_size[0] / 2
-        bin_y_min = y_centers[ibin] - cs_bin_size[1] / 2
-        bin_y_max = y_centers[ibin] + cs_bin_size[1] / 2
-
-        overlap = np.zeros((len(y_grid) - 1, len(x_grid) - 1))
-
-        for i in range(len(y_grid) - 1):
-            for j in range(len(x_grid) - 1):
-                cell_x_min = x_grid[j]
-                cell_x_max = x_grid[j + 1]
-                cell_y_min = y_grid[i]
-                cell_y_max = y_grid[i + 1]
-
-                # Calculate overlap in x and y directions
-                overlap_x = np.maximum(
-                    0,
-                    np.minimum(bin_x_max, cell_x_max)
-                    - np.maximum(bin_x_min, cell_x_min),
-                )
-                overlap_y = np.maximum(
-                    0,
-                    np.minimum(bin_y_max, cell_y_max)
-                    - np.maximum(bin_y_min, cell_y_min),
-                )
-
-                # Calculate fractional overlap
-                cell_area = (cell_x_max - cell_x_min) * (cell_y_max - cell_y_min)
-                overlap[i, j] = (overlap_x * overlap_y) / cell_area
-
-        S[ibin] = overlap.flatten()
-    S = np.array(S)
-    mcdc["cs_tallies"]["filter"]["cs_S"] = S
-
-    assert np.allclose(S[-1], np.ones(Nx * Ny)), "Last row of S must be all ones"
-    assert S.shape[1] == Nx * Ny, "Size of S must match Nx * Ny."
-    assert (
-        S.shape[1] == mcdc["cs_tallies"]["N_bin"][0]
-    ), "Size of S must match number of cells in desired mesh tally"
-
-    # TODO: can this be done in a different way? idk
-    # Construct the DCT matrix T
-    idct_basis_x = spfft.idct(np.identity(Nx), axis=0)
-    idct_basis_y = spfft.idct(np.identity(Ny), axis=0)
-
-    T_inv = np.kron(idct_basis_y, idct_basis_x)
-    A = S @ T_inv
-    return A, T_inv
-
-
-def calculate_cs_sparse_solution(data, mcdc, A, b):
-    N_fine_cells = mcdc["cs_tallies"]["N_bin"][0]
-
-    # setting up the problem with CVXPY
-    vx = cp.Variable(N_fine_cells)
-
-    # Basis pursuit denoising
-    l = 0.5
-    objective = cp.Minimize(0.5 * cp.norm(A @ vx - b, 2) + l * cp.norm(vx, 1))
-    prob = cp.Problem(objective)
-    result = prob.solve(verbose=False)
-
-    # # Basis pursuit
-    # objective = cp.Minimize(cp.norm(vx, 1))
-    # constraints = [A @ vx == b]
-    # prob = cp.Problem(objective, constraints)
-    # result = prob.solve(verbose=True)
-    # print(f'vx.value = {vx.value}')
-
-    # formatting the sparse solution
-    sparse_solution = np.array(vx.value).squeeze()
-
-    return sparse_solution
-
-
-def cs_reconstruct(data, mcdc):
-    tally_bin = data
-    tally = mcdc["cs_tallies"][0]
-    stride = tally["stride"]
-    bin_idx = stride["tally"]
-    N_cs_bins = tally["filter"]["N_cs_bins"]
-    Nx = len(mcdc["mesh_tallies"]["filter"]["x"][0]) - 1
-    Ny = len(mcdc["mesh_tallies"]["filter"]["y"][0]) - 1
-
-    b = tally_bin[TALLY_SUM, bin_idx : bin_idx + N_cs_bins]
-
-    A, T_inv = calculate_cs_A(data, mcdc)
-    x = calculate_cs_sparse_solution(data, mcdc, A, b)
-
-    recon = T_inv @ x
-    recon_reshaped = recon.reshape(Ny, Nx)
-
-    tally["filter"]["cs_reconstruction"] = recon_reshaped
-
-
-# =============================================================================
+# ======================================================================================
 # utilities for handling discrepancies between input and program types
-# =============================================================================
-
-
-def copy_field(dst, src, name):
-    if "padding" in name:
-        return
-
-    if isinstance(src, dict):
-        data = src[name]
-    else:
-        data = getattr(src, name)
-
-    if isinstance(dst[name], np.ndarray):
-        if isinstance(data, np.ndarray) and dst[name].shape != data.shape:
-            for dim in data.shape:
-                if dim == 0:
-                    return
-            print(
-                f"Warning: Dimension mismatch between input deck and global state for field '{name}'."
-            )
-            print(
-                f"State dimension {dst[name].shape} does not match input dimension {src[name].shape}"
-            )
-        elif isinstance(data, list) and dst[name].shape[0] != len(data):
-            if len(src[name]) == 0:
-                return
-            print(
-                f"Warning: Dimension mismatch between input deck and global state for field '{name}'."
-            )
-            print(
-                f"State dimension {dst[name].shape} does not match input dimension {len(src[name])}"
-            )
-
-    dst[name] = data
-
+# ======================================================================================
 
 def cardlist_to_h5group(dictlist, input_group, name):
     if name[-1] != "s":
@@ -719,15 +522,23 @@ def dd_mergemesh(mcdc, data_tally):
 
 
 def generate_hdf5(mcdc, data):
+    import h5py
+    import importlib.metadata
+    import numpy as np
 
-    if mcdc["technique"]["domain_decomposition"]:
-        dd_tally = dd_mergetally(mcdc, data_tally)
-        dd_mesh = dd_mergemesh(mcdc, data_tally)
+    import mcdc.mcdc_get as mcdc_get
+    import mcdc.print_ as print_module
+
+    from mcdc.constant import (
+        MESH_STRUCTURED,
+        MESH_UNIFORM,
+        SCORE_FLUX,
+    )
 
     if mcdc["mpi_master"]:
         if mcdc["settings"]["use_progress_bar"]:
-            print_msg("")
-        print_msg(" Generating output HDF5 files...")
+            print_module.print_msg("")
+        print_module.print_msg(" Generating output HDF5 files...")
 
         with h5py.File(mcdc["settings"]["output_name"] + ".h5", "w") as f:
             # Version
@@ -743,7 +554,7 @@ def generate_hdf5(mcdc, data):
                 # cardlist_to_h5group(input_deck.cells, input_group, "cell")
                 # cardlist_to_h5group(input_deck.universes, input_group, "universe")
                 # cardlist_to_h5group(input_deck.lattices, input_group, "lattice")
-                cardlist_to_h5group(input_deck.sources, input_group, "source")
+                # cardlist_to_h5group(input_deck.sources, input_group, "source")
                 #cardlist_to_h5group(
                 #    input_deck.mesh_tallies, input_group, "mesh_tallies"
                 #)
@@ -757,9 +568,9 @@ def generate_hdf5(mcdc, data):
                 #card_to_h5group(
                 #    simulation.settings, input_group.create_group("setting")
                 #)
-                dict_to_h5group(
-                    input_deck.technique, input_group.create_group("technique")
-                )
+                #dict_to_h5group(
+                #    input_deck.technique, input_group.create_group("technique")
+                #)
 
             # No need to output tally if time census-based tally is used
             if mcdc["settings"]["use_census_based_tally"]:
@@ -807,11 +618,6 @@ def generate_hdf5(mcdc, data):
 
                     f.create_dataset(group_name + "mean", data=score_mean)
                     f.create_dataset(group_name + "sdev", data=score_sdev)
-                    if mcdc["technique"]["uq"]:
-                        mc_var = score_tally_bin[TALLY_UQ_BATCH_VAR]
-                        tot_var = score_tally_bin[TALLY_UQ_BATCH]
-                        uq_var = tot_var - mc_var
-                        f.create_dataset(group_name + "uq_var", data=uq_var)
 
             # Mesh tallies
             for tally in mcdc['mesh_tallies']:
@@ -869,11 +675,6 @@ def generate_hdf5(mcdc, data):
 
                     f.create_dataset(group_name + "mean", data=score_mean)
                     f.create_dataset(group_name + "sdev", data=score_sdev)
-                    if mcdc["technique"]["uq"]:
-                        mc_var = score_tally_bin[TALLY_UQ_BATCH_VAR]
-                        tot_var = score_tally_bin[TALLY_UQ_BATCH]
-                        uq_var = tot_var - mc_var
-                        f.create_dataset(group_name + "uq_var", data=uq_var)
 
             # Eigenvalues
             if mcdc["settings"]["eigenvalue_mode"]:
@@ -899,44 +700,6 @@ def generate_hdf5(mcdc, data):
                         f.create_dataset(
                             "gyration_radius", data=mcdc["gyration_radius"][:N_cycle]
                         )
-
-            # iQMC
-            if mcdc["technique"]["iQMC"]:
-                # iQMC mesh
-                T = mcdc["technique"]
-                f.create_dataset("iqmc/grid/t", data=T["iqmc"]["mesh"]["t"])
-                f.create_dataset("iqmc/grid/x", data=T["iqmc"]["mesh"]["x"])
-                f.create_dataset("iqmc/grid/y", data=T["iqmc"]["mesh"]["y"])
-                f.create_dataset("iqmc/grid/z", data=T["iqmc"]["mesh"]["z"])
-                # Scores
-                for name in [
-                    "flux",
-                    "source-x",
-                    "source-y",
-                    "source-z",
-                    "fission-power",
-                ]:
-                    if T["iqmc"]["score_list"][name]:
-                        name_h5 = name.replace("-", "_")
-                        f.create_dataset(
-                            f"iqmc/tally/{name_h5}/mean",
-                            data=np.squeeze(T["iqmc"]["score"][name]["mean"]),
-                        )
-                        f.create_dataset(
-                            f"iqmc/tally/{name_h5}/sdev",
-                            data=np.squeeze(T["iqmc"]["score"][name]["sdev"]),
-                        )
-                # iQMC source strength
-                f.create_dataset(
-                    "iqmc/tally/source_constant/mean",
-                    data=np.squeeze(T["iqmc"]["source"]),
-                )
-                # Iteration data
-                f.create_dataset(
-                    "iqmc/iteration_count", data=T["iqmc"]["iteration_count"]
-                )
-                f.create_dataset("iqmc/sweep_count", data=T["iqmc"]["sweep_count"])
-                f.create_dataset("iqmc/final_residual", data=T["iqmc"]["residual"])
 
     # Save particle?
     if mcdc["settings"]["save_particle"]:
@@ -1097,6 +860,11 @@ def recombine_tallies(file="output.h5"):
 
 
 def save_runtime(mcdc):
+    import h5py
+    import numpy as np
+
+    import mcdc.config as config
+
     if mcdc["mpi_master"]:
         with h5py.File(mcdc["settings"]["output_name"] + ".h5", "a") as f:
             for name in [
@@ -1134,7 +902,7 @@ def visualize(
     z=0.0,
     pixels=(100, 100),
     colors=None,
-    time=np.array([0.0]),
+    time=[0.0],
     save_as=None,
 ):
     """
@@ -1157,8 +925,15 @@ def visualize(
     colors : array_like
         List of pairs of material and its color
     """
-    # TODO: add input error checkers
+    # Imports
+    import matplotlib.pyplot as plt
+    from matplotlib import colors as mpl_colors
+    ####
+    import mcdc.transport.kernel as kernel
+    import mcdc.transport.geometry as geometry
 
+    # TODO: add input error checkers
+    
     _, mcdc_container = prepare()
     mcdc = mcdc_container[0]
 

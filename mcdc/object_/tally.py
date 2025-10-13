@@ -39,6 +39,9 @@ from mcdc.print_ import print_1d_array
 
 
 class TallyBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    label: str = 'tally'
+    #
     name: str
     scores: list[int]
     mu: NDArray[float64]
