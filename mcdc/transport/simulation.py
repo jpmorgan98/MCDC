@@ -541,7 +541,6 @@ def loop_particle(P_arr, prog, data):
         print('start', P['x'], P['ux'], P['t'])
         step_particle(P_arr, prog, data)
         print('end', P['x'], P['ux'], P['t'])
-        input()
 
 
 @njit
