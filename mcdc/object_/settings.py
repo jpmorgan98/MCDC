@@ -85,7 +85,7 @@ class Settings(ObjectSingleton):
 
         # Set the census-based tallying
         if tally_frequency is not None and tally_frequency > 0:
-            # Reset all tallies' time grids:
+            # Flag to reset all tallies' time grids (done in main.py)
             self.use_census_based_tally = True
             self.census_tally_frequency = tally_frequency
 

@@ -28,22 +28,30 @@ mcdc.Cell(region=+s1 & -s2, fill=m)
 # =============================================================================
 # Isotropic pulse at x=t=0
 
-mcdc.source(point=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
-
-# =============================================================================
-# Set settings, tally, and run mcdc
-# =============================================================================
-
-settings = mcdc.Settings(N_particle=50, N_batch=2)
-settings.census_bank_buffer_ratio = 5.0
-settings.source_bank_buffer_ratio = 5.0
-settings.set_time_census(np.linspace(0.0, 20.0, 21)[1:-1])
-mcdc.population_control()
-
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    x=np.linspace(-20.5, 20.5, 202),
-    t=np.linspace(0.0, 20.0, 21),
+mcdc.Source(
+    position=[0.0, 0.0, 0.0],
+    isotropic=True,
+    #energy_group=0,
+    #time=0.0,
+    energy_group=np.array([[0],[1.0]]),
+    time=[1E-10,1E-10]
 )
 
+# =============================================================================
+# Set tallies, settings, and run MC/DC
+# =============================================================================
+
+# Tallies
+mesh = mcdc.MeshStructured(x=np.linspace(-20.5, 20.5, 202))
+mcdc.TallyMesh(mesh=mesh, scores=["flux"], time=np.linspace(0.0, 20.0, 21))
+
+# Settings
+mcdc.settings.N_particle = 50
+mcdc.settings.N_batch = 2
+mcdc.settings.census_bank_buffer_ratio = 5.0
+mcdc.settings.source_bank_buffer_ratio = 5.0
+mcdc.settings.set_time_census(np.linspace(0.0, 20.0, 21)[1:-1])
+#mcdc.population_control()
+
+# Run
 mcdc.run()
