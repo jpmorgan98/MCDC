@@ -40,10 +40,8 @@ mcdc.Source(
     x=[0.0, 1.0],
     y=[0.0, 1.0],
     isotropic=True,
-    #energy_group=0,
-    #time=0.0,
-    energy_group=np.array([[0],[1.0]]),
-    time=[0.0, 0.0],
+    energy_group=0,
+    time=0.0,
 )
 
 # =============================================================================
@@ -51,8 +49,7 @@ mcdc.Source(
 # =============================================================================
 
 # Tallies
-#mesh = mcdc.MeshUniform(x=(0.0, 0.1, 39), y=(0.0, 0.1, 39))
-mesh = mcdc.MeshStructured(x=np.linspace(0.0, 40.0, 40), y=np.linspace(0.0, 40.0, 40))
+mesh = mcdc.MeshUniform(x=(0.0, 0.1, 40), y=(0.0, 0.1, 40))
 mcdc.TallyMesh(mesh=mesh, scores=["flux"])
 
 # Settings
