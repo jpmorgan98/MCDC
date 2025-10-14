@@ -56,6 +56,11 @@ source = mcdc.source(energy=energy)
 settings = mcdc.Settings(N_particle=1e2, active_bank_buffer=1000, N_batch=2)
 settings.set_time_census(np.linspace(0.0, 20.0, 21)[1:-1])
 
-mcdc.TallyCell(cells=[c], scores=["flux"], energy="all_groups", time=np.linspace(0.0, 20.0, 21)[1:-1])
+mcdc.TallyCell(
+    cells=[c],
+    scores=["flux"],
+    energy="all_groups",
+    time=np.linspace(0.0, 20.0, 21)[1:-1],
+)
 
 mcdc.run()

@@ -39,7 +39,7 @@ mcdc.source(z=[0.0, 6.0], isotropic=True)
 settings = mcdc.Settings(N_particle=100, N_batch=2)
 
 print(s4)
-t1 = mcdc.TallySurface(name='My tally yo!', surfaces=[s4], scores=['flux'])
+t1 = mcdc.TallySurface(name="My tally yo!", surfaces=[s4], scores=["flux"])
 print(t1)
 print(s4)
 exit()

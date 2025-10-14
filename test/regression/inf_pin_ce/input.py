@@ -15,8 +15,8 @@ os.environ["MCDC_XSLIB"] = os.path.dirname(os.getcwd()) + "/dummy_data"
 
 fuel = mcdc.Material(
     nuclide_composition={
-        "dummy_nuclide_4": 0.0005581658948833916 * 7E-2,
-        "dummy_nuclide_5": 0.022404594715383263 * 7E-2,
+        "dummy_nuclide_4": 0.0005581658948833916 * 7e-2,
+        "dummy_nuclide_5": 0.022404594715383263 * 7e-2,
         "dummy_nuclide_3": 0.045831301393656466,
     }
 )

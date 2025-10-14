@@ -44,7 +44,10 @@ mcdc.source(x=[0.0, 2.5], isotropic=True)
 # =========================================================================
 
 settings = mcdc.Settings(
-    N_particle=100, use_progress_bar=False, census_bank_buffer_ratio=2.0, source_bank_buffer_ratio=2.0
+    N_particle=100,
+    use_progress_bar=False,
+    census_bank_buffer_ratio=2.0,
+    source_bank_buffer_ratio=2.0,
 )
 settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="only-x")
 

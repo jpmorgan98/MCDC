@@ -11,7 +11,9 @@ import mcdc
 # Set materials
 SigmaT = 5.0
 c = 0.8
-m_barrier = mcdc.MaterialMG(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
+m_barrier = mcdc.MaterialMG(
+    capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]])
+)
 SigmaT = 1.0
 m_room = mcdc.MaterialMG(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
 

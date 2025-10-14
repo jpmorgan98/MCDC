@@ -31,10 +31,10 @@ mcdc.Cell(region=+s1 & -s2, fill=m)
 mcdc.Source(
     position=[0.0, 0.0, 0.0],
     isotropic=True,
-    #energy_group=0,
-    #time=0.0,
-    energy_group=np.array([[0],[1.0]]),
-    time=[1E-10,1E-10]
+    # energy_group=0,
+    # time=0.0,
+    energy_group=np.array([[0], [1.0]]),
+    time=[1e-10, 1e-10],
 )
 
 # =============================================================================
@@ -51,7 +51,7 @@ mcdc.settings.N_batch = 2
 mcdc.settings.census_bank_buffer_ratio = 5.0
 mcdc.settings.source_bank_buffer_ratio = 5.0
 mcdc.settings.set_time_census(np.linspace(0.0, 20.0, 21)[1:-1])
-#mcdc.population_control()
+# mcdc.population_control()
 
 # Run
 mcdc.run()

@@ -159,8 +159,8 @@ x1_ = mcdc.Surface.PlaneX(x=pitch * 17 * 3, boundary_condition="vacuum")
 y0_ = mcdc.Surface.PlaneY(y=-pitch * 17 * 3, boundary_condition="vacuum")
 y1_ = mcdc.Surface.PlaneY(y=0.0, boundary_condition="reflective")
 # Cell
-core = mcdc.Cell(region=
-    +x0_ & -x1_ & +y0_ & -y1_,
+core = mcdc.Cell(
+    region=+x0_ & -x1_ & +y0_ & -y1_,
     fill=lattice_core,
     translation=[pitch * 17 * 3 / 2, -pitch * 17 * 3 / 2, 0.0],
 )
@@ -182,9 +182,7 @@ source = mcdc.source(
 # =============================================================================
 
 settings = mcdc.Settings(
-    N_particle=int(2e1),
-    census_bank_buffer_ratio=3.0,
-    source_bank_buffer_ratio=2.0
+    N_particle=int(2e1), census_bank_buffer_ratio=3.0, source_bank_buffer_ratio=2.0
 )
 settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="infinite-z")
 mcdc.population_control()

@@ -46,8 +46,9 @@ max_z = mcdc.Surface.PlaneZ(z=10.0, boundary_condition="vacuum")
 # Make cells
 fuel_pellet_region = +bot_z & -top_z & -cylinder_z
 mcdc.Cell(region=fuel_pellet_region, fill=fuel)
-mcdc.Cell(region=
-    ~fuel_pellet_region & +min_x & -max_x & +min_y & -max_y & +min_z & -max_z, fill=air
+mcdc.Cell(
+    region=~fuel_pellet_region & +min_x & -max_x & +min_y & -max_y & +min_z & -max_z,
+    fill=air,
 )
 
 # =============================================================================
