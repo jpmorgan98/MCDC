@@ -540,7 +540,9 @@ def loop_particle(P_arr, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     while P["alive"]:
+        print('start', P['x'], P['ux'], P['t'], P['w'])
         step_particle(P_arr, prog, data)
+        print('end', P['x'], P['ux'], P['t'], P['w'])
 
 
 @njit
