@@ -1,3 +1,4 @@
+from typing import Iterable
 import numpy as np
 
 from numpy import float64
@@ -116,17 +117,17 @@ class MeshStructured(MeshBase):
     def __init__(
         self,
         name: str = "",
-        x: NDArray[float64] = np.array([-INF, INF]),
-        y: NDArray[float64] = np.array([-INF, INF]),
-        z: NDArray[float64] = np.array([-INF, INF]),
+        x: Iterable[float] = [-INF, INF],
+        y: Iterable[float] = [-INF, INF],
+        z: Iterable[float] = [-INF, INF],
     ):
         type_ = MESH_STRUCTURED
         super().__init__(type_, name)
 
         # Set the grid
-        self.x = x
-        self.y = y
-        self.z = z
+        self.x = np.array(x)
+        self.y = np.array(y)
+        self.z = np.array(z)
 
         self.Nx = len(self.x) - 1
         self.Ny = len(self.y) - 1

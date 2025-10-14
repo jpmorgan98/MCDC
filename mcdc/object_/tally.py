@@ -10,7 +10,7 @@ import numpy as np
 
 from numpy import float64
 from numpy.typing import NDArray
-from typing import Annotated
+from typing import Annotated, Iterable
 from types import NoneType
 
 ####
@@ -19,8 +19,6 @@ import mcdc.object_.mesh as mesh_module
 
 from mcdc.constant import (
     INF,
-    MESH_STRUCTURED,
-    MESH_UNIFORM,
     PI,
     SCORE_FLUX,
     TALLY_CELL,
@@ -87,22 +85,23 @@ class TallyBase(ObjectPolymorphic):
         self.filter_energy = False
         self.filter_time = False
         if mu is not None:
-            self.mu = mu
+            self.mu = np.array(mu)
             self.filter_direction = True
         if azi is not None:
-            self.azi = azi
+            self.azi = np.array(azi)
             self.filter_direction = True
         if polar_reference is not None:
+            polar_reference = np.array(polar_reference)
             self.polar_reference /= polar_reference / np.linalg.norm(polar_reference)
         if energy is not None:
             if energy == "all_groups":
                 G = simulation.materials[0].G
                 self.energy = np.linspace(0, G, G + 1) - 0.5
             else:
-                self.energy = energy
+                self.energy = np.array(energy)
             self.filter_energy = True
         if time is not None:
-            self.time = time
+            self.time = np.array(time)
             self.filter_time = True
 
         # Tally bins (will be allocated by the subclass)
@@ -172,11 +171,11 @@ class TallyCell(TallyBase):
         name: str = "",
         cell: Cell = None,
         scores: list[str] = ['flux'],
-        mu: NDArray[float64] | NoneType = None,
-        azi: NDArray[float64] | NoneType = None,
-        polar_reference: NDArray[float64] | NoneType = None,
-        energy: NDArray[float64] | str | NoneType = None,
-        time: NDArray[float64] | NoneType = None,
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_CELL
         super().__init__(
@@ -240,11 +239,11 @@ class TallySurface(TallyBase):
         name: str = "",
         surface: Surface = None,
         scores: list[str] = ['flux'],
-        mu: NDArray[float64] | NoneType = None,
-        azi: NDArray[float64] | NoneType = None,
-        polar_reference: NDArray[float64] | NoneType = None,
-        energy: NDArray[float64] | str | NoneType = None,
-        time: NDArray[float64] | NoneType = None,
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
         super().__init__(
@@ -311,11 +310,11 @@ class TallyMesh(TallyBase):
         name: str = "",
         mesh: MeshBase = None,
         scores: list[str] = ['flux'],
-        mu: NDArray[float64] | NoneType = None,
-        azi: NDArray[float64] | NoneType = None,
-        polar_reference: NDArray[float64] | NoneType = None,
-        energy: NDArray[float64] | str | NoneType = None,
-        time: NDArray[float64] | NoneType = None,
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_MESH
         super().__init__(

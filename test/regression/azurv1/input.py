@@ -28,18 +28,24 @@ mcdc.Cell(region=+s1 & -s2, fill=m)
 # =============================================================================
 # Isotropic pulse at x=t=0
 
-mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
+mcdc.Source(
+    position=[0.0, 0.0, 0.0],
+    isotropic=True,
+    energy_group=0,
+    time=0.0,
+)
 
 # =============================================================================
-# Set settings, tally, and run mcdc
+# Set tallies, settings, and run MC/DC
 # =============================================================================
 
 # Meshes
 mesh = mcdc.MeshStructured(x=np.linspace(-20.5, 20.5, 202))
-t=mcdc.TallyMesh(mesh=mesh, scores=['flux'], time=np.linspace(0.0, 20.0, 21))
+t = mcdc.TallyMesh(mesh=mesh, scores=["flux"], time=np.linspace(0.0, 20.0, 21))
 
 # Settings
-mcdc.settings.N_particle=100
-mcdc.settings.N_batch=2
+mcdc.settings.N_particle = 100
+mcdc.settings.N_batch = 2
 
+# Run
 mcdc.run()
