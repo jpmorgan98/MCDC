@@ -5,7 +5,7 @@ from numba import njit
 ####
 
 import mcdc.mcdc_get as mcdc_get
-import mcdc.transport.kernel as kernel
+import mcdc.transport.rng as rng
 
 from mcdc.constant import DISTRIBUTION_MAXWELLIAN, DISTRIBUTION_MULTIPDF, PI
 from mcdc.transport.data import evaluate_table
@@ -14,14 +14,14 @@ from mcdc.transport.util import find_bin
 
 @njit
 def sample_uniform(low, high, rng_state):
-    return low + kernel.rng(rng_state) * (high - low)
+    return low + rng.lcg(rng_state) * (high - low)
 
 
 @njit
 def sample_isotropic_direction(rng_state):
     # Sample polar cosine and azimuthal angle uniformly
-    mu = 2.0 * kernel.rng(rng_state) - 1.0
-    azi = 2.0 * PI * kernel.rng(rng_state)
+    mu = 2.0 * rng.lcg(rng_state) - 1.0
+    azi = 2.0 * PI * rng.lcg(rng_state)
 
     # Convert to Cartesian coordinates
     c = (1.0 - mu**2) ** 0.5
@@ -45,7 +45,7 @@ def sample_distribution(x, distribution_type, index, rng_state, mcdc, data, scal
 
 @njit
 def sample_pmf(pmf, rng_state, data):
-    xi = kernel.rng(rng_state)
+    xi = rng.lcg(rng_state)
     idx = find_bin(xi, mcdc_get.pmf_distribution.cmf_all(pmf, data))
     return mcdc_get.pmf_distribution.value(idx, pmf, data)
 
@@ -53,10 +53,10 @@ def sample_pmf(pmf, rng_state, data):
 @njit
 def sample_white_direction(nx, ny, nz, rng_state):
     # Sample polar cosine
-    mu = math.sqrt(kernel.rng(rng_state))
+    mu = math.sqrt(rng.lcg(rng_state))
 
     # Sample azimuthal direction
-    azi = 2.0 * PI * kernel.rng(rng_state)
+    azi = 2.0 * PI * rng.lcg(rng_state)
     cos_azi = math.cos(azi)
     sin_azi = math.sin(azi)
     Ac = (1.0 - mu**2) ** 0.5
@@ -122,7 +122,7 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
             val_max = val0_max + f * (val1_max - val0_max)
 
         # Sample which table to choose
-        if kernel.rng(rng_state) > f:
+        if rng.lcg(rng_state) > f:
             idx += 1
 
     # Get the table range
@@ -137,7 +137,7 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
     cdf = mcdc_get.multipdf.cdf_chunk(start, size, multipdf, data)
 
     # Generate random numbers
-    xi = kernel.rng(rng_state)
+    xi = rng.lcg(rng_state)
 
     # Sample bin index
     idx = binary_search(xi, cdf)
@@ -174,9 +174,9 @@ def sample_maxwellian(x, rng_state, maxwellian, mcdc, data):
 
     # Rejection sampling
     while True:
-        xi1 = kernel.rng(rng_state)
-        xi2 = kernel.rng(rng_state)
-        xi3 = kernel.rng(rng_state)
+        xi1 = rng.lcg(rng_state)
+        xi2 = rng.lcg(rng_state)
+        xi3 = rng.lcg(rng_state)
         cos = math.cos(0.5 * PI * xi3)
         cos_square = cos * cos
         sample = -T * (math.log(xi1) + math.log(xi2) * cos_square)

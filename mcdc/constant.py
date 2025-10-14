@@ -1,7 +1,4 @@
 import math
-import numpy as np
-import numba as nb
-
 
 # Data index
 TALLY = 0
@@ -148,20 +145,6 @@ AXIS_X = 0
 AXIS_Y = 1
 AXIS_Z = 2
 AXIS_T = 3
-
-# RNG LCG parameters
-RNG_G = nb.uint64(2806196910506780709)
-RNG_C = nb.uint64(1)
-RNG_MOD_MASK = nb.uint64(0x7FFFFFFFFFFFFFFF)
-RNG_MOD = nb.uint64(0x8000000000000000)
-
-# RNG splitter seeds
-SEED_SPLIT_CENSUS = nb.uint64(0x43454D654E54)
-SEED_SPLIT_SOURCE = nb.uint64(0x43616D696C6C65)
-SEED_SPLIT_SOURCE_PRECURSOR = nb.uint64(0x546F6464)
-SEED_SPLIT_BANK = nb.uint64(0x5279616E)
-SEED_SPLIT_PARTICLE = nb.uint64(0)
-SEED_SPLIT_UQ = nb.uint64(0x5368656261)
 
 # Physics
 NEUTRON_MASS = 1.67492749804e-27  # kg

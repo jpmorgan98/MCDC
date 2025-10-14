@@ -2,7 +2,7 @@ from numba import njit
 
 ####
 
-import mcdc.transport.kernel as kernel
+import mcdc.transport.rng as rng
 
 from mcdc.transport.distribution import sample_uniform, sample_pmf, sample_white_direction, sample_isotropic_direction
 
@@ -13,7 +13,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
     P_rec["rng_seed"] = seed
 
     # Sample source
-    xi = kernel.rng(P_rec_arr)
+    xi = rng.lcg(P_rec_arr)
     tot = 0.0
     for source in mcdc["sources"]:
         tot += source["probability"]

@@ -11,6 +11,7 @@ import mcdc.object_.numba_types as type_
 import mcdc.transport.geometry as geometry
 import mcdc.transport.kernel as kernel
 import mcdc.transport.physics as physics
+import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
 import mcdc.transport.technique as technique
 
@@ -82,7 +83,7 @@ def fixed_source_simulation(mcdc_arr, data):
     for i_batch in range(N_batch):
         kernel.distribute_work(N=N_particle, mcdc=mcdc)
         mcdc["idx_batch"] = i_batch
-        seed_batch = kernel.split_seed(i_batch, settings["rng_seed"])
+        seed_batch = rng.split_seed(i_batch, settings["rng_seed"])
 
         # Print multi-batch header
         if N_batch > 1:
@@ -92,7 +93,7 @@ def fixed_source_simulation(mcdc_arr, data):
         # Loop over time censuses
         for i_census in range(N_census):
             mcdc["idx_census"] = i_census
-            seed_census = kernel.split_seed(seed_batch, SEED_SPLIT_CENSUS)
+            seed_census = rng.split_seed(seed_batch, rng.SEED_SPLIT_CENSUS)
 
             # Set census-based tally time grids
             if use_census_based_tally:
@@ -123,11 +124,11 @@ def fixed_source_simulation(mcdc_arr, data):
                 break
 
             # Loop over source particles
-            seed_source = kernel.split_seed(seed_census, SEED_SPLIT_SOURCE)
+            seed_source = rng.split_seed(seed_census, rng.SEED_SPLIT_SOURCE)
             loop_source(seed_source, mcdc, data)
 
             # Manage particle banks: population control and work rebalance
-            seed_bank = kernel.split_seed(seed_census, SEED_SPLIT_BANK)
+            seed_bank = rng.split_seed(seed_census, rng.SEED_SPLIT_BANK)
             kernel.manage_particle_banks(seed_bank, mcdc)
 
             # Time census-based tally closeout
@@ -176,10 +177,10 @@ def eigenvalue_simulation(data_tally, mcdc_arr, data):
     N_inactive = settings["N_inactive"]
     N_cycle = N_active + N_inactive
     for idx_cycle in range(N_cycle):
-        seed_cycle = kernel.split_seed(idx_cycle, settings["rng_seed"])
+        seed_cycle = rng.split_seed(idx_cycle, settings["rng_seed"])
 
         # Loop over source particles
-        seed_source = kernel.split_seed(seed_cycle, SEED_SPLIT_SOURCE)
+        seed_source = rng.split_seed(seed_cycle, rng.SEED_SPLIT_SOURCE)
         loop_source(seed_source, data_tally, mcdc, data)
 
         # Tally "history" closeout
@@ -198,7 +199,7 @@ def eigenvalue_simulation(data_tally, mcdc_arr, data):
             print_progress_eigenvalue(mcdc)
 
         # Manage particle banks
-        seed_bank = kernel.split_seed(seed_cycle, SEED_SPLIT_BANK)
+        seed_bank = rng.split_seed(seed_cycle, rng.SEED_SPLIT_BANK)
         kernel.manage_particle_banks(seed_bank, mcdc)
 
         # Entering active cycle?
@@ -221,7 +222,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     mcdc = adapt.mcdc_global(prog)
     settings = mcdc["settings"]
 
-    seed_work = kernel.split_seed(work_start + idx_work, seed)
+    seed_work = rng.split_seed(work_start + idx_work, seed)
 
     # =====================================================================
     # Get a source particle and put into active bank

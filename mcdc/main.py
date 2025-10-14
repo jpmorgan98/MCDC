@@ -199,7 +199,6 @@ def preparation():
     import numba as nb
     import mcdc.config as config
     import mcdc.transport.kernel as kernel
-    kernel.adapt_rng(nb.config.DISABLE_JIT)
     code_factory.make_size_rpn(simulation.cells)
     settings.target_gpu = True if config.target == "gpu" else False
 
@@ -263,6 +262,12 @@ def preparation():
             physics.neutron.multigroup.neutron_production_xs
         )
         physics.neutron.collision = physics.neutron.multigroup.collision
+
+    # Pick Python-version RNG if needed
+    import mcdc.transport.rng as rng
+    if config.mode == 'python':
+        rng.wrapping_add = rng.wrapping_add_python
+        rng.wrapping_mul = rng.wrapping_mul_python
 
     # TODO: Delete Python objects if running in Numba mode
 

@@ -8,6 +8,7 @@ import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.object_.numba_types as type_
 import mcdc.transport.kernel as kernel
+import mcdc.transport.rng as rng
 
 from mcdc.constant import (
     PI,
@@ -120,7 +121,7 @@ def collision(particle_container, prog, data):
         SigmaT -= SigmaC
 
     # Sample reaction type and perform the reaction
-    xi = kernel.rng(particle_container) * SigmaT
+    xi = rng.lcg(particle_container) * SigmaT
     total = SigmaS
     if total > xi:
         scattering(particle_container, prog, data)
@@ -160,7 +161,7 @@ def scattering(particle_container, prog, data):
 
     # Get number of secondaries
     nu_s = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
-    N = int(math.floor(nu_s + kernel.rng(particle_container)))
+    N = int(math.floor(nu_s + rng.lcg(particle_container)))
 
     # Set up secondary partice container
     particle_container_new = adapt.local_array(1, type_.particle_data)
@@ -175,10 +176,10 @@ def scattering(particle_container, prog, data):
         particle_new["w"] = weight_new
 
         # Sample scattering angle
-        mu0 = 2.0 * kernel.rng(particle_container_new) - 1.0
+        mu0 = 2.0 * rng.lcg(particle_container_new) - 1.0
 
         # Scatter direction
-        azi = 2.0 * PI * kernel.rng(particle_container_new)
+        azi = 2.0 * PI * rng.lcg(particle_container_new)
         ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu0, azi)
         particle_new["ux"] = ux_new
         particle_new["uy"] = uy_new
@@ -188,7 +189,7 @@ def scattering(particle_container, prog, data):
         chi_s = mcdc_get.multigroup_material.mgxs_chi_s_vector(g, material, data)
 
         # Sample outgoing energy
-        xi = kernel.rng(particle_container_new)
+        xi = rng.lcg(particle_container_new)
         total = 0.0
         for g_out in range(G):
             total += chi_s[g_out]
@@ -234,7 +235,7 @@ def fission(particle_container, prog, data):
 
     # Get number of secondaries
     N = int(
-        math.floor(nu / mcdc["k_eff"] + kernel.rng(particle_container))
+        math.floor(nu / mcdc["k_eff"] + rng.lcg(particle_container))
     )
 
     # Set up secondary partice container
@@ -256,7 +257,7 @@ def fission(particle_container, prog, data):
         particle_new["uz"] = uz_new
 
         # Prompt or delayed?
-        xi = kernel.rng(particle_container_new) * nu
+        xi = rng.lcg(particle_container_new) * nu
         total = nu_p
         if xi < total:
             prompt = True
@@ -273,7 +274,7 @@ def fission(particle_container, prog, data):
                     break
 
         # Sample outgoing energy
-        xi = kernel.rng(particle_container_new)
+        xi = rng.lcg(particle_container_new)
         tot = 0.0
         for g_out in range(G):
             tot += spectrum[g_out]
@@ -283,7 +284,7 @@ def fission(particle_container, prog, data):
 
         # Sample emission time
         if not prompt:
-            xi = kernel.rng(particle_container_new)
+            xi = rng.lcg(particle_container_new)
             particle_new["t"] -= math.log(xi) / decay
 
         # Eigenvalue mode: bank right away

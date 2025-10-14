@@ -4,7 +4,7 @@ from numba import njit
 
 ###
 
-import mcdc.transport.kernel as kernel
+import mcdc.transport.rng as rng
 import mcdc.transport.physics.neutron as neutron
 
 from mcdc.constant import *
@@ -61,7 +61,7 @@ def collision_distance(particle_container, mcdc, data):
         return INF
 
     # Sample collision distance
-    xi = kernel.rng(particle_container)
+    xi = rng.lcg(particle_container)
     distance = -math.log(xi) / SigmaT
     return distance
 

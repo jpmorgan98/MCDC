@@ -1,6 +1,7 @@
 import mcdc.mcdc_get as mcdc_get
 
 import h5py, math
+import numpy as np
 
 from mpi4py import MPI
 from numba import (
@@ -20,6 +21,7 @@ import mcdc.code_factory.adapt as adapt
 import mcdc.transport.mesh as mesh_
 
 import mcdc.transport.tally as tally_module
+import mcdc.transport.rng as rng
 
 from mcdc.code_factory.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
@@ -647,94 +649,6 @@ def sample_piecewise_linear(cdf, P_arr):
 
 
 # =============================================================================
-# Random number generator
-#   LCG with hash seed-split
-# =============================================================================
-
-
-@njit
-def wrapping_mul(a, b):
-    return a * b
-
-
-@njit
-def wrapping_add(a, b):
-    return a + b
-
-
-def wrapping_mul_python(a, b):
-    a = uint64(a)
-    b = uint64(b)
-    with np.errstate(all="ignore"):
-        return a * b
-
-
-def wrapping_add_python(a, b):
-    a = uint64(a)
-    b = uint64(b)
-    with np.errstate(all="ignore"):
-        return a + b
-
-
-def adapt_rng(object_mode=False):
-    global wrapping_add, wrapping_mul
-    if object_mode:
-        wrapping_add = wrapping_add_python
-        wrapping_mul = wrapping_mul_python
-
-
-@njit
-def split_seed(key, seed):
-    """murmur_hash64a"""
-    multiplier = uint64(0xC6A4A7935BD1E995)
-    length = uint64(8)
-    rotator = uint64(47)
-    key = uint64(key)
-    seed = uint64(seed)
-
-    hash_value = uint64(seed) ^ wrapping_mul(length, multiplier)
-
-    key = wrapping_mul(key, multiplier)
-    key ^= key >> rotator
-    key = wrapping_mul(key, multiplier)
-    hash_value ^= key
-    hash_value = wrapping_mul(hash_value, multiplier)
-
-    hash_value ^= hash_value >> rotator
-    hash_value = wrapping_mul(hash_value, multiplier)
-    hash_value ^= hash_value >> rotator
-    return hash_value
-
-
-@njit
-def rng_(seed):
-    seed = uint64(seed)
-    return wrapping_add(wrapping_mul(RNG_G, seed), RNG_C) & RNG_MOD_MASK
-
-
-@njit
-def rng(state_arr):
-    state = state_arr[0]
-    state["rng_seed"] = rng_(state["rng_seed"])
-    return state["rng_seed"] / RNG_MOD
-
-
-@njit
-def rng_from_seed(seed):
-    return rng_(seed) / RNG_MOD
-
-
-@njit
-def rng_array(seed, shape, size):
-    xi = np.zeros(size)
-    for i in range(size):
-        xi_seed = split_seed(i, seed)
-        xi[i] = rng_from_seed(xi_seed)
-    xi = xi.reshape(shape)
-    return xi
-
-
-# =============================================================================
 # Particle bank operations
 # =============================================================================
 
@@ -1177,8 +1091,8 @@ def split_as_data(P_new_rec_arr, P_rec_arr):
     P_rec = P_rec_arr[0]
     P_new_rec = P_new_rec_arr[0]
     copy_recordlike(P_new_rec_arr, P_rec_arr)
-    P_new_rec["rng_seed"] = split_seed(P_rec["rng_seed"], SEED_SPLIT_PARTICLE)
-    rng(P_rec_arr)
+    P_new_rec["rng_seed"] = rng.split_seed(P_rec["rng_seed"], rng.SEED_SPLIT_PARTICLE)
+    rng.lcg(P_rec_arr)
 
 
 # =============================================================================
