@@ -215,11 +215,15 @@ def generate_numba_objects(simulation):
         for x in dir(simulation)
         if (
             not x.startswith("__")
-            and not callable(getattr(simulation, x))
+            and (
+                isinstance(getattr(simulation, x), ObjectBase)
+                or not callable(getattr(simulation, x))
+            )
             and x not in simulation.non_numba
         )
     ]
     for attribute_name in attribute_names:
+        print(attribute_name)
         attribute = getattr(simulation, attribute_name)
         if type(attribute) in mcdc_classes:
             objects[type(attribute)] = attribute

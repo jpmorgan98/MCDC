@@ -35,21 +35,29 @@ mcdc.Cell(region=+sx2 & -sx3 & +sy1 & -sy2, fill=m_barrier)
 # =============================================================================
 # Set source
 # =============================================================================
-# Uniform isotropic source throughout the domain
 
-mcdc.source(x=[0.0, 1.0], y=[0.0, 1.0], isotropic=True)
-
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
-
-mcdc.Settings(N_particle=50, N_batch=2)
-mcdc.implicit_capture()
-
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    x=np.linspace(0.0, 4.0, 40),
-    y=np.linspace(0.0, 4.0, 40),
+mcdc.Source(
+    x=[0.0, 1.0],
+    y=[0.0, 1.0],
+    isotropic=True,
+    energy_group=0,
+    time=0.0,
 )
 
+# =============================================================================
+# Set tallies, settings, techniques, and run MC/DC
+# =============================================================================
+
+# Tallies
+mesh = mcdc.MeshUniform(x=(0.0, 0.1, 40), y=(0.0, 0.1, 40))
+mcdc.TallyMesh(mesh=mesh, scores=["flux"])
+
+# Settings
+mcdc.settings.N_particle = 50
+mcdc.settings.N_batch = 2
+
+# Techniques
+mcdc.simulation.implicit_capture()
+
+# Run
 mcdc.run()

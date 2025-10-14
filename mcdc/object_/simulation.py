@@ -1,5 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated
+
+from mcdc.object_.technique import ImplicitCapture, WeightRoulette
+
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
     from mcdc.object_.material import MaterialBase
@@ -37,25 +40,40 @@ class Simulation(ObjectSingleton):
     # Annotations for Numba mode
     label: str = 'simulation'
     non_numba: list[str] = ['regions', 'bank_active', 'bank_census', 'bank_source', 'bank_future']
-    #
+
+    # Physics
     data: list[DataBase]
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
     nuclides: list[Nuclide]
     reactions: list[ReactionBase]
     sources: list[Source]
+
+    # Geometry
     cells: list[Cell]
     lattices: list[Lattice]
     regions: list[Region]
     surfaces: list[Surface]
     universes: list[Universe]
     meshes: list[MeshBase]
-    settings: Settings
+
+    # Tallies
     tallies: list[TallyBase]
+
+    # Settings
+    settings: Settings
+
+    # Techniques
+    implicit_capture: ImplicitCapture
+    weight_roulette: WeightRoulette
+
+    # Particle banks
     bank_active: ParticleBank
     bank_census: ParticleBank
     bank_source: ParticleBank
     bank_future: ParticleBank
+
+    # Simulation parameters
     idx_cycle: int
     idx_census: int
     idx_batch: int
@@ -113,11 +131,17 @@ class Simulation(ObjectSingleton):
         self.regions = []
         self.surfaces = []
         self.universes = [Universe("Root Universe", root=True)]
-
-        # Others
         self.meshes = []
-        self.settings = Settings()
+
+        # Tallies
         self.tallies = []
+
+        # Settings
+        self.settings = Settings()
+
+        # Techniques
+        self.implicit_capture = ImplicitCapture()
+        self.weight_roulette = WeightRoulette()
 
         # ==============================================================================
         # Particle banks
