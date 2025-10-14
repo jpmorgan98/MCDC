@@ -34,17 +34,12 @@ mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
 # Set settings, tally, and run mcdc
 # =============================================================================
 
+# Meshes
+mesh = mcdc.MeshStructured(x=np.linspace(-20.5, 20.5, 202))
+t=mcdc.TallyMesh(mesh=mesh, scores=['flux'], time=np.linspace(0.0, 20.0, 21))
+
+# Settings
 mcdc.settings.N_particle=100
 mcdc.settings.N_batch=2
-
-mesh = mcdc.MeshStructured(
-    x=np.linspace(0.0, 60.0, 31),
-    y=np.linspace(0.0, 100.0, 51),
-)
-mcdc.TallyMesh(
-    scores=["flux"],
-    x=np.linspace(-20.5, 20.5, 202),
-    t=np.linspace(0.0, 20.0, 21),
-)
 
 mcdc.run()
