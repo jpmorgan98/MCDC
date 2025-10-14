@@ -2,9 +2,9 @@ import numpy as np
 import mcdc
 
 
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # Based on Kobayashi dog-leg benchmark problem
 # (PNE 2001, https://doi.org/10.1016/S0149-1970(01)00007-5)
 
@@ -43,32 +43,37 @@ mcdc.Cell(region=void_channel, fill=m_void)
 box = +sx1 & -sx5 & +sy1 & -sy5 & +sz1 & -sz5
 mcdc.Cell(region=box & ~void_channel, fill=m)
 
-# =============================================================================
+# ======================================================================================
 # Set source
-# =============================================================================
+# ======================================================================================
 # The source pulses in t=[0,5]
 
-mcdc.source(
-    x=[0.0, 10.0], y=[0.0, 10.0], z=[0.0, 10.0], time=[0.0, 50.0], isotropic=True
+mcdc.Source(
+    x=[0.0, 10.0],
+    y=[0.0, 10.0],
+    z=[0.0, 10.0],
+    isotropic=True,
+    energy_group=0,
+    time=[0.0, 50.0],
 )
 
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
+# ======================================================================================
+# Set tallies, settings, techniques, and run MC/DC
+# ======================================================================================
 
-mcdc.Settings(N_particle=80, N_batch=2)
-mcdc.implicit_capture()
-
+# Tallies
 time_grid = np.linspace(0.0, 200.0, 21)
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    x=np.linspace(0.0, 60.0, 61),
-    y=np.linspace(0.0, 100.0, 101),
-    t=time_grid,
-)
-mcdc.tally.mesh_tally(
-    scores=["density"],
-    t=time_grid,
-)
+mesh1 = mcdc.MeshUniform(x=(0.0, 1.0, 60), y=(0.0, 1.0, 100))
+mesh2 = mcdc.MeshUniform()
+mcdc.TallyMesh(mesh=mesh1, scores=["flux"], time=time_grid)
+mcdc.TallyMesh(mesh=mesh2, scores=["density"], time=time_grid)
 
+# Settings
+mcdc.settings.N_particle = 80
+mcdc.settings.N_batch = 2
+
+# Techniques
+mcdc.simulation.implicit_capture()
+
+# Run
 mcdc.run()

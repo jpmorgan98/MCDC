@@ -538,6 +538,7 @@ def generate_hdf5(mcdc, data):
         MESH_STRUCTURED,
         MESH_UNIFORM,
         SCORE_FLUX,
+        SCORE_DENSITY,
     )
 
     if not mcdc["mpi_master"]:
@@ -624,6 +625,8 @@ def generate_hdf5(mcdc, data):
                 score_sdev = np.squeeze(sdev[i])
                 if score_type == SCORE_FLUX:
                     score_name = "flux"
+                elif score_type == SCORE_DENSITY:
+                    score_name = "density"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)
@@ -689,6 +692,8 @@ def generate_hdf5(mcdc, data):
                 score_sdev = np.squeeze(sdev[i])
                 if score_type == SCORE_FLUX:
                     score_name = "flux"
+                elif score_type == SCORE_DENSITY:
+                    score_name = "density"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)

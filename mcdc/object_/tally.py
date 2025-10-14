@@ -21,6 +21,8 @@ from mcdc.constant import (
     INF,
     PI,
     SCORE_FLUX,
+    SCORE_DENSITY,
+    TALLY_GLOBAL,
     TALLY_CELL,
     TALLY_MESH,
     TALLY_SURFACE,
@@ -28,7 +30,7 @@ from mcdc.constant import (
 from mcdc.object_.mesh import MeshBase
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
-from mcdc.print_ import print_1d_array
+from mcdc.print_ import print_1d_array, print_error
 
 
 # ======================================================================================
@@ -74,6 +76,10 @@ class TallyBase(ObjectPolymorphic):
         for score in scores:
             if score == "flux":
                 self.scores.append(SCORE_FLUX)
+            elif score == "density":
+                self.scores.append(SCORE_DENSITY)
+            else:
+                print_error(f'Unknown tally score: {score}')
 
         # Phase-space filters
         self.mu = np.array([-1.0, 1.0])
@@ -142,7 +148,9 @@ class TallyBase(ObjectPolymorphic):
 
 
 def decode_type(type_):
-    if type_ == TALLY_CELL:
+    if type_ == TALLY_GLOBAL:
+        return "Global tally"
+    elif type_ == TALLY_CELL:
         return "Cell tally"
     elif type_ == TALLY_SURFACE:
         return "Surface tally"
@@ -153,6 +161,68 @@ def decode_type(type_):
 def decode_score_type(type_):
     if type_ == SCORE_FLUX:
         return "Flux"
+    elif type_ == SCORE_DENSITY:
+        return "Density"
+
+
+# ======================================================================================
+# Global tally
+# ======================================================================================
+
+
+class TallyGlobal(TallyBase):
+    # Annotations for Numba mode
+    label: str = 'global_tally'
+
+    def __init__(
+        self,
+        name: str = "",
+        scores: list[str] = ['flux'],
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
+    ):
+        type_ = TALLY_GLOBAL
+        super().__init__(
+            type_, name, scores, mu, azi, polar_reference, energy, time
+        )
+
+        # Allocate the bins
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_time = len(self.time) - 1
+        N_score = len(self.scores)
+        #
+        self.bin = np.zeros((N_mu, N_azi, N_energy, N_time, N_score))
+        self.bin_sum = np.zeros_like(self.bin)
+        self.bin_sum_square = np.zeros_like(self.bin)
+
+        # Set the strides
+        self.stride_time = N_score
+        self.stride_energy = N_score * N_time
+        self.stride_azi = N_score * N_time * N_energy
+        self.stride_mu = N_score * N_time * N_energy * N_azi
+
+    def _use_census_based_tally(self, frequency):
+        self.time = np.zeros(frequency + 1)
+
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_score = len(self.scores)
+
+        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, N_score))
+        self.bin_sum = np.zeros_like(self.bin)
+        self.bin_sum_square = np.zeros_like(self.bin)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += super()._phasespace_filter_text()
+        text += f"  - Bin shape (mu, azi, energy, time, score): {self.bin.shape} \n"
+        return text
 
 
 # ======================================================================================

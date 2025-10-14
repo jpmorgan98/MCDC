@@ -7,13 +7,27 @@ import mcdc.transport.mesh as mesh_
 import mcdc.transport.physics as physics
 
 from mcdc.code_factory import adapt
-from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, SCORE_FLUX
+from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, SCORE_FLUX, SCORE_DENSITY
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import (
     get_direction_index,
     get_energy_index,
     get_time_index,
 )
+
+
+@njit
+def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
+    speed = physics.particle_speed(particle_container, mcdc, data)
+
+    for i_score in range(tally["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally, data)
+        score = 0.0
+        if score_type == SCORE_FLUX:
+            score = flux
+        elif score_type == SCORE_DENSITY:
+            score = flux / speed
+        adapt.global_add(data, idx_base + i_score, score)
 
 
 @njit
@@ -60,12 +74,7 @@ def cell_tally(particle_container, distance, tally, mcdc, data):
 
         # Score
         flux = distance_scored * particle["w"]
-        for i_score in range(tally["scores_length"]):
-            score_type = mcdc_get.cell_tally.scores(i_score, tally, data)
-            score = 0.0
-            if score_type == SCORE_FLUX:
-                score = flux
-            adapt.global_add(data, idx_base + i_score, score)
+        make_scores(particle_container, flux, tally, idx_base, mcdc, data)
 
         # Accumulate distance swept
         distance_swept += distance_scored
@@ -116,14 +125,7 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
     speed = physics.particle_speed(particle_container, mcdc, data)
     mu = get_normal_component(particle_container, speed, surface, data)
     flux = particle["w"] / abs(mu)
-
-    # Score
-    for i_score in range(tally["scores_length"]):
-        score_type = mcdc_get.cell_tally.scores(i_score, tally, data)
-        score = 0.0
-        if score_type == SCORE_FLUX:
-            score = flux
-        adapt.global_add(data, idx_base + i_score, score)
+    make_scores(particle_container, flux, tally, idx_base, mcdc, data)
 
 
 @njit
@@ -252,12 +254,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
 
         # Score
         flux = distance_scored * particle["w"]
-        for i_score in range(tally["scores_length"]):
-            score_type = mcdc_get.cell_tally.scores(i_score, tally, data)
-            score = 0.0
-            if score_type == SCORE_FLUX:
-                score = flux
-            adapt.global_add(data, idx_base + i_score, score)
+        make_scores(particle_container, flux, tally, idx_base, mcdc, data)
 
         # Accumulate distance swept
         distance_swept += distance_scored

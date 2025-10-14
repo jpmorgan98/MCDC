@@ -12,7 +12,7 @@ from mcdc.object_.material import Material, MaterialMG
 from mcdc.object_.mesh import MeshUniform, MeshStructured
 from mcdc.object_.source import Source
 from mcdc.object_.surface import Surface
-from mcdc.object_.tally import TallyCell, TallySurface, TallyMesh
+from mcdc.object_.tally import TallyGlobal, TallyCell, TallySurface, TallyMesh
 
 # ======================================================================================
 # Runners
