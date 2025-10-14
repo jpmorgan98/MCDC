@@ -113,6 +113,11 @@ def collision(particle_container, prog, data):
     SigmaF = macro_xs(
         REACTION_NEUTRON_FISSION, particle_container, mcdc, data
     )
+    
+    # Implicit capture
+    if mcdc['implicit_capture']['active']:
+        particle["w"] *= (SigmaT - SigmaC) / SigmaT
+        SigmaT -= SigmaC
 
     # Sample reaction type and perform the reaction
     xi = kernel.rng(particle_container) * SigmaT
