@@ -1,4 +1,5 @@
 from mcdc.object_.base import ObjectSingleton
+from mcdc.print_ import print_error
 
 # ======================================================================================
 # Implicit capture
@@ -34,5 +35,7 @@ class WeightRoulette(ObjectSingleton):
         self.weight_target = 1.0
 
     def __call__(self, weight_threshold: float = 0.0, weight_target: float = 1.0):
+        if weight_threshold > weight_target:
+            print_error('For weight roulette, weight threshold has to be smaller than the target')
         self.weight_threshold = weight_threshold
         self.weight_target = weight_target

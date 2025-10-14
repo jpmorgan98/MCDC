@@ -21,6 +21,7 @@ from mcdc.print_ import (
     print_progress_eigenvalue,
 )
 from mcdc.transport.source import source_particle
+from mcdc.transport.technique import weight_roulette
 
 caching = config.caching
 
@@ -577,6 +578,10 @@ def step_particle(P_arr, prog, data):
     # Time boundary crossing
     if P["event"] & EVENT_TIME_BOUNDARY:
         P["alive"] = False
+
+    # Weight roulette
+    if P['alive']:
+        weight_roulette(P_arr, prog)
 
 
 def build_gpu_progs(input_deck, args):
