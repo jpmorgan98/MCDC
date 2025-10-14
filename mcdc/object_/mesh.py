@@ -91,9 +91,9 @@ class MeshUniform(MeshBase):
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Grid specification\n"
-        text += f"    - x0/dx/Nx: {self.x0}/{self.dx}/{self.Nx} [cm]\n"
-        text += f"    - y0/dy/Ny: {self.y0}/{self.dy}/{self.Ny} [cm]\n"
-        text += f"    - z0/dz/Nz: {self.z0}/{self.dz}/{self.Nz} [cm]\n"
+        text += f"    - (x0, dx, Nx): ({self.x0}, {self.dx}, {self.Nx}) [cm]\n"
+        text += f"    - (y0, dy, Ny): ({self.y0}, {self.dy}, {self.Ny}) [cm]\n"
+        text += f"    - (z0, dz, Nz): ({self.z0}, {self.dz}, {self.Nz}) [cm]\n"
         return text
 
 

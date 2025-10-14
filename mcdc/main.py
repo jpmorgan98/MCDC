@@ -636,9 +636,17 @@ def generate_hdf5(mcdc, data):
                 f.create_dataset(f"tallies/{tally_name}/grid/azi", data=mcdc_get.tally.azi_all(tally, data))
                 f.create_dataset(f"tallies/{tally_name}/grid/energy", data=mcdc_get.tally.energy_all(tally, data))
                 f.create_dataset(f"tallies/{tally_name}/grid/t", data=mcdc_get.tally.time_all(tally, data))
-                f.create_dataset(f"tallies/{tally_name}/grid/x", data=mcdc_get.structured_mesh.x_all(mesh, data))
-                f.create_dataset(f"tallies/{tally_name}/grid/y", data=mcdc_get.structured_mesh.y_all(mesh, data))
-                f.create_dataset(f"tallies/{tally_name}/grid/z", data=mcdc_get.structured_mesh.z_all(mesh, data))
+                if mesh_type == MESH_UNIFORM:
+                    x = np.linspace(mesh['x0'], mesh['x0'] + mesh['dx'], mesh['Nx'] + 1)
+                    y = np.linspace(mesh['y0'], mesh['y0'] + mesh['dy'], mesh['Ny'] + 1)
+                    z = np.linspace(mesh['z0'], mesh['z0'] + mesh['dz'], mesh['Nz'] + 1)
+                    f.create_dataset(f"tallies/{tally_name}/grid/x", data=x)
+                    f.create_dataset(f"tallies/{tally_name}/grid/y", data=y)
+                    f.create_dataset(f"tallies/{tally_name}/grid/z", data=z)
+                elif mesh_type == MESH_STRUCTURED:
+                    f.create_dataset(f"tallies/{tally_name}/grid/x", data=mcdc_get.structured_mesh.x_all(mesh, data))
+                    f.create_dataset(f"tallies/{tally_name}/grid/y", data=mcdc_get.structured_mesh.y_all(mesh, data))
+                    f.create_dataset(f"tallies/{tally_name}/grid/z", data=mcdc_get.structured_mesh.z_all(mesh, data))
 
                 # Shape
                 N_mu = tally["mu_length"] - 1
