@@ -153,7 +153,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
     z_final = z + uz * distance
     t_final = t + ut * distance
 
-    # Ini_timeial bin indices
+    # Initial bin indices
     i_mu, i_azi, i_energy, i_time = 0, 0, 0, 0
     if tally["filter_direction"]:
         i_mu, i_azi = get_direction_index(particle_container, tally, data)
@@ -168,9 +168,9 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         if i_time == -1:
             return
     i_x, i_y, i_z = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
-    if i_time == -1:
+    if i_time == -1 or i_x == -1 or i_y == -1 or i_z == -1:
         return
-
+    
     # Tally base index
     idx_base = (
         tally["bin_offset"]
