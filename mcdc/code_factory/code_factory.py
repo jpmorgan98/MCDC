@@ -223,7 +223,6 @@ def generate_numba_objects(simulation):
         )
     ]
     for attribute_name in attribute_names:
-        print(attribute_name)
         attribute = getattr(simulation, attribute_name)
         if type(attribute) in mcdc_classes:
             objects[type(attribute)] = attribute
