@@ -1,5 +1,19 @@
-import mcdc.transport.kernel as kernel
+import math
 
+from numba import njit
+
+####
+
+import mcdc.code_factory.adapt as adapt
+import mcdc.transport.kernel as kernel
+import mcdc.object_.numba_types as type_
+
+
+# ======================================================================================
+# Weight Roulette
+# ======================================================================================
+
+@njit
 def weight_roulette(particle_container, mcdc):
     particle = particle_container[0]
     if particle['w'] < mcdc['weight_roulette']['weight_threshold']:
@@ -9,3 +23,57 @@ def weight_roulette(particle_container, mcdc):
             particle['w'] = w_target
         else:
             particle['alive'] = False
+
+
+# ======================================================================================
+# Population Control
+# ======================================================================================
+
+@njit
+def population_control(mcdc):
+    """Uniform Splitting-Roulette technique"""
+
+    bank_census = mcdc["bank_census"]
+    M = mcdc["settings"]["N_particle"]
+    bank_source = mcdc["bank_source"]
+
+    # Scan the bank
+    idx_start, N_local, N = kernel.bank_scanning(bank_census, mcdc)
+    idx_end = idx_start + N_local
+
+    # Abort if census bank is empty
+    if N == 0:
+        return
+
+    # Weight scaling
+    ws = float(N) / float(M)
+
+    # Splitting Number
+    sn = 1.0 / ws
+
+    P_rec_arr = adapt.local_array(1, type_.particle_data)
+    P_rec = P_rec_arr[0]
+
+    # Perform split-roulette to all particles in local bank
+    kernel.set_bank_size(bank_source, 0)
+    for idx in range(N_local):
+        # Weight of the surviving particles
+        w = bank_census["particles"][idx]["w"]
+        w_survive = w * ws
+
+        # Determine number of guaranteed splits
+        N_split = math.floor(sn)
+
+        # Survive the russian roulette?
+        xi = kernel.rng(bank_census["particles"][idx : idx + 1])
+        if xi < sn - N_split:
+            N_split += 1
+
+        # Split the particle
+        for i in range(N_split):
+            kernel.split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
+            # Set weight
+            P_rec["w"] = w_survive
+            adapt.add_source(P_rec_arr, mcdc)
+
+

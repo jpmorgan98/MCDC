@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated
 
-from mcdc.object_.technique import ImplicitCapture, WeightRoulette
+from mcdc.object_.technique import ImplicitCapture, PopulationControl, WeightRoulette
 
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
@@ -66,6 +66,7 @@ class Simulation(ObjectSingleton):
     # Techniques
     implicit_capture: ImplicitCapture
     weight_roulette: WeightRoulette
+    population_control: PopulationControl
 
     # Particle banks
     bank_active: ParticleBank
@@ -142,6 +143,7 @@ class Simulation(ObjectSingleton):
         # Techniques
         self.implicit_capture = ImplicitCapture()
         self.weight_roulette = WeightRoulette()
+        self.population_control = PopulationControl()
 
         # ==============================================================================
         # Particle banks

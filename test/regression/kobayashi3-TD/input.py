@@ -58,7 +58,7 @@ mcdc.Source(
 )
 
 # =============================================================================
-# Set tally, setting, and run mcdc
+# Set tallies, settings, techniques, and run MC/DC
 # =============================================================================
 
 # Tallies

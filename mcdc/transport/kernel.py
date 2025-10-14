@@ -14,6 +14,7 @@ from numba import (
 
 import mcdc.transport.physics as physics
 import mcdc.transport.geometry as geometry
+import mcdc.transport.technique as technique
 
 import mcdc.code_factory.adapt as adapt
 import mcdc.transport.mesh as mesh_
@@ -879,9 +880,8 @@ def manage_particle_banks(seed, mcdc):
         normalize_weight(mcdc["bank_census"], mcdc["settings"]["N_particle"])
 
     # Population control
-    '''
-    if mcdc["technique"]["population_control"]:
-        population_control(seed, mcdc)
+    if mcdc["population_control"]['active']:
+        technique.population_control(mcdc)
     else:
         # Swap census and source bank
         size = get_bank_size(mcdc["bank_census"])
@@ -890,7 +890,6 @@ def manage_particle_banks(seed, mcdc):
             :size
         ]
     # TODO: Population control future bank?
-    '''
 
     # MPI rebalance
     bank_rebalance(mcdc)
@@ -1101,210 +1100,6 @@ def distribute_work(N, mcdc):
     mcdc["mpi_work_start"] = work_start
     mcdc["mpi_work_size"] = work_size
     mcdc["mpi_work_size_total"] = work_size_total
-
-
-# =============================================================================
-# Population control techniques
-# =============================================================================
-# TODO: Make it a stand-alone function that takes (bank_init, bank_final, M).
-#       The challenge is in the use of type-dependent copy_record which is
-#       required due to pure-Python behavior of taking things by reference.
-
-
-@njit
-def population_control(seed, mcdc):
-    if mcdc["technique"]["pct"] == PCT_COMBING:
-        pct_combing(seed, mcdc)
-    elif mcdc["technique"]["pct"] == PCT_COMBING_WEIGHT:
-        pct_combing_weight(seed, mcdc)
-    elif mcdc["technique"]["pct"] == PCT_SPLITTING_ROULETTE:
-        pct_splitting_roulette(seed, mcdc)
-    elif mcdc["technique"]["pct"] == PCT_SPLITTING_ROULETTE_WEIGHT:
-        pct_splitting_roulette_weight(seed, mcdc)
-
-
-@njit
-def pct_combing(seed, mcdc):
-    bank_census = mcdc["bank_census"]
-    M = mcdc["settings"]["N_particle"]
-    bank_source = mcdc["bank_source"]
-
-    # Scan the bank
-    idx_start, N_local, N = bank_scanning(bank_census, mcdc)
-    idx_end = idx_start + N_local
-
-    # Abort if census bank is empty
-    if N == 0:
-        return
-
-    # Teeth distance
-    td = N / M
-
-    # Update population control factor
-    mcdc["technique"]["pc_factor"] *= td
-
-    xi = rng_from_seed(seed)
-    offset = xi * td
-
-    # First hiting tooth
-    tooth_start = math.ceil((idx_start - offset) / td)
-
-    # Last hiting tooth
-    tooth_end = math.floor((idx_end - offset) / td) + 1
-
-    P_rec_arr = adapt.local_array(1, type_.particle_data)
-    P_rec = P_rec_arr[0]
-
-    # Locally sample particles from census bank
-    set_bank_size(bank_source, 0)
-    for i in range(tooth_start, tooth_end):
-        tooth = i * td + offset
-        idx = math.floor(tooth) - idx_start
-        split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
-        # Set weight
-        P_rec["w"] *= td
-        adapt.add_source(P_rec_arr, mcdc)
-
-
-@njit
-def pct_combing_weight(seed, mcdc):
-    bank_census = mcdc["bank_census"]
-    M = mcdc["settings"]["N_particle"]
-    bank_source = mcdc["bank_source"]
-
-    # Scan the bank based on weight
-    w_start, w_cdf, W = bank_scanning_weight(bank_census, mcdc)
-    w_end = w_cdf[-1]
-
-    # Abort if census bank is empty
-    if W == 0.0:
-        return
-
-    # Teeth distance
-    td = W / M
-
-    # Update population control factor
-    mcdc["technique"]["pc_factor"] *= td  # This may be incorrect
-
-    # Tooth offset
-    xi = rng_from_seed(seed)
-    offset = xi * td
-
-    # First hiting tooth
-    tooth_start = math.ceil((w_start - offset) / td)
-
-    # Last hiting tooth
-    tooth_end = math.floor((w_end - offset) / td) + 1
-
-    P_rec_arr = adapt.local_array(1, type_.particle_data)
-    P_rec = P_rec_arr[0]
-
-    # Locally sample particles from census bank
-    set_bank_size(bank_source, 0)
-    idx = 0
-    for i in range(tooth_start, tooth_end):
-        tooth = i * td + offset
-        idx += binary_search(tooth, w_cdf[idx:])
-        split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
-        # Set weight
-        P_rec["w"] = td
-        adapt.add_source(P_rec_arr, mcdc)
-
-
-@njit
-def pct_splitting_roulette(seed, mcdc):
-    bank_census = mcdc["bank_census"]
-    M = mcdc["settings"]["N_particle"]
-    bank_source = mcdc["bank_source"]
-
-    # Scan the bank
-    idx_start, N_local, N = bank_scanning(bank_census, mcdc)
-    idx_end = idx_start + N_local
-
-    # Abort if census bank is empty
-    if N == 0:
-        return
-
-    # Weight scaling
-    ws = float(N) / float(M)
-
-    # Splitting Number
-    sn = 1.0 / ws
-
-    # Update population control factor
-    mcdc["technique"]["pc_factor"] *= ws
-
-    P_rec_arr = adapt.local_array(1, type_.particle_data)
-    P_rec = P_rec_arr[0]
-
-    # Perform split-roulette to all particles in local bank
-    set_bank_size(bank_source, 0)
-    for idx in range(N_local):
-        # Weight of the surviving particles
-        w = bank_census["particles"][idx]["w"]
-        w_survive = w * ws
-
-        # Determine number of guaranteed splits
-        N_split = math.floor(sn)
-
-        # Survive the russian roulette?
-        xi = rng(bank_census["particles"][idx : idx + 1])
-        if xi < sn - N_split:
-            N_split += 1
-
-        # Split the particle
-        for i in range(N_split):
-            split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
-            # Set weight
-            P_rec["w"] = w_survive
-            adapt.add_source(P_rec_arr, mcdc)
-
-
-@njit
-def pct_splitting_roulette_weight(seed, mcdc):
-    bank_census = mcdc["bank_census"]
-    M = mcdc["settings"]["N_particle"]
-    bank_source = mcdc["bank_source"]
-
-    # Scan the bank based on weight
-    N_local = get_bank_size(bank_census)
-    w_start, w_cdf, W = bank_scanning_weight(bank_census, mcdc)
-    w_end = w_cdf[-1]
-
-    # Abort if census bank is empty
-    if W == 0.0:
-        return
-
-    # Weight of the surviving particles
-    w_survive = W / M
-
-    # Update population control factor
-    mcdc["technique"]["pc_factor"] *= w_survive  # This may be incorrect
-
-    P_rec_arr = adapt.local_array(1, type_.particle_data)
-    P_rec = P_rec_arr[0]
-
-    # Perform split-roulette to all particles in local bank
-    set_bank_size(bank_source, 0)
-    for idx in range(N_local):
-        # Splitting number
-        w = bank_census["particles"][idx]["w"]
-        sn = w / w_survive
-
-        # Determine number of guaranteed splits
-        N_split = math.floor(sn)
-
-        # Survive the russian roulette?
-        xi = rng(bank_census["particles"][idx : idx + 1])
-        if xi < sn - N_split:
-            N_split += 1
-
-        # Split the particle
-        for i in range(N_split):
-            split_as_data(P_rec_arr, bank_census["particles"][idx : idx + 1])
-            # Set weight
-            P_rec["w"] = w_survive
-            adapt.add_source(P_rec_arr, mcdc)
 
 
 # =============================================================================
