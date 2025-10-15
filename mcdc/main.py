@@ -587,8 +587,6 @@ def generate_hdf5(mcdc, data):
         # Cell and surface tallies
         for i_tally in range(mcdc['N_cell_tally']):
             tally = mcdc['cell_tallies'][i_tally]
-            print(len(mcdc['cell_tallies']), mcdc['N_cell_tally'])
-            print(tally)
             tally_name = tally['name']
 
             # Filter grids

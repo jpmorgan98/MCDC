@@ -7,7 +7,9 @@ if TYPE_CHECKING:
 ####
 
 import numpy as np
+import operator
 
+from functools import reduce
 from numpy import float64
 from numpy.typing import NDArray
 from typing import Annotated, Iterable
@@ -61,7 +63,7 @@ class TallyBase(ObjectPolymorphic):
     stride_time: int
 
     def __init__(
-        self, type_, name, scores, mu, azi, polar_reference, energy, time
+        self, type_, name, scores, mu, azi, polar_reference, energy, time, spatial_shape=None
     ):
         super().__init__(type_)
 
@@ -109,20 +111,52 @@ class TallyBase(ObjectPolymorphic):
         if time is not None:
             self.time = np.array(time)
             self.filter_time = True
+        
+        # Determine bin shape
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_time = len(self.time) - 1
+        N_score = len(self.scores)
+        #
+        if spatial_shape is None:
+            shape = (N_mu, N_azi, N_energy, N_time, N_score)
+        else:
+            shape = (N_mu, N_azi, N_energy, N_time) + spatial_shape + (N_score,)
 
-        # Tally bins (will be allocated by the subclass)
-        self.bin = None
-        self.bin_sum = None
-        self.bin_sum_square = None
+        # Set bins and strides
+        self._set_bins_and_strides(shape)
 
-        # Strides (will be set by the subclass)
-        self.stride_time = 0
-        self.stride_energy = 0
-        self.stride_azi = 0
-        self.stride_mu = 0
+    def _set_bins_and_strides(self, shape):
+        # Set bins
+        self.bin = np.zeros(shape)
+        self.bin_sum = np.zeros_like(self.bin)
+        self.bin_sum_square = np.zeros_like(self.bin)
 
+        # Set strides
+        self.stride_time = reduce(operator.mul, shape[4:])
+        self.stride_energy = reduce(operator.mul, shape[3:])
+        self.stride_azi = reduce(operator.mul, shape[2:])
+        self.stride_mu = reduce(operator.mul, shape[1:])
+        
     def _use_census_based_tally(self, frequency):
-        pass # Implemented in subclass
+        self.time = np.zeros(frequency + 1)
+
+        N_mu = len(self.mu) - 1
+        N_azi = len(self.azi) - 1
+        N_energy = len(self.energy) - 1
+        N_score = len(self.scores)
+       
+        spatial_shape = None
+        if len(self.bin.shape) > 5:
+            spatial_shape = self.bin.shape[4:-1]
+
+        if spatial_shape is None:
+            shape = (N_mu, N_azi, N_energy, frequency, N_score)
+        else:
+            shape = (N_mu, N_azi, N_energy, frequency) + spatial_shape + (N_score,)
+
+        self._set_bins_and_strides(shape)
 
     def _phasespace_filter_text(self):
         text = ""
@@ -189,35 +223,6 @@ class TallyGlobal(TallyBase):
             type_, name, scores, mu, azi, polar_reference, energy, time
         )
 
-        # Allocate the bins
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_time = len(self.time) - 1
-        N_score = len(self.scores)
-        #
-        self.bin = np.zeros((N_mu, N_azi, N_energy, N_time, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
-
-        # Set the strides
-        self.stride_time = N_score
-        self.stride_energy = N_score * N_time
-        self.stride_azi = N_score * N_time * N_energy
-        self.stride_mu = N_score * N_time * N_energy * N_azi
-
-    def _use_census_based_tally(self, frequency):
-        self.time = np.zeros(frequency + 1)
-
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_score = len(self.scores)
-
-        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
-
     def __repr__(self):
         text = super().__repr__()
         text += super()._phasespace_filter_text()
@@ -238,8 +243,8 @@ class TallyCell(TallyBase):
 
     def __init__(
         self,
+        cell: Cell,
         name: str = "",
-        cell: Cell = None,
         scores: list[str] = ['flux'],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
@@ -255,35 +260,6 @@ class TallyCell(TallyBase):
         # Attach cell and attach tally to the cell
         self.cell = cell
         cell.tallies.append(self)
-
-        # Allocate the bins
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_time = len(self.time) - 1
-        N_score = len(self.scores)
-        #
-        self.bin = np.zeros((N_mu, N_azi, N_energy, N_time, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
-
-        # Set the strides
-        self.stride_time = N_score
-        self.stride_energy = N_score * N_time
-        self.stride_azi = N_score * N_time * N_energy
-        self.stride_mu = N_score * N_time * N_energy * N_azi
-
-    def _use_census_based_tally(self, frequency):
-        self.time = np.zeros(frequency + 1)
-
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_score = len(self.scores)
-
-        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
 
     def __repr__(self):
         text = super().__repr__()
@@ -306,8 +282,8 @@ class TallySurface(TallyBase):
 
     def __init__(
         self,
+        surface: Surface,
         name: str = "",
-        surface: Surface = None,
         scores: list[str] = ['flux'],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
@@ -323,35 +299,6 @@ class TallySurface(TallyBase):
         # Set surface and attach tally to the surface
         self.surface = surface
         surface.tallies.append(self)
-
-        # Allocate the bins
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_time = len(self.time) - 1
-        N_score = len(self.scores)
-        #
-        self.bin = np.zeros((N_mu, N_azi, N_energy, N_time, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
-
-        # Set the strides
-        self.stride_time = N_score
-        self.stride_energy = N_score * N_time
-        self.stride_azi = N_score * N_time * N_energy
-        self.stride_mu = N_score * N_time * N_energy * N_azi
-
-    def _use_census_based_tally(self, frequency):
-        self.time = np.zeros(frequency + 1)
-
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_score = len(self.scores)
-
-        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
 
     def __repr__(self):
         text = super().__repr__()
@@ -377,8 +324,8 @@ class TallyMesh(TallyBase):
 
     def __init__(
         self,
+        mesh: MeshBase,
         name: str = "",
-        mesh: MeshBase = None,
         scores: list[str] = ['flux'],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
@@ -387,45 +334,18 @@ class TallyMesh(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_MESH
+        spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
         super().__init__(
-            type_, name, scores, mu, azi, polar_reference, energy, time
+            type_, name, scores, mu, azi, polar_reference, energy, time, spatial_shape
         )
 
         self.mesh = mesh
 
-        # Allocate the bins
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_time = len(self.time) - 1
-        N_score = len(self.scores)
-        #
-        self.bin = np.zeros((N_mu, N_azi, N_energy, N_time, mesh.Nx, mesh.Ny, mesh.Nz, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
-
         # Set the strides
+        N_score = len(self.scores)
         self.stride_z = N_score
         self.stride_y = N_score * mesh.Nz
         self.stride_x = N_score * mesh.Nz * mesh.Ny
-        self.stride_time = N_score * mesh.Nz * mesh.Ny * mesh.Nx
-        self.stride_energy = N_score * mesh.Nz * mesh.Ny * mesh.Nx * N_time
-        self.stride_azi = N_score * mesh.Nz * mesh.Ny * mesh.Nx * N_time * N_energy
-        self.stride_mu = N_score * mesh.Nz * mesh.Ny * mesh.Nx * N_time * N_energy * N_azi
-
-    def _use_census_based_tally(self, frequency):
-        mesh = self.mesh
-        self.time = np.zeros(frequency + 1)
-        mesh.t = np.zeros(frequency + 1)
-
-        N_mu = len(self.mu) - 1
-        N_azi = len(self.azi) - 1
-        N_energy = len(self.energy) - 1
-        N_score = len(self.scores)
-
-        self.bin = np.zeros((N_mu, N_azi, N_energy, frequency, mesh.Nx, mesh.Ny, mesh.Nz, N_score))
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
 
     def __repr__(self):
         text = super().__repr__()

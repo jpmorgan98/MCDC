@@ -13,12 +13,14 @@ from mcdc.print_ import print_structure
 
 @njit
 def reduce(mcdc, data):
-    for tally in mcdc['cell_tallies']:
-        _reduce(tally, mcdc, data)
-    #for tally in mcdc['surface_tallies']:
-    #    _reduce(tally, mcdc, data)
-    for tally in mcdc['mesh_tallies']:
-        _reduce(tally, mcdc, data)
+    for i in range(mcdc['N_global_tally']):
+        _reduce(mcdc['global_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_cell_tally']):
+        _reduce(mcdc['cell_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_surface_tally']):
+        _reduce(mcdc['surface_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_mesh_tally']):
+        _reduce(mcdc['mesh_tallies'][i], mcdc, data)
 
 @njit
 def _reduce(tally, mcdc, data):
@@ -45,12 +47,14 @@ def _reduce(tally, mcdc, data):
 
 @njit
 def accumulate(mcdc, data):
-    for tally in mcdc['cell_tallies']:
-        _accumulate(tally, mcdc, data)
-    #for tally in mcdc['surface_tallies']:
-    #    _accumulate(tally, mcdc, data)
-    for tally in mcdc['mesh_tallies']:
-        _accumulate(tally, mcdc, data)
+    for i in range(mcdc['N_global_tally']):
+        _accumulate(mcdc['global_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_cell_tally']):
+        _accumulate(mcdc['cell_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_surface_tally']):
+        _accumulate(mcdc['surface_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_mesh_tally']):
+        _accumulate(mcdc['mesh_tallies'][i], mcdc, data)
 
 
 @njit
@@ -77,12 +81,14 @@ def _accumulate(tally, mcdc, data):
 
 @njit
 def finalize(mcdc, data):
-    for tally in mcdc['cell_tallies']:
-        _finalize(tally, mcdc, data)
-    for tally in mcdc['surface_tallies']:
-        _finalize(tally, mcdc, data)
-    for tally in mcdc['mesh_tallies']:
-        _finalize(tally, mcdc, data)
+    for i in range(mcdc['N_global_tally']):
+        _finalize(mcdc['global_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_cell_tally']):
+        _finalize(mcdc['cell_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_surface_tally']):
+        _finalize(mcdc['surface_tallies'][i], mcdc, data)
+    for i in range(mcdc['N_mesh_tally']):
+        _finalize(mcdc['mesh_tallies'][i], mcdc, data)
 
 
 @njit
@@ -101,7 +107,7 @@ def _finalize(tally, mcdc, data):
     elif mcdc["settings"]["eigenvalue_mode"]:
         N_history = mcdc["settings"]["N_active"]
 
-    elif not mcdc["technique"]["domain_decomposition"]:
+    else:
         # MPI Reduce
         buff = np.zeros(N_bin)
         buff_sq = np.zeros(N_bin)
@@ -110,16 +116,6 @@ def _finalize(tally, mcdc, data):
             MPI.COMM_WORLD.Reduce(data[sum_sq_start:sum_sq_end], buff_sq, MPI.SUM, 0)
         data[sum_start:sum_end] = buff
         data[sum_sq_start:sum_sq_end] = buff_sq
-
-    else:
-        # find number of subdomains
-        N_dd = 1
-        N_dd *= mcdc["technique"]["dd_mesh"]["x"].size - 1
-        N_dd *= mcdc["technique"]["dd_mesh"]["y"].size - 1
-        N_dd *= mcdc["technique"]["dd_mesh"]["z"].size - 1
-        # DD Reduce if multiple processors per subdomain
-        if N_dd != mcdc["mpi_size"]:
-            dd_closeout(data, mcdc)
 
     # Calculate and store statistics
     #   sum --> mean
@@ -138,5 +134,3 @@ def _finalize(tally, mcdc, data):
             data[offset_sum_square + i] = 0.0
         else:
             data[offset_sum_square + i] = math.sqrt(radicand)
-
-

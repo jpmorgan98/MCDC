@@ -19,6 +19,9 @@ from mcdc.print_ import print_1d_array
 class MeshBase(ObjectPolymorphic):
     name: str
     N_bin: int
+    Nx: int
+    Ny: int
+    Nz: int
 
     def __init__(self, type_, name):
         super().__init__(type_)
@@ -58,13 +61,10 @@ class MeshUniform(MeshBase):
     #
     x0: float
     dx: float
-    Nx: int
     y0: float
     dy: float
-    Ny: int
     z0: float
     dz: float
-    Nz: int
 
     def __init__(
         self,
@@ -110,9 +110,6 @@ class MeshStructured(MeshBase):
     x: NDArray[float64]
     y: NDArray[float64]
     z: NDArray[float64]
-    Nx: int
-    Ny: int
-    Nz: int
 
     def __init__(
         self,

@@ -14,6 +14,7 @@ from mcdc.transport.tally.filter import (
     get_energy_index,
     get_time_index,
 )
+from mcdc.print_ import print_structure
 
 
 @njit
@@ -172,7 +173,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
     i_x, i_y, i_z = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
     if i_time == -1 or i_x == -1 or i_y == -1 or i_z == -1:
         return
-    
+
     # Tally base index
     idx_base = (
         tally["bin_offset"]
