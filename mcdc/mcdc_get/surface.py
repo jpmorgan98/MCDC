@@ -2,25 +2,19 @@ from numba import njit
 
 
 @njit
-def move_velocities(index, surface, data):
+def move_velocities_vector(index_1, surface, data):
     offset = surface["move_velocities_offset"]
-    return data[offset + index]
-
-
-@njit
-def move_velocities_all(surface, data):
-    start = surface["move_velocities_offset"]
-    size = surface["move_velocities_length"]
-    end = start + size
+    stride = 3
+    start = offset + index_1 * stride
+    end = start + stride
     return data[start:end]
 
 
 @njit
-def move_velocities_last(surface, data):
-    start = surface["move_velocities_offset"]
-    size = surface["move_velocities_length"]
-    end = start + size
-    return data[end - 1]
+def move_velocities(index_1, index_2, surface, data):
+    offset = surface["move_velocities_offset"]
+    stride = 3
+    return data[offset + index_1 * stride + index_2]
 
 
 @njit
@@ -39,7 +33,7 @@ def move_durations(index, surface, data):
 @njit
 def move_durations_all(surface, data):
     start = surface["move_durations_offset"]
-    size = surface["move_durations_length"]
+    size = surface["N_move"]
     end = start + size
     return data[start:end]
 
@@ -47,7 +41,7 @@ def move_durations_all(surface, data):
 @njit
 def move_durations_last(surface, data):
     start = surface["move_durations_offset"]
-    size = surface["move_durations_length"]
+    size = surface["N_move"]
     end = start + size
     return data[end - 1]
 
@@ -68,7 +62,7 @@ def move_time_grid(index, surface, data):
 @njit
 def move_time_grid_all(surface, data):
     start = surface["move_time_grid_offset"]
-    size = surface["move_time_grid_length"]
+    size = surface["N_move_grid"]
     end = start + size
     return data[start:end]
 
@@ -76,7 +70,7 @@ def move_time_grid_all(surface, data):
 @njit
 def move_time_grid_last(surface, data):
     start = surface["move_time_grid_offset"]
-    size = surface["move_time_grid_length"]
+    size = surface["N_move_grid"]
     end = start + size
     return data[end - 1]
 
@@ -89,25 +83,19 @@ def move_time_grid_chunk(start, length, surface, data):
 
 
 @njit
-def move_translations(index, surface, data):
+def move_translations_vector(index_1, surface, data):
     offset = surface["move_translations_offset"]
-    return data[offset + index]
-
-
-@njit
-def move_translations_all(surface, data):
-    start = surface["move_translations_offset"]
-    size = surface["move_translations_length"]
-    end = start + size
+    stride = 3
+    start = offset + index_1 * stride
+    end = start + stride
     return data[start:end]
 
 
 @njit
-def move_translations_last(surface, data):
-    start = surface["move_translations_offset"]
-    size = surface["move_translations_length"]
-    end = start + size
-    return data[end - 1]
+def move_translations(index_1, index_2, surface, data):
+    offset = surface["move_translations_offset"]
+    stride = 3
+    return data[offset + index_1 * stride + index_2]
 
 
 @njit

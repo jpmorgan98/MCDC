@@ -539,6 +539,7 @@ def generate_hdf5(mcdc, data):
         MESH_UNIFORM,
         SCORE_FLUX,
         SCORE_DENSITY,
+        SCORE_FISSION,
     )
 
     if not mcdc["mpi_master"]:
@@ -670,6 +671,8 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_FISSION:
+                    score_name = "fission"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)
@@ -714,6 +717,8 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_FISSION:
+                    score_name = "fission"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)
@@ -781,6 +786,8 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_FISSION:
+                    score_name = "fission"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)

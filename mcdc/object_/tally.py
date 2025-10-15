@@ -24,6 +24,7 @@ from mcdc.constant import (
     PI,
     SCORE_FLUX,
     SCORE_DENSITY,
+    SCORE_FISSION,
     TALLY_GLOBAL,
     TALLY_CELL,
     TALLY_MESH,
@@ -80,6 +81,8 @@ class TallyBase(ObjectPolymorphic):
                 self.scores.append(SCORE_FLUX)
             elif score == "density":
                 self.scores.append(SCORE_DENSITY)
+            elif score == "fission":
+                self.scores.append(SCORE_FISSION)
             else:
                 print_error(f'Unknown tally score: {score}')
 
@@ -197,6 +200,8 @@ def decode_score_type(type_):
         return "Flux"
     elif type_ == SCORE_DENSITY:
         return "Density"
+    elif type_ == SCORE_FISSION:
+        return "Fission"
 
 
 # ======================================================================================

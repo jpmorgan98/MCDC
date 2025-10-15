@@ -7,7 +7,7 @@ import mcdc.transport.mesh as mesh_
 import mcdc.transport.physics as physics
 
 from mcdc.code_factory import adapt
-from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, SCORE_FLUX, SCORE_DENSITY
+from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, REACTION_NEUTRON_FISSION, SCORE_FLUX, SCORE_DENSITY, SCORE_FISSION
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import (
     get_filter_indices
@@ -26,6 +26,8 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             score = flux
         elif score_type == SCORE_DENSITY:
             score = flux / speed
+        elif score_type == SCORE_FISSION:
+            score = flux * physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
         adapt.global_add(data, idx_base + i_score, score)
 
 

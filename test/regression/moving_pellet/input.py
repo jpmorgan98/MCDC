@@ -3,9 +3,9 @@ import numpy as np
 import mcdc
 
 
-# =============================================================================
-# Materials
-# =============================================================================
+# ======================================================================================
+# Set model
+# ======================================================================================
 
 # Set materials
 fuel = mcdc.MaterialMG(
@@ -14,23 +14,18 @@ fuel = mcdc.MaterialMG(
     nu_p=np.array([2.5]),
     speed=np.array([200000.0]),
 )
-
 air = mcdc.MaterialMG(
     capture=np.array([0.002]),
     scatter=np.array([[0.008]]),
     speed=np.array([200000.0]),
 )
 
-# =============================================================================
-# Set an assembly
-# =============================================================================
-
-# Surfaces
+# Set surfaces
 cylinder_z = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)
 top_z = mcdc.Surface.PlaneZ(z=9.0)
 bot_z = mcdc.Surface.PlaneZ(z=6.0)
 
-# Move
+# Move surfaces
 cylinder_z.move([[-0.5, 0.0, 0.0], [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0]], [2.0, 5.0, 1.0])
 top_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])
 bot_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])
@@ -51,27 +46,39 @@ mcdc.Cell(
     fill=air,
 )
 
-# =============================================================================
+# ======================================================================================
 # Set source
-# =============================================================================
-# Uniform isotropic source throughout the domain
+# ======================================================================================
 
-mcdc.source(x=[2.0, 3.0], y=[-0.5, 0.5], z=[-0.5, 0.5], time=[0.0, 9.0])
-
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
-
-settings = mcdc.Settings(N_particle=5, active_bank_buffer=1000, N_batch=2)
-
-mcdc.tally.mesh_tally(
-    x=np.linspace(-5, 5, 201),
-    z=np.linspace(-10, 10, 201),
-    t=np.linspace(0, 9, 46),
-    scores=["fission"],
+mcdc.Source(
+    x=[2.0, 3.0],
+    y=[-0.5, 0.5],
+    z=[-0.5, 0.5],
+    isotropic=True,
+    #energy_group=0,
+    time=[0.0, 9.0],
+    energy_group=np.array([[0],[1.0]]),
 )
 
+# ======================================================================================
+# Set tallies, settings, and run MC/DC
+# ======================================================================================
+
+# Tallies
+mesh = mcdc.MeshStructured(
+    x=np.linspace(-5, 5, 201),
+    z=np.linspace(-10, 10, 201),
+)
+mcdc.TallyMesh(mesh=mesh, scores=["fission"], time=np.linspace(0, 9, 46))
+
+# Settings
+mcdc.settings.N_particle = 5
+mcdc.settings.N_batch = 2
+mcdc.settings.active_bank_buffer = 1000
+
+# Run
 mcdc.run()
+
 """
 colors = {
     fuel: "red",

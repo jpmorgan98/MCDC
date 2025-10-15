@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Annotated, Iterable
 import numpy as np
 
 from numpy import float64
@@ -109,10 +109,11 @@ class Surface(ObjectNonSingleton):
     nz: float
     moving: bool
     N_move: int
-    move_velocities: NDArray[float64]
-    move_durations: NDArray[float64]
-    move_time_grid: NDArray[float64]
-    move_translations: NDArray[float64]
+    N_move_grid: int
+    move_velocities: Annotated[NDArray[float64], ("N_move", 3)]
+    move_durations: Annotated[NDArray[float64], ("N_move",)]
+    move_time_grid: Annotated[NDArray[float64], ("N_move_grid",)]
+    move_translations: Annotated[NDArray[float64], ("N_move_grid", 3)]
     tallies: list[TallySurface]
 
     def __init__(self, type_, name, boundary_condition):
@@ -155,6 +156,7 @@ class Surface(ObjectNonSingleton):
         # Moving surface parameters
         self.moving = False
         self.N_move = 1
+        self.N_move_grid = 2
         self.move_velocities = np.zeros((1, 3))
         self.move_durations = np.array([INF])
         self.move_time_grid = np.array([0.0, INF])
@@ -642,23 +644,24 @@ class Surface(ObjectNonSingleton):
         """
         self.moving = True
         self.N_move = len(durations) + 1
+        self.N_move_grid = len(durations) + 2
 
         if isinstance(velocities, np.ndarray):
             velocities = velocities.tolist()
             durations = durations.tolist()
 
         # Add the statics for the rest of the simulation
-        self.move_velocities = velocities
-        self.move_velocities.append([0.0, 0.0, 0.0])
-        self.move_velocities = np.array(self.move_velocities)
+        move_velocities = velocities
+        move_velocities.append([0.0, 0.0, 0.0])
+        self.move_velocities = np.array(move_velocities)
         #
-        self.move_durations = durations
-        self.move_durations.append(INF)
-        self.move_durations = np.array(self.move_durations)
+        move_durations = durations
+        move_durations.append(INF)
+        self.move_durations = np.array(move_durations)
 
         # Set time grid and translations
-        self.move_time_grid = np.zeros(self.N_move + 1)
-        self.move_translations = np.zeros((self.N_move + 1, 3))
+        self.move_time_grid = np.zeros(self.N_move_grid)
+        self.move_translations = np.zeros((self.N_move_grid, 3))
         for n in range(self.N_move):
             t_start = self.move_time_grid[n]
             self.move_time_grid[n + 1] = t_start + self.move_durations[n]
