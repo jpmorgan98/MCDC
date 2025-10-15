@@ -10,9 +10,7 @@ from mcdc.code_factory import adapt
 from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, SCORE_FLUX, SCORE_DENSITY
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import (
-    get_direction_index,
-    get_energy_index,
-    get_time_index,
+    get_filter_indices
 )
 from mcdc.print_ import print_structure
 
@@ -35,28 +33,24 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
 def cell_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
 
-    # Simulation settings
+    # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(particle_container, tally, data, MG_mode)
+
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1:
+        return
 
     # Particle/track properties
     ut = 1.0 / physics.particle_speed(particle_container, mcdc, data)
     t = particle["t"]
     t_final = t + ut * distance
 
-    # Ini_timeial bin indices
-    i_mu, i_azi, i_energy, i_time = 0, 0, 0, 0
-    if tally["filter_direction"]:
-        i_mu, i_azi = get_direction_index(particle_container, tally, data)
-        if i_mu == -1 or i_azi == -1:
-            return
-    if tally["filter_energy"]:
-        i_energy = get_energy_index(particle_container, tally, data, MG_mode)
-        if i_energy == -1:
-            return
-    if tally["filter_time"]:
-        i_time = get_time_index(particle_container, tally, data)
-        if i_time == -1:
-            return
+    # No score if particle does not cross the time bins
+    t_min = mcdc_get.tally.time(0, tally, data)
+    t_max = mcdc_get.tally.time_last(tally, data)
+    if t_final < t_min or t > t_max:
+        return
 
     # Tally base index
     idx_base = (
@@ -132,15 +126,22 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
 @njit
 def mesh_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
+    
+    # Get filter indices
+    MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(particle_container, tally, data, MG_mode)
+
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1:
+        return
+
+    # Get the mesh
     mesh_type = tally["mesh_type"]
     mesh_ID = tally["mesh_ID"]
     if mesh_type == MESH_UNIFORM:
         mesh = mcdc['uniform_meshes'][mesh_ID]
     elif mesh_type == MESH_STRUCTURED:
         mesh = mcdc['structured_meshes'][mesh_ID]
-
-    # Simulation settings
-    MG_mode = mcdc["settings"]["multigroup_mode"]
 
     # Particle/track properties
     x = particle["x"]
@@ -156,23 +157,16 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
     z_final = z + uz * distance
     t_final = t + ut * distance
 
-    # Initial bin indices
-    i_mu, i_azi, i_energy, i_time = 0, 0, 0, 0
-    if tally["filter_direction"]:
-        i_mu, i_azi = get_direction_index(particle_container, tally, data)
-        if i_mu == -1 or i_azi == -1:
-            return
-    if tally["filter_energy"]:
-        i_energy = get_energy_index(particle_container, tally, data, MG_mode)
-        if i_energy == -1:
-            return
-    if tally["filter_time"]:
-        i_time = get_time_index(particle_container, tally, data)
-        if i_time == -1:
-            return
-    i_x, i_y, i_z = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
-    if i_time == -1 or i_x == -1 or i_y == -1 or i_z == -1:
+    # No score if particle does not cross the time bins
+    t_min = mcdc_get.tally.time(0, tally, data)
+    t_max = mcdc_get.tally.time_last(tally, data)
+    if t_final < t_min or t > t_max:
         return
+
+    # Get mesh bin indices
+    i_x, i_y, i_z = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
+
+    # TODO: No score if particle does not cross the mesh bins (considering directions)
 
     # Tally base index
     idx_base = (

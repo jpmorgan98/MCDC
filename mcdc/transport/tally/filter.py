@@ -14,6 +14,22 @@ from mcdc.transport.util import find_bin
 
 
 @njit
+def get_filter_indices(particle_container, tally, data, MG_mode):
+    i_mu, i_azi, i_energy, i_time = 0, 0, 0, 0
+
+    if tally["filter_direction"]:
+        i_mu, i_azi = get_direction_index(particle_container, tally, data)
+
+    if tally["filter_energy"]:
+        i_energy = get_energy_index(particle_container, tally, data, MG_mode)
+    
+    if tally["filter_time"]:
+        i_time = get_time_index(particle_container, tally, data)
+
+    return i_mu, i_azi, i_energy, i_time
+
+
+@njit
 def get_direction_index(particle_container, tally, data):
     particle = particle_container[0]
 
@@ -23,13 +39,12 @@ def get_direction_index(particle_container, tally, data):
     uz = particle["uz"]
 
     # Polar reference
-    nx = mcdc_get.tally.polar_reference(0, tally, data)
-    ny = mcdc_get.tally.polar_reference(0, tally, data)
-    nz = mcdc_get.tally.polar_reference(0, tally, data)
+    nx = tally['polar_reference'][0]
+    ny = tally['polar_reference'][1]
+    nz = tally['polar_reference'][2]
 
-    # Rotate direction
+    # TODO: Rotate direction based on the polar reference
     if nz != 1.0:
-        # TODO
         pass
 
     mu = uz
