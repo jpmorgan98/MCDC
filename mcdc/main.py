@@ -584,9 +584,98 @@ def generate_hdf5(mcdc, data):
         if mcdc["settings"]["use_census_based_tally"]:
             return
 
-        # Cell and surface tallies
+        # Global, cell, and surface tallies (TODO: make a function to avoid hard-coded)
         for i_tally in range(mcdc['N_cell_tally']):
             tally = mcdc['cell_tallies'][i_tally]
+            tally_name = tally['name']
+
+            # Filter grids
+            f.create_dataset(f"tallies/{tally_name}/grid/mu", data=mcdc_get.tally.mu_all(tally, data))
+            f.create_dataset(f"tallies/{tally_name}/grid/azi", data=mcdc_get.tally.azi_all(tally, data))
+            f.create_dataset(f"tallies/{tally_name}/grid/energy", data=mcdc_get.tally.energy_all(tally, data))
+            f.create_dataset(f"tallies/{tally_name}/grid/time", data=mcdc_get.tally.time_all(tally, data))
+
+            # Shape
+            N_mu = tally["mu_length"] - 1
+            N_azi = tally["azi_length"] - 1
+            N_energy = tally["energy_length"] - 1
+            N_time = tally["time_length"] - 1
+            N_score = tally["scores_length"]
+            shape = (N_mu, N_azi, N_energy, N_time, N_score)
+
+            # Reshape tally
+            N_bin = tally['bin_length']
+            start_mean = tally['bin_sum_offset']
+            start_sdev = tally['bin_sum_square_offset']
+            mean = data[start_mean:start_mean+N_bin]
+            sdev = data[start_sdev:start_sdev+N_bin]
+            mean = mean.reshape(shape)
+            sdev = sdev.reshape(shape)
+
+            # Roll tally so that score is in the front
+            mean = np.rollaxis(mean, 4, 0)
+            sdev = np.rollaxis(sdev, 4, 0)
+
+            # Iterate over scores
+            for i in range(tally['scores_length']):
+                score_type = mcdc_get.tally.scores(i, tally, data)
+                score_mean = np.squeeze(mean[i])
+                score_sdev = np.squeeze(sdev[i])
+                if score_type == SCORE_FLUX:
+                    score_name = "flux"
+                elif score_type == SCORE_DENSITY:
+                    score_name = "density"
+                group_name = f"tallies/{tally_name}/{score_name}/"
+
+                f.create_dataset(group_name + "mean", data=score_mean)
+                f.create_dataset(group_name + "sdev", data=score_sdev)
+        
+        for i_tally in range(mcdc['N_surface_tally']):
+            tally = mcdc['surface_tallies'][i_tally]
+            tally_name = tally['name']
+
+            # Filter grids
+            f.create_dataset(f"tallies/{tally_name}/grid/mu", data=mcdc_get.tally.mu_all(tally, data))
+            f.create_dataset(f"tallies/{tally_name}/grid/azi", data=mcdc_get.tally.azi_all(tally, data))
+            f.create_dataset(f"tallies/{tally_name}/grid/energy", data=mcdc_get.tally.energy_all(tally, data))
+            f.create_dataset(f"tallies/{tally_name}/grid/time", data=mcdc_get.tally.time_all(tally, data))
+
+            # Shape
+            N_mu = tally["mu_length"] - 1
+            N_azi = tally["azi_length"] - 1
+            N_energy = tally["energy_length"] - 1
+            N_time = tally["time_length"] - 1
+            N_score = tally["scores_length"]
+            shape = (N_mu, N_azi, N_energy, N_time, N_score)
+
+            # Reshape tally
+            N_bin = tally['bin_length']
+            start_mean = tally['bin_sum_offset']
+            start_sdev = tally['bin_sum_square_offset']
+            mean = data[start_mean:start_mean+N_bin]
+            sdev = data[start_sdev:start_sdev+N_bin]
+            mean = mean.reshape(shape)
+            sdev = sdev.reshape(shape)
+
+            # Roll tally so that score is in the front
+            mean = np.rollaxis(mean, 4, 0)
+            sdev = np.rollaxis(sdev, 4, 0)
+
+            # Iterate over scores
+            for i in range(tally['scores_length']):
+                score_type = mcdc_get.tally.scores(i, tally, data)
+                score_mean = np.squeeze(mean[i])
+                score_sdev = np.squeeze(sdev[i])
+                if score_type == SCORE_FLUX:
+                    score_name = "flux"
+                elif score_type == SCORE_DENSITY:
+                    score_name = "density"
+                group_name = f"tallies/{tally_name}/{score_name}/"
+
+                f.create_dataset(group_name + "mean", data=score_mean)
+                f.create_dataset(group_name + "sdev", data=score_sdev)
+        for i_tally in range(mcdc['N_global_tally']):
+            tally = mcdc['global_tallies'][i_tally]
             tally_name = tally['name']
 
             # Filter grids

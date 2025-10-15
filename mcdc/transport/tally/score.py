@@ -64,7 +64,7 @@ def cell_tally(particle_container, distance, tally, mcdc, data):
     # Sweep through the distance
     distance_swept = 0.0
     while distance_swept < distance - COINCIDENCE_TOLERANCE:
-        t_next = mcdc_get.cell_tally.time(i_time + 1, tally, data)
+        t_next = mcdc_get.tally.time(i_time + 1, tally, data)
         distance_scored = (min(t_next, t_final) - t) / ut
 
         # Score

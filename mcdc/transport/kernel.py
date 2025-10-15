@@ -1580,6 +1580,11 @@ def move_to_event(P_arr, mcdc, data):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
             tally = mcdc["cell_tallies"][tally_ID]
             tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
+        
+        # Global tallies
+        for i in range(mcdc['N_global_tally']):
+            tally = mcdc["global_tallies"][i]
+            tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
 
         # Mesh tallies
         for tally in mcdc["mesh_tallies"]:
