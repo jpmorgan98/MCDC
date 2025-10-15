@@ -87,25 +87,14 @@ def cell_tally(particle_container, distance, tally, mcdc, data):
 @njit
 def surface_tally(particle_container, surface, tally, mcdc, data):
     particle = particle_container[0]
-    material = mcdc["materials"][particle["material_ID"]]
 
-    # Simulation settings
+    # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(particle_container, tally, data, MG_mode)
 
-    # Bin indices
-    i_mu, i_azi, i_energy, i_time = 0, 0, 0, 0
-    if tally["filter_direction"]:
-        i_mu, i_azi = get_direction_index(particle_container, tally, data)
-        if i_mu == -1 or i_azi == -1:
-            return
-    if tally["filter_energy"]:
-        i_energy = get_energy_index(particle_container, tally, data, MG_mode)
-        if i_energy == -1:
-            return
-    if tally["filter_time"]:
-        i_time = get_time_index(particle_container, tally, data)
-        if i_time == -1:
-            return
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
+        return
 
     # Tally index
     idx_base = (
