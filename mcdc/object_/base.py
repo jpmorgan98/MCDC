@@ -20,7 +20,7 @@ class ObjectBase:
     def __setattr__(self, key, value):
         hints = getattr(self.__class__, "__annotations__", {})
         if key in hints and not check_type(value, hints[key], self.__class__, self):
-            raise TypeError(f"{key} must be {hints[key]!r}, got {value!r}")
+            print_error(f"{key} must be {hints[key]!r}, got {value!r}")
         super().__setattr__(key, value)
 
 

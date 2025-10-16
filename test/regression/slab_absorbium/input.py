@@ -1,12 +1,10 @@
 import numpy as np
-import sys
-
 import mcdc
 
 
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # Three slab layers with different purely-absorbing materials
 
 # Set materials
@@ -25,28 +23,27 @@ mcdc.Cell(region=+s1 & -s2, fill=m2)
 mcdc.Cell(region=+s2 & -s3, fill=m3)
 mcdc.Cell(region=+s3 & -s4, fill=m1)
 
-# =============================================================================
+# ======================================================================================
 # Set source
-# =============================================================================
+# ======================================================================================
 # Uniform isotropic source throughout the domain
 
-mcdc.source(z=[0.0, 6.0], isotropic=True)
+mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)
 
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
+# ======================================================================================
+# Set tallies, settings, and run mcdc
+# ======================================================================================
 
-settings = mcdc.Settings(N_particle=100, N_batch=2)
-
-print(s4)
-t1 = mcdc.TallySurface(name="My tally yo!", surfaces=[s4], scores=["flux"])
-print(t1)
-print(s4)
-exit()
-mcdc.tally.mesh_tally(
-    z=np.linspace(0.0, 6.0, 61),
-    mu=np.linspace(-1.0, 1.0, 32 + 1),
-    scores=["flux", "total"],
+# Tallies
+mcdc.TallySurface(surface=s4, scores=["net-current"])
+mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
+mcdc.TallyMesh(
+    mesh=mesh, mu=np.linspace(-1.0, 1.0, 32 + 1), scores=["flux", "collision"]
 )
 
+# Settings
+mcdc.settings.N_particle = 100
+mcdc.settings.N_batch = 2
+
+# Run
 mcdc.run()

@@ -7,7 +7,7 @@ import mcdc.transport.mesh as mesh_
 import mcdc.transport.physics as physics
 
 from mcdc.code_factory import adapt
-from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, REACTION_NEUTRON_FISSION, SCORE_FLUX, SCORE_DENSITY, SCORE_FISSION
+from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, REACTION_NEUTRON_FISSION, REACTION_TOTAL, SCORE_FLUX, SCORE_DENSITY, SCORE_COLLISION, SCORE_FISSION, SCORE_NET_CURRENT
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import (
     get_filter_indices
@@ -17,6 +17,7 @@ from mcdc.print_ import print_structure
 
 @njit
 def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
+    particle = particle_container[0]
     speed = physics.particle_speed(particle_container, mcdc, data)
 
     for i_score in range(tally["scores_length"]):
@@ -26,8 +27,14 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             score = flux
         elif score_type == SCORE_DENSITY:
             score = flux / speed
+        elif score_type == SCORE_COLLISION:
+            score = flux * physics.macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
         elif score_type == SCORE_FISSION:
             score = flux * physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+        elif score_type == SCORE_NET_CURRENT:
+            surface = mcdc['surfaces'][particle['surface_ID']]
+            mu = get_normal_component(particle_container, speed, surface, data)
+            score = flux * mu
         adapt.global_add(data, idx_base + i_score, score)
 
 

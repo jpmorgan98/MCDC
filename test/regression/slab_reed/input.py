@@ -1,10 +1,9 @@
 import numpy as np
-
 import mcdc
 
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # Three slab layers with different materials
 # Based on William H. Reed, NSE (1971), 46:2, 309-314, DOI: 10.13182/NSE46-309
 
@@ -27,23 +26,28 @@ mcdc.Cell(region=+s2 & -s3, fill=m2)
 mcdc.Cell(region=+s3 & -s4, fill=m3)
 mcdc.Cell(region=+s4 & -s5, fill=m4)
 
-# =============================================================================
+# ======================================================================================
 # Set source
-# =============================================================================
+# ======================================================================================
 
 # Isotropic source in the absorbing medium
-mcdc.source(z=[0.0, 2.0], isotropic=True, prob=50.0)
+mcdc.Source(z=[0.0, 2.0], isotropic=True, energy_group=0, probability=50.0)
 
 # Isotropic source in the first half of the outermost medium,
 # with 1/100 strength
-mcdc.source(z=[5.0, 6.0], isotropic=True, prob=0.5)
+mcdc.Source(z=[5.0, 6.0], isotropic=True, energy_group=0, probability=0.5)
 
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
+# ======================================================================================
+# Set tallies, settings, and run MC/DC
+# ======================================================================================
 
-settings = mcdc.Settings(N_particle=5000, N_batch=2)
+# Tallies
+mesh = mcdc.MeshStructured(z=np.linspace(0.0, 8.0, 81))
+mcdc.TallyMesh(mesh=mesh, scores=["flux"])
 
-mcdc.tally.mesh_tally(scores=["flux"], z=np.linspace(0.0, 8.0, 81))
+# Settings
+mcdc.settings.N_particle = 5000
+mcdc.settings.N_batch = 2
 
+# Run
 mcdc.run()

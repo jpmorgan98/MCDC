@@ -138,6 +138,13 @@ def preparation():
     # Simulation parameters
     # ==================================================================================
 
+    # Normalize source probability
+    norm = 0.0
+    for source in simulation.sources:
+        norm += source.probability
+    for source in simulation.sources:
+        source.probability /= norm
+
     # Create root universe if not defined
     if len(simulation.universes[0].cells) == 0:
         simulation.universes[0].cells = simulation.cells
@@ -539,7 +546,9 @@ def generate_hdf5(mcdc, data):
         MESH_UNIFORM,
         SCORE_FLUX,
         SCORE_DENSITY,
+        SCORE_COLLISION,
         SCORE_FISSION,
+        SCORE_NET_CURRENT,
     )
 
     if not mcdc["mpi_master"]:
@@ -626,8 +635,12 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_COLLISION:
+                    score_name = "total"
                 elif score_type == SCORE_FISSION:
                     score_name = "fission"
+                elif score_type == SCORE_NET_CURRENT:
+                    score_name = "net-current"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)
@@ -673,8 +686,12 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_COLLISION:
+                    score_name = "total"
                 elif score_type == SCORE_FISSION:
                     score_name = "fission"
+                elif score_type == SCORE_NET_CURRENT:
+                    score_name = "net-current"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)
@@ -719,8 +736,12 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_COLLISION:
+                    score_name = "total"
                 elif score_type == SCORE_FISSION:
                     score_name = "fission"
+                elif score_type == SCORE_NET_CURRENT:
+                    score_name = "net-current"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)
@@ -788,8 +809,12 @@ def generate_hdf5(mcdc, data):
                     score_name = "flux"
                 elif score_type == SCORE_DENSITY:
                     score_name = "density"
+                elif score_type == SCORE_COLLISION:
+                    score_name = "total"
                 elif score_type == SCORE_FISSION:
                     score_name = "fission"
+                elif score_type == SCORE_NET_CURRENT:
+                    score_name = "net-current"
                 group_name = f"tallies/{tally_name}/{score_name}/"
 
                 f.create_dataset(group_name + "mean", data=score_mean)

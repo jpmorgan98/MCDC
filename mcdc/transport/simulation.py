@@ -20,6 +20,7 @@ from mcdc.print_ import (
     print_header_batch,
     print_progress,
     print_progress_eigenvalue,
+    print_structure,
 )
 from mcdc.transport.source import source_particle
 
@@ -249,6 +250,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     hit_census = False
     hit_next_census = False
     idx_census = mcdc["idx_census"]
+
     if idx_census < settings["N_census"] - 1:
         if P["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
             hit_census = True
@@ -265,29 +267,6 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     else:
         # Particle will participate in the future
         adapt.add_future(P_arr, prog)
-
-    """
-        if mcdc["technique"]["domain_decomposition"]:
-            if mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]] > 0:
-                P["w"] /= mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]]
-            if kernel.particle_in_domain(P_arr, mcdc):
-                adapt.add_census(P_arr, prog)
-        else:
-            adapt.add_census(P_arr, prog)
-    else:
-        P_new_arr = adapt.local_array(1, type_.particle)
-        P_new = P_new_arr[0]
-        # Add the source particle into the active bank
-        if mcdc["technique"]["domain_decomposition"]:
-            if mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]] > 0:
-                P["w"] /= mcdc["technique"]["dd_work_ratio"][mcdc["dd_idx"]]
-            if kernel.particle_in_domain(P_arr, mcdc):
-                kernel.recordlike_to_particle(P_new_arr, P_arr)
-                adapt.add_active(P_new_arr, prog)
-        else:
-            kernel.recordlike_to_particle(P_new_arr, P_arr)
-            adapt.add_active(P_new_arr, prog)
-    """
 
 
 @njit

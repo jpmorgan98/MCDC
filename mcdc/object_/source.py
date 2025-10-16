@@ -138,7 +138,7 @@ class Source(ObjectNonSingleton):
             self.direction = np.array(direction)
         elif white_direction is not None:
             self.isotropic_direction = False
-            self.white_direction = False
+            self.white_direction = True
             self.direction = np.array(white_direction)
 
         # Energy
@@ -162,16 +162,6 @@ class Source(ObjectNonSingleton):
             self.discrete_time = False
             self.time_range = np.array(time)
    
-        # ==============================================================================
-        # Normalize probability
-        # ==============================================================================
-
-        norm = 0.0
-        for source in simulation.sources:
-            norm += source.probability
-        for source in simulation.sources:
-            source.probability /= norm
-
     def __repr__(self):
         text = "\n"
         text += f"Source\n"

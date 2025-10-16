@@ -22,6 +22,7 @@ import mcdc.transport.mesh as mesh_
 
 import mcdc.transport.tally as tally_module
 import mcdc.transport.rng as rng
+import mcdc.object_.numba_types as type_
 
 from mcdc.code_factory.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
