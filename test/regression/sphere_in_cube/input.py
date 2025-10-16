@@ -1,9 +1,9 @@
 import numpy as np
 import mcdc
 
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # Homogeneous pure-fission sphere inside a pure-scattering cube
 
 # Set materials
@@ -31,26 +31,35 @@ sphere_cell = mcdc.Cell(region=inside_sphere, fill=pure_f)
 # =============================================================================
 # Set source
 # =============================================================================
-# The source pulses in t=[0,5]
 
-mcdc.source(x=[0.0, 4.0], y=[0.0, 4.0], z=[0.0, 4.0], time=[0.0, 50.0], isotropic=True)
-
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
-
-settings = mcdc.Settings(N_particle=100, N_batch=2)
-mcdc.implicit_capture()
-
-mcdc.tally.mesh_tally(
-    scores=["fission"],
-    x=np.linspace(0.0, 4.0, 2),
-    y=np.linspace(0.0, 4.0, 2),
-    z=np.linspace(0.0, 4.0, 2),
-    # t=np.linspace(0.0, 200.0, 2),
+mcdc.Source(
+    x=[0.0, 4.0],
+    y=[0.0, 4.0],
+    z=[0.0, 4.0],
+    isotropic=True,
+    energy_group=0,
+    time=[0.0, 50.0],
 )
 
-mcdc.tally.cell_tally(sphere_cell, scores=["fission"])
+# =============================================================================
+# Set tallies, settings, techniques, and run MC/DC
+# =============================================================================
+
+# Tallies
+mesh = mcdc.MeshUniform(x=(0.0, 4.0, 1), y=(0.0, 4.0, 1), z=(0.0, 4.0, 1))
+mcdc.TallyMesh(
+    mesh=mesh,
+    scores=["fission"],
+    # t=np.linspace(0.0, 200.0, 2),
+)
+mcdc.TallyCell(cell=sphere_cell, scores=["fission"])
+
+# Settings
+mcdc.settings.N_particle = 100
+mcdc.settings.N_batch = 2
+
+# Techniques
+mcdc.simulation.implicit_capture()
 
 # Run
 mcdc.run()
