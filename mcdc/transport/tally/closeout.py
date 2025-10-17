@@ -1,9 +1,12 @@
 import math
 import numpy as np
 
-from numba import njit, objmode
+from numba import literal_unroll, njit, objmode
 from mpi4py import MPI
 
+####
+
+from mcdc.constant import TALLY_LITERALS
 from mcdc.print_ import print_structure
 
 
@@ -13,14 +16,9 @@ from mcdc.print_ import print_structure
 
 @njit
 def reduce(mcdc, data):
-    for i in range(mcdc['N_global_tally']):
-        _reduce(mcdc['global_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_cell_tally']):
-        _reduce(mcdc['cell_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_surface_tally']):
-        _reduce(mcdc['surface_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_mesh_tally']):
-        _reduce(mcdc['mesh_tallies'][i], mcdc, data)
+    for tally_type in literal_unroll(TALLY_LITERALS):
+        for i in range(mcdc[f'N_{tally_type}_tally']):
+            _reduce(mcdc[f'{tally_type}_tallies'][i], mcdc, data)
 
 @njit
 def _reduce(tally, mcdc, data):
@@ -47,14 +45,9 @@ def _reduce(tally, mcdc, data):
 
 @njit
 def accumulate(mcdc, data):
-    for i in range(mcdc['N_global_tally']):
-        _accumulate(mcdc['global_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_cell_tally']):
-        _accumulate(mcdc['cell_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_surface_tally']):
-        _accumulate(mcdc['surface_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_mesh_tally']):
-        _accumulate(mcdc['mesh_tallies'][i], mcdc, data)
+    for tally_type in literal_unroll(TALLY_LITERALS):
+        for i in range(mcdc[f'N_{tally_type}_tally']):
+            _accumulate(mcdc[f'{tally_type}_tallies'][i], mcdc, data)
 
 
 @njit
@@ -81,14 +74,9 @@ def _accumulate(tally, mcdc, data):
 
 @njit
 def finalize(mcdc, data):
-    for i in range(mcdc['N_global_tally']):
-        _finalize(mcdc['global_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_cell_tally']):
-        _finalize(mcdc['cell_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_surface_tally']):
-        _finalize(mcdc['surface_tallies'][i], mcdc, data)
-    for i in range(mcdc['N_mesh_tally']):
-        _finalize(mcdc['mesh_tallies'][i], mcdc, data)
+    for tally_type in literal_unroll(TALLY_LITERALS):
+        for i in range(mcdc[f'N_{tally_type}_tally']):
+            _finalize(mcdc[f'{tally_type}_tallies'][i], mcdc, data)
 
 
 @njit

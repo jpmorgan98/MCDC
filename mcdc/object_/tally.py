@@ -149,7 +149,8 @@ class TallyBase(ObjectPolymorphic):
         self.stride_mu = reduce(operator.mul, shape[1:])
         
     def _use_census_based_tally(self, frequency):
-        self.time = np.zeros(frequency + 1)
+        first_census = simulation.settings.census_time[0]
+        self.time = np.linspace(0.0, first_census, frequency + 1)
 
         N_mu = len(self.mu) - 1
         N_azi = len(self.azi) - 1

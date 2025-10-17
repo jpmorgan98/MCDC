@@ -82,9 +82,12 @@ def fixed_source_simulation(mcdc_arr, data):
 
     # Loop over batches
     for i_batch in range(N_batch):
-        kernel.distribute_work(N=N_particle, mcdc=mcdc)
         mcdc["idx_batch"] = i_batch
         seed_batch = rng.split_seed(i_batch, settings["rng_seed"])
+        
+        # Distribute work
+        # (TODO: why is this necessary?)
+        kernel.distribute_work(N_particle, mcdc)
 
         # Print multi-batch header
         if N_batch > 1:
@@ -96,21 +99,11 @@ def fixed_source_simulation(mcdc_arr, data):
             mcdc["idx_census"] = i_census
             seed_census = rng.split_seed(seed_batch, rng.SEED_SPLIT_CENSUS)
 
+            # Reset tally time filters if census-based tally is used
             # Set census-based tally time grids
             if use_census_based_tally:
-                N_bin = settings["census_tally_frequency"]
-                if i_census == 0:
-                    t_start = 0.0
-                else:
-                    t_start = mcdc_get.settings.census_time(
-                        i_census - 1, settings, data
-                    )
-                t_end = mcdc_get.settings.census_time(i_census, settings, data)
-                dt = (t_end - t_start) / N_bin
-                for tally in mcdc["mesh_tallies"]:
-                    tally["filter"]["t"][0] = t_start
-                    for i in range(N_bin):
-                        tally["filter"]["t"][i + 1] = tally["filter"]["t"][i] + dt
+                tally_frequency = settings["census_tally_frequency"]
+                tally_module.filter.set_census_based_time_grid(tally_frequency, mcdc, data)
 
             # Check and accordingly promote future particles to censused particle
             if kernel.get_bank_size(mcdc["bank_future"]) > 0:
@@ -663,3 +656,35 @@ def build_gpu_progs(input_deck, args):
 
     global loop_source
     loop_source = gpu_loop_source
+
+
+# =============================================================================
+# Functions for GPU Interop
+# =============================================================================
+
+# The symbols declared below will be overwritten to reference external code that
+# manages GPU execution (if GPU execution is supported and selected)
+alloc_state, free_state = [None] * 2
+
+src_alloc_program, src_free_program = [None] * 2
+src_load_constant, src_load_constant, src_store_constant, src_store_data = [None] * 4
+src_init_program, src_exec_program, src_complete, src_clear_flags = [None] * 4
+
+pre_alloc_program, pre_free_program = [None] * 2
+pre_load_constant, pre_load_data, pre_store_constant, pre_store_data = [None] * 4
+pre_init_program, pre_exec_program, pre_complete, pre_clear_flags = [None] * 4
+
+
+# If GPU execution is supported and selected, the functions shown below will
+# be redefined to overwrite the above symbols and perform initialization/
+# finalization of GPU state
+@njit
+def setup_gpu(mcdc):
+    pass
+
+
+@njit
+def teardown_gpu(mcdc):
+    pass
+
+
