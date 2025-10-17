@@ -1,12 +1,10 @@
 import numpy as np
-import sys
-
 import mcdc
 
 
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # The infinite homogenous medium is modeled with reflecting slab
 
 # Load material data
@@ -40,20 +38,27 @@ s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition="reflective")
 # Set cells
 c = mcdc.Cell(region=+s1 & -s2, fill=m)
 
-# =============================================================================
-# Set initial source
-# =============================================================================
+# ======================================================================================
+# Set source
+# ======================================================================================
 
-energy = np.zeros(G)
-energy[-1] = 1.0
-source = mcdc.source(energy=energy)
+mcdc.Source(
+    position=(0.0, 0.0, 0.0),
+    isotropic=True,
+    energy_group=np.array([[360],[1.0]])
+)
 
-# =============================================================================
-# Set problem and tally, and then run mcdc
-# =============================================================================
+# ======================================================================================
+# Set tallies, settings, and run MC/DC
+# ======================================================================================
 
-mcdc.Settings(N_particle=40, active_bank_buffer=1000, N_batch=2)
+#Tallies
+mcdc.TallyGlobal(scores=["flux"], energy="all_groups")
 
-mcdc.tally.mesh_tally(scores=["flux"], g="all")
+# Swttings
+mcdc.settings.N_particle = 40
+mcdc.settings.N_batch = 2
+mcdc.settings.active_bank_buffer = 1000
 
+# Run
 mcdc.run()

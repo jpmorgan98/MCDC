@@ -174,7 +174,7 @@ for i, name in enumerate(names):
                         all_pass = False
                         error_msgs[-1].append(
                             "Differences in %s"
-                            % (name + "/" + result + "\n" + "{}".format(a - b))
+                            % (name + "/" + result + "\n" + "{}\n".format(a - b) + "Max difference: {}".format(np.max(a-b)))
                         )
                         print(Fore.RED + "  {}: Failed".format(name) + Style.RESET_ALL)
 

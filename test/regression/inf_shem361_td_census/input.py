@@ -1,12 +1,10 @@
 import numpy as np
-import sys
-
 import mcdc
 
 
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # The infinite homogenous medium is modeled with reflecting slab
 
 # Load material data
@@ -42,31 +40,33 @@ s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition="reflective")
 # Set cells
 c = mcdc.Cell(region=+s1 & -s2, fill=m)
 
-# =============================================================================
-# Set initial source
-# =============================================================================
+# ======================================================================================
+# Set source
+# ======================================================================================
 
-energy = np.zeros(G)
-energy[-1] = 1.0
-source = mcdc.source(energy=energy)
-
-# =============================================================================
-# Set problem and tally, and then run mcdc
-# =============================================================================
-
-settings = mcdc.Settings(
-    N_particle=30,
-    active_bank_buffer=1000,
-    census_bank_buffer_ratio=5,
-    source_bank_buffer_ratio=5,
-    rng_seed=7,
-    N_batch=2,
-)
-settings.set_time_census(np.logspace(-5, 1, 6))
-mcdc.population_control()
-
-mcdc.tally.mesh_tally(
-    scores=["flux"], t=np.insert(np.logspace(-8, 1, 100), 0, 0.0), g="all"
+mcdc.Source(
+    position=(0.0, 0.0, 0.0),
+    isotropic=True,
+    energy_group=np.array([[360],[1.0]])
 )
 
+# ======================================================================================
+# Set tallies, settings, techniques, and run MC/DC
+# ======================================================================================
+
+#Tallies
+mcdc.TallyGlobal(scores=["flux"], time=np.insert(np.logspace(-8, 1, 100), 0, 0.0), energy="all_groups")
+
+# Settings
+mcdc.settings.N_particle = 20
+mcdc.settings.N_batch = 2
+mcdc.settings.set_time_census(np.logspace(-5, 1, 6))
+mcdc.settings.active_bank_buffer = 1000
+mcdc.settings.census_bank_buffer_ratio = 5.0
+mcdc.settings.source_bank_buffer_ratio = 5.0
+
+# Techniques
+mcdc.simulation.population_control()
+
+# Run
 mcdc.run()
