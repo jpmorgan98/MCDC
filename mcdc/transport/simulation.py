@@ -522,7 +522,6 @@ def loop_particle(P_arr, prog, data):
     while P["alive"]:
         step_particle(P_arr, prog, data)
 
-
 @njit
 def step_particle(P_arr, prog, data):
     P = P_arr[0]

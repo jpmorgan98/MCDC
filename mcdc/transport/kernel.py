@@ -1588,7 +1588,8 @@ def move_to_event(P_arr, mcdc, data):
             tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
 
         # Mesh tallies
-        for tally in mcdc["mesh_tallies"]:
+        for i in range(mcdc['N_mesh_tally']):
+            tally = mcdc['mesh_tallies'][i]
             tally_module.score.mesh_tally(P_arr, distance, tally, mcdc, data)
 
     if settings["eigenvalue_mode"]:

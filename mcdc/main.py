@@ -696,6 +696,7 @@ def generate_hdf5(mcdc, data):
 
                 f.create_dataset(group_name + "mean", data=score_mean)
                 f.create_dataset(group_name + "sdev", data=score_sdev)
+
         for i_tally in range(mcdc['N_global_tally']):
             tally = mcdc['global_tallies'][i_tally]
             tally_name = tally['name']
@@ -748,7 +749,8 @@ def generate_hdf5(mcdc, data):
                 f.create_dataset(group_name + "sdev", data=score_sdev)
 
         # Mesh tallies
-        for tally in mcdc['mesh_tallies']:
+        for i_tally in range(mcdc['N_mesh_tally']):
+            tally = mcdc['mesh_tallies'][i_tally]
             tally_name = tally['name']
 
             # Get mesh
