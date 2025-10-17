@@ -89,15 +89,13 @@ def inspect_geometry(particle_container, mcdc, data):
 
             # Apply translation
             if cell["fill_translated"]:
-                particle["x"] -= mcdc_get.cell.translation(0, cell, data)
-                particle["y"] -= mcdc_get.cell.translation(1, cell, data)
-                particle["z"] -= mcdc_get.cell.translation(2, cell, data)
+                particle["x"] -= cell['translation'][0]
+                particle["y"] -= cell['translation'][1]
+                particle["z"] -= cell['translation'][2]
 
             # Apply rotation
             if cell["fill_rotated"]:
-                _rotate_particle(
-                    particle_container, mcdc_get.cell.rotation_all(cell, data)
-                )
+                _rotate_particle(particle_container, cell['rotation'])
 
             # Universe cell?
             if cell["fill_type"] == FILL_UNIVERSE:
@@ -214,15 +212,13 @@ def locate_particle(particle_container, mcdc, data):
 
             # Apply translation
             if cell["fill_translated"]:
-                particle["x"] -= mcdc_get.cell.translation(0, cell, data)
-                particle["y"] -= mcdc_get.cell.translation(1, cell, data)
-                particle["z"] -= mcdc_get.cell.translation(2, cell, data)
+                particle["x"] -= cell['translation'][0]
+                particle["y"] -= cell['translation'][1]
+                particle["z"] -= cell['translation'][2]
 
             # Apply rotation
             if cell["fill_rotated"]:
-                _rotate_particle(
-                    particle_container, mcdc_get.cell.rotation_all(cell, data)
-                )
+                _rotate_particle(particle_container, cell['rotation'])
 
             # Universe cell?
             if cell["fill_type"] == FILL_UNIVERSE:
