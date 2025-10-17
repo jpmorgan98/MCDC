@@ -7,7 +7,7 @@ import mcdc.transport.mesh as mesh_
 import mcdc.transport.physics as physics
 
 from mcdc.code_factory import adapt
-from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, INF, MESH_STRUCTURED, MESH_UNIFORM, REACTION_NEUTRON_FISSION, REACTION_TOTAL, SCORE_FLUX, SCORE_DENSITY, SCORE_COLLISION, SCORE_FISSION, SCORE_NET_CURRENT
+from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME, INF, MESH_STRUCTURED, MESH_UNIFORM, REACTION_NEUTRON_FISSION, REACTION_TOTAL, SCORE_FLUX, SCORE_DENSITY, SCORE_COLLISION, SCORE_FISSION, SCORE_NET_CURRENT
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import (
     get_filter_indices
@@ -74,7 +74,11 @@ def cell_tally(particle_container, distance, tally, mcdc, data):
     distance_swept = 0.0
     while distance_swept < distance - COINCIDENCE_TOLERANCE:
         t_next = mcdc_get.tally.time(i_time + 1, tally, data)
-        distance_scored = (min(t_next, t_final) - t) / ut
+
+        if t_final < t_next - COINCIDENCE_TOLERANCE_TIME:
+            distance_scored = distance - distance_swept
+        else:
+            distance_scored = (t_next - t) / ut
 
         # Score
         flux = distance_scored * particle["w"]
