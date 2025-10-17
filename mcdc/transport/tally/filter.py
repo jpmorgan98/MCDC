@@ -79,4 +79,4 @@ def get_time_index(particle_container, tally, data):
     time = particle["t"]
 
     tolerance = COINCIDENCE_TOLERANCE_TIME
-    return find_bin(time, mcdc_get.tally.time_all(tally, data), tolerance)
+    return find_bin(time, mcdc_get.tally.time_all(tally, data), tolerance, go_lower=False)
