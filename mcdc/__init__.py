@@ -19,7 +19,7 @@ from mcdc.object_.tally import TallyGlobal, TallyCell, TallySurface, TallyMesh
 # Runners
 # ======================================================================================
 
-from mcdc.main import run
+from mcdc.main import run, visualize
 
 # ======================================================================================
 # Will be replaced

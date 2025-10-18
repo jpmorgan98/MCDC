@@ -293,259 +293,6 @@ def preparation():
 
 
 # ======================================================================================
-# utilities for handling discrepancies between input and program types
-# ======================================================================================
-
-
-def cardlist_to_h5group(dictlist, input_group, name):
-    if name[-1] != "s":
-        main_group = input_group.create_group(name + "s")
-    else:
-        main_group = input_group.create_group(name)
-    for item in dictlist:
-        if "ID" in dir(item):
-            group = main_group.create_group(name + "_%i" % getattr(item, "ID"))
-        card_to_h5group(item, group)
-
-
-def card_to_h5group(card, group):
-    for name in [
-        a
-        for a in dir(card)
-        if not a.startswith("__") and not callable(getattr(card, a)) and a != "tag"
-    ]:
-        value = getattr(card, name)
-        if type(value) == dict:
-            dict_to_h5group(value, group.create_group(name))
-        elif value is None:
-            next
-        else:
-            if name not in ["region"]:
-                group[name] = value
-
-            elif name == "region":
-                group[name] = str(value)
-
-
-def dictlist_to_h5group(dictlist, input_group, name):
-    if name[-1] != "s":
-        main_group = input_group.create_group(name + "s")
-    else:
-        main_group = input_group.create_group(name)
-    for item in dictlist:
-        group = main_group.create_group(name + "_%i" % item["ID"])
-        dict_to_h5group(item, group)
-
-
-def dict_to_h5group(dict_, group):
-    for k, v in dict_.items():
-        if type(v) == dict:
-            dict_to_h5group(dict_[k], group.create_group(k))
-        elif v is None:
-            next
-        else:
-            group[k] = v
-
-
-def dd_mergetally(mcdc, data_tally):
-    """
-    Performs tally recombination on domain-decomposed mesh tallies.
-    Gathers and re-organizes tally data into a single array as it
-      would appear in a non-decomposed simulation.
-    """
-
-    # create bin for recomposed tallies
-    d_Nx = input_deck.technique["dd_mesh"]["x"].size - 1
-    d_Ny = input_deck.technique["dd_mesh"]["y"].size - 1
-    d_Nz = input_deck.technique["dd_mesh"]["z"].size - 1
-
-    # capture tally lengths for reorganizing later
-    xlen = mcdc["technique"]["dd_xlen"]
-    ylen = mcdc["technique"]["dd_ylen"]
-    zlen = mcdc["technique"]["dd_zlen"]
-
-    # MPI gather
-    if (d_Nx * d_Ny * d_Nz) == MPI.COMM_WORLD.Get_size():
-        sendcounts = np.array(MPI.COMM_WORLD.gather(len(data_tally[0]), root=0))
-        if mcdc["mpi_master"]:
-            dd_tally = np.zeros((data_tally.shape[0], sum(sendcounts)))
-        else:
-            dd_tally = np.empty(data_tally.shape[0])  # dummy tally
-        # gather tallies
-        for i, t in enumerate(data_tally):
-            MPI.COMM_WORLD.Gatherv(
-                sendbuf=data_tally[i], recvbuf=(dd_tally[i], sendcounts), root=0
-            )
-        # gather tally lengths for proper recombination
-        xlens = MPI.COMM_WORLD.gather(xlen, root=0)
-        ylens = MPI.COMM_WORLD.gather(ylen, root=0)
-        zlens = MPI.COMM_WORLD.gather(zlen, root=0)
-
-    # MPI gather for multiprocessor subdomains
-    else:
-        i = 0
-        dd_ranks = []
-        # find nonzero tally processor IDs
-        for n in range(d_Nx * d_Ny * d_Nz):
-            dd_ranks.append(i)
-            i += int(mcdc["technique"]["dd_work_ratio"][n])
-        # create MPI comm group for nonzero tallies
-        dd_group = MPI.COMM_WORLD.group.Incl(dd_ranks)
-        dd_comm = MPI.COMM_WORLD.Create(dd_group)
-        dd_tally = np.empty(data_tally.shape[0])  # dummy tally
-
-        if MPI.COMM_NULL != dd_comm:
-            sendcounts = np.array(dd_comm.gather(len(data_tally[0]), root=0))
-            if mcdc["mpi_master"]:
-                dd_tally = np.zeros((data_tally.shape[0], sum(sendcounts)))
-            # gather tallies
-            for i, t in enumerate(data_tally):
-                dd_comm.Gatherv(data_tally[i], (dd_tally[i], sendcounts), root=0)
-            # gather tally lengths for proper recombination
-            xlens = dd_comm.gather(xlen, root=0)
-            ylens = dd_comm.gather(ylen, root=0)
-            zlens = dd_comm.gather(zlen, root=0)
-        dd_group.Free()
-        if MPI.COMM_NULL != dd_comm:
-            dd_comm.Free()
-
-    if mcdc["mpi_master"]:
-        buff = np.zeros_like(dd_tally)
-        # reorganize tally data
-        # TODO: find/develop a more efficient algorithm for this
-        tally_idx = 0
-        offset = 0
-        ysum = mcdc["technique"]["dd_ysum"]
-        zsum = mcdc["technique"]["dd_zsum"]
-        for di in range(0, d_Nx * d_Ny * d_Nz):
-            dz = di // (d_Nx * d_Ny)
-            dy = (di % (d_Nx * d_Ny)) // d_Nx
-            dx = di % d_Nx
-
-            offset = 0
-            # calculate subdomain offset
-            for i in range(0, dx):
-                offset += xlens[i] * ysum * zsum
-
-            for i in range(0, dy):
-                y_ind = i * d_Nx
-                offset += ylens[y_ind] * zsum
-
-            for i in range(0, dz):
-                z_ind = i * d_Nx * d_Ny
-                offset += zlens[z_ind]
-
-            # calculate index within subdomain
-            xlen = xlens[di]
-            ylen = ylens[di]
-            zlen = zlens[di]
-            for xi in range(0, xlen):
-                for yi in range(0, ylen):
-                    for zi in range(0, zlen):
-                        # calculate reorganized index
-                        ind_x = xi * ysum * zsum
-                        ind_y = yi * zsum
-                        ind_z = zi
-                        buff_idx = offset + ind_x + ind_y + ind_z
-                        # place tally value in correct position
-                        buff[:, buff_idx] = dd_tally[:, tally_idx]
-                        tally_idx += 1
-        # replace old tally with reorganized tally
-        dd_tally = buff
-
-    return dd_tally
-
-
-def dd_mergemesh(mcdc, data_tally):
-    """
-    Performs mesh recombination on domain-decomposed mesh tallies.
-    Gathers and re-organizes mesh data into a single array as it
-      would appear in a non-decomposed simulation.
-    """
-    d_Nx = input_deck.technique["dd_mesh"]["x"].size - 1
-    d_Ny = input_deck.technique["dd_mesh"]["y"].size - 1
-    d_Nz = input_deck.technique["dd_mesh"]["z"].size - 1
-    # gather mesh filter
-    if d_Nx > 1:
-        sendcounts = np.array(
-            MPI.COMM_WORLD.gather(len(mcdc["mesh_tallies"][0]["filter"]["x"]), root=0)
-        )
-        if mcdc["mpi_master"]:
-            x_filter = np.zeros((mcdc["mesh_tallies"].shape[0], sum(sendcounts)))
-        else:
-            x_filter = np.empty((mcdc["mesh_tallies"].shape[0]))  # dummy tally
-        # gather mesh
-        for i in range(mcdc["mesh_tallies"].shape[0]):
-            MPI.COMM_WORLD.Gatherv(
-                sendbuf=mcdc["mesh_tallies"][i]["filter"]["x"],
-                recvbuf=(x_filter[i], sendcounts),
-                root=0,
-            )
-        if mcdc["mpi_master"]:
-            x_final = np.zeros((mcdc["mesh_tallies"].shape[0], x_filter.shape[1] + 1))
-            x_final[:, 0] = mcdc["mesh_tallies"][:]["filter"]["x"][0][0]
-            x_final[:, 1:] = x_filter
-
-    if d_Ny > 1:
-        sendcounts = np.array(
-            MPI.COMM_WORLD.gather(len(mcdc["mesh_tallies"][0]["filter"]["y"]), root=0)
-        )
-        if mcdc["mpi_master"]:
-            y_filter = np.zeros((mcdc["mesh_tallies"].shape[0], sum(sendcounts)))
-        else:
-            y_filter = np.empty((mcdc["mesh_tallies"].shape[0]))  # dummy tally
-        # gather mesh
-        for i in range(mcdc["mesh_tallies"].shape[0]):
-            MPI.COMM_WORLD.Gatherv(
-                sendbuf=mcdc["mesh_tallies"][i]["filter"]["y"],
-                recvbuf=(y_filter[i], sendcounts),
-                root=0,
-            )
-        if mcdc["mpi_master"]:
-            y_final = np.zeros((mcdc["mesh_tallies"].shape[0], y_filter.shape[1] + 1))
-            y_final[:, 0] = mcdc["mesh_tallies"][:]["filter"]["y"][0][0]
-            y_final[:, 1:] = y_filter
-
-    if d_Nz > 1:
-        sendcounts = np.array(
-            MPI.COMM_WORLD.gather(
-                len(mcdc["mesh_tallies"][0]["filter"]["z"]) - 1, root=0
-            )
-        )
-        if mcdc["mpi_master"]:
-            z_filter = np.zeros((mcdc["mesh_tallies"].shape[0], sum(sendcounts)))
-        else:
-            z_filter = np.empty((mcdc["mesh_tallies"].shape[0]))  # dummy tally
-        # gather mesh
-        for i in range(mcdc["mesh_tallies"].shape[0]):
-            MPI.COMM_WORLD.Gatherv(
-                sendbuf=mcdc["mesh_tallies"][i]["filter"]["z"][1:],
-                recvbuf=(z_filter[i], sendcounts),
-                root=0,
-            )
-        if mcdc["mpi_master"]:
-            z_final = np.zeros((mcdc["mesh_tallies"].shape[0], z_filter.shape[1] + 1))
-            z_final[:, 0] = mcdc["mesh_tallies"][:]["filter"]["z"][0][0]
-            z_final[:, 1:] = z_filter
-
-    dd_mesh = []
-    if mcdc["mpi_master"]:
-        if d_Nx > 1:
-            dd_mesh.append(x_final)
-        else:
-            dd_mesh.append(mcdc["mesh_tallies"][:]["filter"]["x"])
-        if d_Ny > 1:
-            dd_mesh.append(y_final)
-        else:
-            dd_mesh.append(mcdc["mesh_tallies"][:]["filter"]["y"])
-        if d_Nz > 1:
-            dd_mesh.append(z_final)
-        else:
-            dd_mesh.append(mcdc["mesh_tallies"][:]["filter"]["z"])
-    return dd_mesh
-
-
-# ======================================================================================
 # Visualize geometry
 # ======================================================================================
 
@@ -580,18 +327,21 @@ def visualize(
     colors : array_like
         List of pairs of material and its color
     """
-    # Imports
     import matplotlib.pyplot as plt
+    import numpy as np
+
     from matplotlib import colors as mpl_colors
 
     ####
-    import mcdc.transport.kernel as kernel
-    import mcdc.transport.geometry as geometry
 
-    # TODO: add input error checkers
+    import mcdc.config as config
 
-    _, mcdc_container = prepare()
+    from mcdc.transport.distribution import sample_isotropic_direction
+
+    mcdc_container, data = preparation()
     mcdc = mcdc_container[0]
+    
+    import mcdc.object_.numba_types as type_
 
     # Color assignment for materials (by material ID)
     if colors is not None:
@@ -647,6 +397,7 @@ def visualize(
     second_midpoint = 0.5 * (second_grid[1:] + second_grid[:-1])
 
     # Set dummy particle
+    import mcdc.code_factory.adapt as adapt
     particle_container = adapt.local_array(1, type_.particle)
     particle = particle_container[0]
     particle[reference_key] = reference
@@ -659,11 +410,13 @@ def visualize(
 
         # Random direction
         particle["ux"], particle["uy"], particle["uz"] = (
-            kernel.sample_isotropic_direction(particle_container)
+            sample_isotropic_direction(particle_container)
         )
 
         # RGB color data for each pixels
-        data = np.zeros(pixels + (3,))
+        pixel_data = np.zeros(pixels + (3,))
+    
+        import mcdc.transport.geometry as geometry
 
         # Loop over the two axes
         for i in range(pixels[0]):
@@ -674,13 +427,13 @@ def visualize(
                 # Get material
                 particle["cell_ID"] = -1
                 particle["material_ID"] = -1
-                if geometry.locate_particle(particle_container, mcdc):
-                    data[i, j] = colors[particle["material_ID"]]
+                if geometry.locate_particle(particle_container, mcdc, data):
+                    pixel_data[i, j] = colors[particle["material_ID"]]
                 else:
-                    data[i, j] = WHITE
+                    pixel_data[i, j] = WHITE
 
-        data = np.transpose(data, (1, 0, 2))
-        plt.imshow(data, origin="lower", extent=first + second)
+        pixel_data = np.transpose(pixel_data, (1, 0, 2))
+        plt.imshow(pixel_data, origin="lower", extent=first + second)
         plt.xlabel(first_key + " [cm]")
         plt.ylabel(second_key + " [cm]")
         plt.title(reference_key + " = %.2f cm" % reference + ", time = %.2f s" % t)

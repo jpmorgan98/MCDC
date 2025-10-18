@@ -27,10 +27,10 @@ from mcdc.constant import (
 def generate_output(mcdc, data):
     from mcdc import simulation
 
-    settings = mcdc["settings"]
-
     if not mcdc["mpi_master"]:
         return
+    
+    settings = mcdc["settings"]
 
     # Header
     if settings["use_progress_bar"]:
@@ -113,34 +113,6 @@ def create_object_dataset(file, group_name, object_):
         file[f"{group_name}/{name}"] = getattr(object_, name)
 
 
-def create_input_dataset(file, mcdc, data):
-    input_group = file.create_group("input_deck")
-
-    # cardlist_to_h5group(simulation.nuclides, input_group, "nuclide")
-    # cardlist_to_h5group(simulation.materials, input_group, "material")
-    # cardlist_to_h5group(input_deck.surfaces, input_group, "surface")
-    # cardlist_to_h5group(input_deck.cells, input_group, "cell")
-    # cardlist_to_h5group(input_deck.universes, input_group, "universe")
-    # cardlist_to_h5group(input_deck.lattices, input_group, "lattice")
-    # cardlist_to_h5group(input_deck.sources, input_group, "source")
-    # cardlist_to_h5group(
-    #    input_deck.mesh_tallies, input_group, "mesh_tallies"
-    # )
-    # cardlist_to_h5group(
-    #    input_deck.surface_tallies, input_group, "surface_tallies"
-    # )
-    # cardlist_to_h5group(
-    #    input_deck.cell_tallies, input_group, "cell_tallies"
-    # )
-    # cardlist_to_h5group(input_deck.cs_tallies, input_group, "cs_tallies")
-    # card_to_h5group(
-    #    simulation.settings, input_group.create_group("setting")
-    # )
-    # dict_to_h5group(
-    #    input_deck.technique, input_group.create_group("technique")
-    # )
-
-
 # ======================================================================================
 # Runtimes
 # ======================================================================================
@@ -208,7 +180,7 @@ def create_tally_dataset(file, mcdc, data):
                 data=mcdc_get.tally.time_all(tally, data),
             )
 
-            # Mesh grid
+            # Mesh grid (TODO: Make mesh dataset in a separate group)
             if tally_type == "mesh":
                 mesh_type = tally["mesh_type"]
                 mesh_ID = tally["mesh_ID"]
@@ -282,11 +254,11 @@ def recombine_tallies(file_name="output.h5"):
 
     # Load main output file and read input params
     with h5py.File(file_name, "r") as f:
-        output_name = str(f["input_deck/settings/output_name"][()])[2:-1]
-        N_particle = f["input_deck/setting/N_particle"][()]
-        N_census = f["input_deck/setting/N_census"][()] - 1
-        N_batch = f["input_deck/setting/N_batch"][()]
-        N_frequency = f["input_deck/setting/census_tally_frequency"][()]
+        output_name = str(f["settings/output_name"][()])[2:-1]
+        N_particle = f["setting/N_particle"][()]
+        N_census = f["setting/N_census"][()] - 1
+        N_batch = f["setting/N_batch"][()]
+        N_frequency = f["setting/census_tally_frequency"][()]
     Nt = N_census * N_frequency
     # Combine the tally output into a single file
 

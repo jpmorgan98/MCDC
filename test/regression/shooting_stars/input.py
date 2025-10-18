@@ -94,13 +94,14 @@ mcdc.settings.N_particle = 100
 mcdc.settings.N_batch = 2
 mcdc.settings.active_bank_buffer = 1000
 
-# Run
-mcdc.run()
-"""
-colors = {
-    fuel: 'red',
-    cover: 'gray',
-    water: 'blue',
-}
-mcdc.visualize('xz', y=0.0, x=[-11., 11.], z=[-6, 6], pixel=(400, 400), colors=colors)
-"""
+# Run (or visualize)
+visualize = False
+if not visualize:
+    mcdc.run()
+else:
+    colors = {
+        fuel: 'red',
+        cover: 'gray',
+        water: 'blue',
+    }
+    mcdc.visualize('xz', y=0.0, x=[-11., 11.], z=[-6, 6], pixels=(400, 400), colors=colors)
