@@ -2,7 +2,6 @@
 # Simulation building blocks
 # ======================================================================================
 
-# The simulation
 from mcdc.object_.simulation import simulation
 
 settings = simulation.settings
@@ -22,29 +21,7 @@ from mcdc.object_.tally import TallyGlobal, TallyCell, TallySurface, TallyMesh
 from mcdc.main import run, visualize
 
 # ======================================================================================
-# Will be replaced
+# Misc.
 # ======================================================================================
 
-"""
-from mcdc.input_ import (
-    source,
-    implicit_capture,
-    weighted_emission,
-    population_control,
-    time_census,
-    weight_window,
-    iQMC,
-    weight_roulette,
-    uq,
-    reset,
-    domain_decomposition,
-    make_particle_bank,
-    save_particle_bank,
-)
-from mcdc.main import (
-    prepare,
-    run,
-    visualize,
-    recombine_tallies,
-)
-"""
+import mcdc.config

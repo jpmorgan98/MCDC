@@ -10,7 +10,7 @@ import mcdc.code_factory.adapt as adapt
 import mcdc.object_.numba_types as type_
 import mcdc.transport.geometry as geometry
 import mcdc.transport.kernel as kernel
-import mcdc.transport.output as output_module
+import mcdc.output as output_module
 import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module

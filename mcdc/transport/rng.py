@@ -48,13 +48,6 @@ def wrapping_add_python(a, b):
         return a + b
 
 
-def adapt_rng(object_mode=False):
-    global wrapping_add, wrapping_mul
-    if object_mode:
-        wrapping_add = wrapping_add_python
-        wrapping_mul = wrapping_mul_python
-
-
 @njit
 def split_seed(key, seed):
     """murmur_hash64a"""

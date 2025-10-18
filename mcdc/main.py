@@ -68,7 +68,7 @@ def run():
     # Working on the output
     # ==================================================================================
 
-    import mcdc.transport.output as output_module
+    import mcdc.output as output_module
 
     # Timer: output
     time_output_start = MPI.Wtime()
@@ -333,8 +333,6 @@ def visualize(
     from matplotlib import colors as mpl_colors
 
     ####
-
-    import mcdc.config as config
 
     from mcdc.transport.distribution import sample_isotropic_direction
 

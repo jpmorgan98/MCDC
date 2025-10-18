@@ -235,9 +235,16 @@ def create_tally_dataset(file, mcdc, data):
                 file.create_dataset(group_name + "sdev", data=score_sdev)
 
 
-# ======================================================================================
-# Tally recombination
-# ======================================================================================
+def generate_census_based_tally(mcdc, data):
+    idx_batch = mcdc["idx_batch"]
+    idx_census = mcdc["idx_census"]
+    base_name = mcdc["settings"]["output_name"]
+
+    # Create or get the file
+    file_name = f"{base_name}-batch_{idx_batch}-census_{idx_census}.h5"
+    file = h5py.File(file_name, "w")
+    create_tally_dataset(file, mcdc, data)
+    file.close()
 
 
 def replace_dataset(file_, field, data):
@@ -366,15 +373,3 @@ def recombine_tallies(file_name="output.h5"):
             )
             os.system("rm " + file_name)
     """
-
-
-def generate_census_based_tally(mcdc, data):
-    idx_batch = mcdc["idx_batch"]
-    idx_census = mcdc["idx_census"]
-    base_name = mcdc["settings"]["output_name"]
-
-    # Create or get the file
-    file_name = f"{base_name}-batch_{idx_batch}-census_{idx_census}.h5"
-    file = h5py.File(file_name, "w")
-    create_tally_dataset(file, mcdc, data)
-    file.close()
