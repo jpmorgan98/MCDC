@@ -46,7 +46,6 @@ class Settings(ObjectSingleton):
     time_boundary: float = np.inf
     output_name: str = "output"
     use_progress_bar: bool = True
-    save_input_deck: bool = True
 
     # Time census
     N_census: int = 1
