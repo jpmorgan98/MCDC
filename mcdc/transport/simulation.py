@@ -10,6 +10,7 @@ import mcdc.code_factory.adapt as adapt
 import mcdc.object_.numba_types as type_
 import mcdc.transport.geometry as geometry
 import mcdc.transport.kernel as kernel
+import mcdc.transport.output as output_module
 import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
@@ -100,22 +101,12 @@ def fixed_source_simulation(mcdc_arr, data):
             seed_census = rng.split_seed(seed_batch, rng.SEED_SPLIT_CENSUS)
 
             # Reset tally time filters if census-based tally is used
-            # Set census-based tally time grids
             if use_census_based_tally:
-                tally_frequency = settings["census_tally_frequency"]
-                tally_module.filter.set_census_based_time_grid(tally_frequency, mcdc, data)
+                tally_module.filter.set_census_based_time_grid(mcdc, data)
 
-            # Check and accordingly promote future particles to censused particle
+            # Check and accordingly promote future particles to censused particles
             if kernel.get_bank_size(mcdc["bank_future"]) > 0:
                 kernel.check_future_bank(mcdc, data)
-            if (
-                i_census > 0
-                and kernel.get_bank_size(mcdc["bank_source"]) == 0
-                and kernel.get_bank_size(mcdc["bank_census"]) == 0
-                and kernel.get_bank_size(mcdc["bank_future"]) == 0
-            ):
-                # No more particle to work on
-                break
 
             # Loop over source particles
             seed_source = rng.split_seed(seed_census, rng.SEED_SPLIT_SOURCE)
@@ -127,12 +118,20 @@ def fixed_source_simulation(mcdc_arr, data):
 
             # Time census-based tally closeout
             if use_census_based_tally:
-                kernel.tally_reduce(mcdc, data)
+                tally_module.closeout.reduce(mcdc, data)
                 if mcdc["mpi_master"]:
-                    kernel.census_based_tally_output(mcdc, data)
-                    if mcdc["technique"]["weight_window"] and i_census < N_census - 2:
-                        kernel.update_weight_windows(mcdc, data)
-                # TODO: UQ tally
+                    tally_module.closeout.accumulate(mcdc, data)
+                    with objmode():
+                        output_module.generate_census_based_tally(mcdc, data)
+            
+            # Terminate census loop if all banks are empty
+            if (
+                i_census > 0
+                and kernel.get_bank_size(mcdc["bank_source"]) == 0
+                and kernel.get_bank_size(mcdc["bank_census"]) == 0
+                and kernel.get_bank_size(mcdc["bank_future"]) == 0
+            ):
+                break
 
         # Multi-batch closeout
         if N_batch > 1:
@@ -144,12 +143,12 @@ def fixed_source_simulation(mcdc_arr, data):
 
             if not use_census_based_tally:
                 # Tally history closeout
-                tally_module.reduce(mcdc, data)
-                tally_module.accumulate(mcdc, data)
+                tally_module.closeout.reduce(mcdc, data)
+                tally_module.closeout.accumulate(mcdc, data)
 
     # Tally closeout
     if not use_census_based_tally:
-        tally_module.finalize(mcdc, data)
+        tally_module.closeout.finalize(mcdc, data)
 
 
 # =========================================================================
@@ -158,7 +157,7 @@ def fixed_source_simulation(mcdc_arr, data):
 
 
 @njit
-def eigenvalue_simulation(data_tally, mcdc_arr, data):
+def eigenvalue_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
     # adapt.leak(mcdc_arr)

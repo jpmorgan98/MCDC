@@ -60,6 +60,7 @@ class TallyBase(ObjectPolymorphic):
     bin: NDArray[float64]
     bin_sum: NDArray[float64]
     bin_sum_square: NDArray[float64]
+    bin_shape: list[int]
     stride_mu: int
     stride_azi: int
     stride_energy: int
@@ -141,6 +142,7 @@ class TallyBase(ObjectPolymorphic):
         self.bin = np.zeros(shape)
         self.bin_sum = np.zeros_like(self.bin)
         self.bin_sum_square = np.zeros_like(self.bin)
+        self.bin_shape = list(shape)
 
         # Set strides
         self.stride_time = reduce(operator.mul, shape[4:])

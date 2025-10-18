@@ -231,3 +231,32 @@ def bin_sum_square_chunk(start, length, tally, data):
     start += tally["bin_sum_square_offset"]
     end = start + length
     return data[start:end]
+
+
+@njit
+def bin_shape(index, tally, data):
+    offset = tally["bin_shape_offset"]
+    return data[offset + index]
+
+
+@njit
+def bin_shape_all(tally, data):
+    start = tally["bin_shape_offset"]
+    size = tally["bin_shape_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def bin_shape_last(tally, data):
+    start = tally["bin_shape_offset"]
+    size = tally["bin_shape_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def bin_shape_chunk(start, length, tally, data):
+    start += tally["bin_shape_offset"]
+    end = start + length
+    return data[start:end]

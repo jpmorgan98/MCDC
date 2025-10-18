@@ -490,7 +490,7 @@ def set_object(object_, annotations, structures, records, data):
             continue
 
         attribute = getattr(object_, attribute_name)
-
+        
         # Convert list of supported types into Numpy array
         if type(attribute) == list:
             if get_args(annotation[attribute_name])[0] in type_map.keys():

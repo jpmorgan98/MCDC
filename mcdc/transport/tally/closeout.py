@@ -47,11 +47,11 @@ def _reduce(tally, mcdc, data):
 def accumulate(mcdc, data):
     for tally_type in literal_unroll(TALLY_LITERALS):
         for i in range(mcdc[f'N_{tally_type}_tally']):
-            _accumulate(mcdc[f'{tally_type}_tallies'][i], mcdc, data)
+            _accumulate(mcdc[f'{tally_type}_tallies'][i], data)
 
 
 @njit
-def _accumulate(tally, mcdc, data):
+def _accumulate(tally, data):
     N_bin = tally['bin_length']
     offset_bin = tally['bin_offset']
     offset_sum = tally['bin_sum_offset']

@@ -84,8 +84,9 @@ def get_time_index(particle_container, tally, data):
 
 
 @njit
-def set_census_based_time_grid(tally_frequency, mcdc, data):
+def set_census_based_time_grid(mcdc, data):
     settings = mcdc['settings']
+    tally_frequency = settings["census_tally_frequency"]
     idx_census = mcdc['idx_census']
 
     # Starting time
