@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell
     from mcdc.object_.surface import Surface
@@ -45,7 +46,7 @@ from mcdc.print_ import print_1d_array, print_error
 
 class TallyBase(ObjectPolymorphic):
     # Annotations for Numba mode
-    label: str = 'tally'
+    label: str = "tally"
     #
     name: str
     scores: list[int]
@@ -67,7 +68,16 @@ class TallyBase(ObjectPolymorphic):
     stride_time: int
 
     def __init__(
-        self, type_, name, scores, mu, azi, polar_reference, energy, time, spatial_shape=None
+        self,
+        type_,
+        name,
+        scores,
+        mu,
+        azi,
+        polar_reference,
+        energy,
+        time,
+        spatial_shape=None,
     ):
         super().__init__(type_)
 
@@ -91,7 +101,7 @@ class TallyBase(ObjectPolymorphic):
             elif score == "net-current":
                 self.scores.append(SCORE_NET_CURRENT)
             else:
-                print_error(f'Unknown tally score: {score}')
+                print_error(f"Unknown tally score: {score}")
 
         # Phase-space filters
         self.mu = np.array([-1.0, 1.0])
@@ -121,7 +131,7 @@ class TallyBase(ObjectPolymorphic):
         if time is not None:
             self.time = np.array(time)
             self.filter_time = True
-        
+
         # Determine bin shape
         N_mu = len(self.mu) - 1
         N_azi = len(self.azi) - 1
@@ -149,7 +159,7 @@ class TallyBase(ObjectPolymorphic):
         self.stride_energy = reduce(operator.mul, shape[3:])
         self.stride_azi = reduce(operator.mul, shape[2:])
         self.stride_mu = reduce(operator.mul, shape[1:])
-        
+
     def _use_census_based_tally(self, frequency):
         first_census = simulation.settings.census_time[0]
         self.time = np.linspace(0.0, first_census, frequency + 1)
@@ -158,7 +168,7 @@ class TallyBase(ObjectPolymorphic):
         N_azi = len(self.azi) - 1
         N_energy = len(self.energy) - 1
         N_score = len(self.scores)
-       
+
         spatial_shape = None
         if len(self.bin.shape) > 5:
             spatial_shape = self.bin.shape[4:-1]
@@ -224,12 +234,12 @@ def decode_score_type(type_):
 
 class TallyGlobal(TallyBase):
     # Annotations for Numba mode
-    label: str = 'global_tally'
+    label: str = "global_tally"
 
     def __init__(
         self,
         name: str = "",
-        scores: list[str] = ['flux'],
+        scores: list[str] = ["flux"],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -237,9 +247,7 @@ class TallyGlobal(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_GLOBAL
-        super().__init__(
-            type_, name, scores, mu, azi, polar_reference, energy, time
-        )
+        super().__init__(type_, name, scores, mu, azi, polar_reference, energy, time)
 
     def __repr__(self):
         text = super().__repr__()
@@ -255,7 +263,7 @@ class TallyGlobal(TallyBase):
 
 class TallyCell(TallyBase):
     # Annotations for Numba mode
-    label: str = 'cell_tally'
+    label: str = "cell_tally"
     #
     cell: Cell
 
@@ -263,7 +271,7 @@ class TallyCell(TallyBase):
         self,
         cell: Cell,
         name: str = "",
-        scores: list[str] = ['flux'],
+        scores: list[str] = ["flux"],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -271,9 +279,7 @@ class TallyCell(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_CELL
-        super().__init__(
-            type_, name, scores, mu, azi, polar_reference, energy, time
-        )
+        super().__init__(type_, name, scores, mu, azi, polar_reference, energy, time)
 
         # Attach cell and attach tally to the cell
         self.cell = cell
@@ -294,7 +300,7 @@ class TallyCell(TallyBase):
 
 class TallySurface(TallyBase):
     # Annotations for Numba mode
-    label: str = 'surface_tally'
+    label: str = "surface_tally"
     #
     surface: Surface
 
@@ -302,7 +308,7 @@ class TallySurface(TallyBase):
         self,
         surface: Surface,
         name: str = "",
-        scores: list[str] = ['flux'],
+        scores: list[str] = ["flux"],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -310,9 +316,7 @@ class TallySurface(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
-        super().__init__(
-            type_, name, scores, mu, azi, polar_reference, energy, time
-        )
+        super().__init__(type_, name, scores, mu, azi, polar_reference, energy, time)
 
         # Set surface and attach tally to the surface
         self.surface = surface
@@ -333,7 +337,7 @@ class TallySurface(TallyBase):
 
 class TallyMesh(TallyBase):
     # Annotations for Numba mode
-    label: str = 'mesh_tally'
+    label: str = "mesh_tally"
     #
     mesh: MeshBase
     stride_z: int
@@ -344,7 +348,7 @@ class TallyMesh(TallyBase):
         self,
         mesh: MeshBase,
         name: str = "",
-        scores: list[str] = ['flux'],
+        scores: list[str] = ["flux"],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -367,7 +371,9 @@ class TallyMesh(TallyBase):
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Mesh: {mesh_module.decode_type(self.mesh.type)} (ID {self.mesh.ID})\n"
+        text += (
+            f"  - Mesh: {mesh_module.decode_type(self.mesh.type)} (ID {self.mesh.ID})\n"
+        )
         text += super()._phasespace_filter_text()
         text += f"  - Bin shape (mu, azi, energy, time, x, y, z, score): {self.bin.shape} \n"
         return text

@@ -32,7 +32,9 @@ def sample_isotropic_direction(rng_state):
 
 
 @njit
-def sample_distribution(x, distribution_type, index, rng_state, mcdc, data, scale=False):
+def sample_distribution(
+    x, distribution_type, index, rng_state, mcdc, data, scale=False
+):
     if distribution_type == DISTRIBUTION_MULTIPDF:
         multipdf = mcdc["distribution_multipdfs"][index]
         return sample_multipdf(x, rng_state, multipdf, data, scale)

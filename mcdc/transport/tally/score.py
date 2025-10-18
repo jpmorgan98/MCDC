@@ -7,11 +7,26 @@ import mcdc.transport.mesh as mesh_
 import mcdc.transport.physics as physics
 
 from mcdc.code_factory import adapt
-from mcdc.constant import AXIS_T, AXIS_X, AXIS_Y, AXIS_Z, COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME, INF, MESH_STRUCTURED, MESH_UNIFORM, REACTION_NEUTRON_FISSION, REACTION_TOTAL, SCORE_FLUX, SCORE_DENSITY, SCORE_COLLISION, SCORE_FISSION, SCORE_NET_CURRENT
-from mcdc.transport.geometry.surface import get_normal_component
-from mcdc.transport.tally.filter import (
-    get_filter_indices
+from mcdc.constant import (
+    AXIS_T,
+    AXIS_X,
+    AXIS_Y,
+    AXIS_Z,
+    COINCIDENCE_TOLERANCE,
+    COINCIDENCE_TOLERANCE_TIME,
+    INF,
+    MESH_STRUCTURED,
+    MESH_UNIFORM,
+    REACTION_NEUTRON_FISSION,
+    REACTION_TOTAL,
+    SCORE_FLUX,
+    SCORE_DENSITY,
+    SCORE_COLLISION,
+    SCORE_FISSION,
+    SCORE_NET_CURRENT,
 )
+from mcdc.transport.geometry.surface import get_normal_component
+from mcdc.transport.tally.filter import get_filter_indices
 from mcdc.print_ import print_structure
 
 
@@ -28,11 +43,15 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
         elif score_type == SCORE_DENSITY:
             score = flux / speed
         elif score_type == SCORE_COLLISION:
-            score = flux * physics.macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
+            score = flux * physics.macro_xs(
+                REACTION_TOTAL, particle_container, mcdc, data
+            )
         elif score_type == SCORE_FISSION:
-            score = flux * physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+            score = flux * physics.macro_xs(
+                REACTION_NEUTRON_FISSION, particle_container, mcdc, data
+            )
         elif score_type == SCORE_NET_CURRENT:
-            surface = mcdc['surfaces'][particle['surface_ID']]
+            surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
         adapt.global_add(data, idx_base + i_score, score)
@@ -44,7 +63,9 @@ def cell_tally(particle_container, distance, tally, mcdc, data):
 
     # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
-    i_mu, i_azi, i_energy, i_time = get_filter_indices(particle_container, tally, data, MG_mode)
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally, data, MG_mode
+    )
 
     # No score if outside non-changing phase-space bins
     if i_mu == -1 or i_azi == -1 or i_energy == -1:
@@ -103,7 +124,9 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
 
     # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
-    i_mu, i_azi, i_energy, i_time = get_filter_indices(particle_container, tally, data, MG_mode)
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally, data, MG_mode
+    )
 
     # No score if outside non-changing phase-space bins
     if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
@@ -128,10 +151,12 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
 @njit
 def mesh_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
-    
+
     # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
-    i_mu, i_azi, i_energy, i_time = get_filter_indices(particle_container, tally, data, MG_mode)
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally, data, MG_mode
+    )
 
     # No score if outside non-changing phase-space bins
     if i_mu == -1 or i_azi == -1 or i_energy == -1:
@@ -141,9 +166,9 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
     mesh_type = tally["mesh_type"]
     mesh_ID = tally["mesh_ID"]
     if mesh_type == MESH_UNIFORM:
-        mesh = mcdc['uniform_meshes'][mesh_ID]
+        mesh = mcdc["uniform_meshes"][mesh_ID]
     elif mesh_type == MESH_STRUCTURED:
-        mesh = mcdc['structured_meshes'][mesh_ID]
+        mesh = mcdc["structured_meshes"][mesh_ID]
 
     # Particle/track properties
     x = particle["x"]
@@ -166,7 +191,9 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         return
 
     # Get mesh bin indices
-    i_x, i_y, i_z = mesh_.get_indices(particle_container, mesh_type, mesh_ID, mcdc, data)
+    i_x, i_y, i_z = mesh_.get_indices(
+        particle_container, mesh_type, mesh_ID, mcdc, data
+    )
 
     # TODO: No score if particle does not cross the mesh bins (considering directions)
 
@@ -188,7 +215,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         # ==============================================================================
         # Find distances to the mesh grids
         # ==============================================================================
-        
+
         # x-direction
         if ux == 0.0:
             dx = INF
@@ -200,7 +227,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
                 x_next = mesh_.get_x(i_x, mesh_type, mesh_ID, mcdc, data)
                 x_next = max(x_next, x_final)
             dx = (x_next - x) / ux
-        
+
         # y-direction
         if uy == 0.0:
             dy = INF
@@ -212,8 +239,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
                 y_next = mesh_.get_y(i_y, mesh_type, mesh_ID, mcdc, data)
                 y_next = max(y_next, y_final)
             dy = (y_next - y) / uy
-        
-        
+
         # z-direction
         if uz == 0.0:
             dz = INF
@@ -268,12 +294,12 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
                 i_x += 1
                 if i_x == mesh["Nx"]:
                     break
-                idx_base += tally['stride_x']
+                idx_base += tally["stride_x"]
             else:
                 i_x -= 1
                 if i_x == -1:
                     break
-                idx_base -= tally['stride_x']
+                idx_base -= tally["stride_x"]
         elif axis_crossed == AXIS_Y:
             if uy > 0.0:
                 i_y += 1

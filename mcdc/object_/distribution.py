@@ -3,7 +3,12 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import DISTRIBUTION_MULTIPDF, DISTRIBUTION_MAXWELLIAN, DISTRIBUTION_PDF, DISTRIBUTION_PMF
+from mcdc.constant import (
+    DISTRIBUTION_MULTIPDF,
+    DISTRIBUTION_MAXWELLIAN,
+    DISTRIBUTION_PDF,
+    DISTRIBUTION_PMF,
+)
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataTable
 from mcdc.print_ import print_1d_array
@@ -41,9 +46,10 @@ def decode_type(type_):
 # PDF distribution
 # ======================================================================================
 
+
 class DistributionPDF(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'pdf_distribution'
+    label: str = "pdf_distribution"
     #
     value: NDArray[float64]
     pdf: NDArray[float64]
@@ -69,9 +75,10 @@ class DistributionPDF(DistributionBase):
 # PMF distribution
 # ======================================================================================
 
+
 class DistributionPMF(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'pmf_distribution'
+    label: str = "pmf_distribution"
     #
     value: NDArray[float64]
     pmf: NDArray[float64]
@@ -93,7 +100,6 @@ class DistributionPMF(DistributionBase):
         return text
 
 
-
 # ======================================================================================
 # MultiPDF distribution
 # ======================================================================================
@@ -101,7 +107,7 @@ class DistributionPMF(DistributionBase):
 
 class DistributionMultiPDF(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'multipdf_distribution'
+    label: str = "multipdf_distribution"
     #
     grid: NDArray[float64]
     offset: NDArray[float64]
@@ -136,7 +142,7 @@ class DistributionMultiPDF(DistributionBase):
 
 class DistributionMaxwellian(DistributionBase):
     # Annotations for Numba mode
-    label: str = 'maxwellian_distribution'
+    label: str = "maxwellian_distribution"
     #
     U: float
     T: DataTable

@@ -41,7 +41,7 @@ class Particle(ParticleData):
 
 class ParticleBank(ObjectSingleton):
     label: str = "particle_bank"
-    non_numba: list[str] = ['particles']
+    non_numba: list[str] = ["particles"]
     particles: list[ParticleData] = []
     size: Annotated[NDArray[int64], (1,)]
     tag: str = ""

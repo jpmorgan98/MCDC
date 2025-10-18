@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell
 
@@ -20,7 +21,7 @@ from mcdc.util import flatten
 
 class Universe(ObjectNonSingleton):
     # Annotations for Numba mode
-    label: str = 'universe'
+    label: str = "universe"
     #
     name: str
     cells: list[Cell]
@@ -60,7 +61,7 @@ class Universe(ObjectNonSingleton):
 
 class Lattice(ObjectNonSingleton):
     # Annotations for Numba mode
-    label: str = 'lattice'
+    label: str = "lattice"
     #
     name: str
     x0: float
@@ -80,7 +81,7 @@ class Lattice(ObjectNonSingleton):
         x: tuple[float, float, int] = (-INF, 2 * INF, 1),
         y: tuple[float, float, int] = (-INF, 2 * INF, 1),
         z: tuple[float, float, int] = (-INF, 2 * INF, 1),
-        universes: list[Universe] = None
+        universes: list[Universe] = None,
     ):
         super().__init__()
 

@@ -9,7 +9,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE_DIRECTION,
     COINCIDENCE_TOLERANCE_ENERGY,
     COINCIDENCE_TOLERANCE_TIME,
-    TALLY_LITERALS
+    TALLY_LITERALS,
 )
 from mcdc.transport.util import find_bin
 
@@ -23,7 +23,7 @@ def get_filter_indices(particle_container, tally, data, MG_mode):
 
     if tally["filter_energy"]:
         i_energy = get_energy_index(particle_container, tally, data, MG_mode)
-    
+
     if tally["filter_time"]:
         i_time = get_time_index(particle_container, tally, data)
 
@@ -40,9 +40,9 @@ def get_direction_index(particle_container, tally, data):
     uz = particle["uz"]
 
     # Polar reference
-    nx = tally['polar_reference'][0]
-    ny = tally['polar_reference'][1]
-    nz = tally['polar_reference'][2]
+    nx = tally["polar_reference"][0]
+    ny = tally["polar_reference"][1]
+    nz = tally["polar_reference"][2]
 
     # TODO: Rotate direction based on the polar reference
     if nz != 1.0:
@@ -80,14 +80,16 @@ def get_time_index(particle_container, tally, data):
     time = particle["t"]
 
     tolerance = COINCIDENCE_TOLERANCE_TIME
-    return find_bin(time, mcdc_get.tally.time_all(tally, data), tolerance, go_lower=False)
+    return find_bin(
+        time, mcdc_get.tally.time_all(tally, data), tolerance, go_lower=False
+    )
 
 
 @njit
 def set_census_based_time_grid(mcdc, data):
-    settings = mcdc['settings']
+    settings = mcdc["settings"]
     tally_frequency = settings["census_tally_frequency"]
-    idx_census = mcdc['idx_census']
+    idx_census = mcdc["idx_census"]
 
     # Starting time
     if idx_census == 0:
@@ -103,9 +105,9 @@ def set_census_based_time_grid(mcdc, data):
 
     # Set the time grid to all tallies
     for tally_type in literal_unroll(TALLY_LITERALS):
-        for i in range(mcdc[f'N_{tally_type}_tally']):
-            tally = mcdc[f'{tally_type}_tallies'][i]
-            offset = tally['time_offset']
+        for i in range(mcdc[f"N_{tally_type}_tally"]):
+            tally = mcdc[f"{tally_type}_tallies"][i]
+            offset = tally["time_offset"]
             data[offset] = t_start
             for j in range(tally_frequency):
                 data[offset + j + 1] = data[offset + j] + dt

@@ -11,11 +11,13 @@ def run():
     time_total_start = MPI.Wtime()
 
     from mcdc.object_.simulation import simulation
+
     settings = simulation.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
 
     # Override settings with command-line arguments
     import mcdc.config as config
+
     if config.args.N_particle is not None:
         settings.N_particle = config.args.N_particle
     if config.args.output is not None:
@@ -53,6 +55,7 @@ def run():
 
     # Run simulation
     import mcdc.transport.simulation as simulation_module
+
     if settings.eigenvalue_mode:
         simulation_module.eigenvalue_simulation(mcdc_arr, data)
     else:
@@ -64,7 +67,7 @@ def run():
     # ==================================================================================
     # Working on the output
     # ==================================================================================
-    
+
     import mcdc.transport.output as output_module
 
     # Timer: output
@@ -97,6 +100,7 @@ def run():
 
     # GPU teardowns
     from mcdc.transport.simulation import teardown_gpu
+
     teardown_gpu(mcdc)
 
 
@@ -121,21 +125,19 @@ def preparation():
     settings = simulation.settings
 
     # Set physics mode
-    settings.multigroup_mode = isinstance(
-        simulation.materials[0], MaterialMG
-    )
-    
+    settings.multigroup_mode = isinstance(simulation.materials[0], MaterialMG)
+
     # Reset time grid size of all tallies if census-based tally is desired
     if settings.use_census_based_tally:
         N_bin = settings.census_tally_frequency
         for tally in simulation.tallies:
             tally._use_census_based_tally(N_bin)
-    
+
     # Set appropriate time boundary
     settings.time_boundary = min(
         [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
     )
-    
+
     # ==================================================================================
     # Simulation parameters
     # ==================================================================================
@@ -190,14 +192,16 @@ def preparation():
     # ==================================================================================
     # Generate Numba-supported "Objects"
     # ==================================================================================
-   
+
     import mcdc.code_factory.code_factory as code_factory
+
     mcdc_arr, data = code_factory.generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
-    
+
     # Reload mcdc_get
     import importlib
     import mcdc.mcdc_get as mcdc_get
+
     importlib.reload(mcdc_get)
 
     # ==================================================================================
@@ -208,6 +212,7 @@ def preparation():
     import numba as nb
     import mcdc.config as config
     import mcdc.transport.kernel as kernel
+
     code_factory.make_size_rpn(simulation.cells)
     settings.target_gpu = True if config.target == "gpu" else False
 
@@ -223,6 +228,7 @@ def preparation():
         adapt.gpu_forward_declare(config.args)
 
     from mcdc.code_factory.adapt import eval_toggle, target_for, nopython_mode
+
     eval_toggle()
     target_for(config.target)
     if config.target == "gpu":
@@ -260,10 +266,12 @@ def preparation():
     # ==================================================================================
 
     from mcdc.transport.simulation import setup_gpu
+
     setup_gpu(mcdc)
 
     # Pick physics model
     import mcdc.transport.physics as physics
+
     if settings.multigroup_mode:
         physics.neutron.particle_speed = physics.neutron.multigroup.particle_speed
         physics.neutron.macro_xs = physics.neutron.multigroup.macro_xs
@@ -274,7 +282,8 @@ def preparation():
 
     # Pick Python-version RNG if needed
     import mcdc.transport.rng as rng
-    if config.mode == 'python':
+
+    if config.mode == "python":
         rng.wrapping_add = rng.wrapping_add_python
         rng.wrapping_mul = rng.wrapping_mul_python
 
@@ -286,6 +295,7 @@ def preparation():
 # ======================================================================================
 # utilities for handling discrepancies between input and program types
 # ======================================================================================
+
 
 def cardlist_to_h5group(dictlist, input_group, name):
     if name[-1] != "s":
@@ -573,12 +583,13 @@ def visualize(
     # Imports
     import matplotlib.pyplot as plt
     from matplotlib import colors as mpl_colors
+
     ####
     import mcdc.transport.kernel as kernel
     import mcdc.transport.geometry as geometry
 
     # TODO: add input error checkers
-    
+
     _, mcdc_container = prepare()
     mcdc = mcdc_container[0]
 

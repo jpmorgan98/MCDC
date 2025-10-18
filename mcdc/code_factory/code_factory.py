@@ -13,7 +13,12 @@ import mcdc
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
 
-from mcdc.object_.base import ObjectBase, ObjectNonSingleton, ObjectPolymorphic, ObjectSingleton
+from mcdc.object_.base import (
+    ObjectBase,
+    ObjectNonSingleton,
+    ObjectPolymorphic,
+    ObjectSingleton,
+)
 from mcdc.object_.particle import Particle, ParticleBank, ParticleData
 from mcdc.print_ import print_error
 from mcdc.util import flatten
@@ -36,7 +41,7 @@ type_map = {
     np.str_: "U32",
 }
 
-bank_names = ['bank_active', 'bank_census', 'bank_source', 'bank_future']
+bank_names = ["bank_active", "bank_census", "bank_source", "bank_future"]
 
 # ======================================================================================
 # Get MC/DC classes
@@ -61,7 +66,7 @@ for file_name in file_names:
 
             if (
                 item not in base_classes
-                and 'label' in dir(item)
+                and "label" in dir(item)
                 and item not in mcdc_classes
             ):
                 mcdc_classes.append(item)
@@ -71,6 +76,7 @@ polymorphic_bases = [x for x in all_classes if x.__name__[-4:] == "Base"]
 # ======================================================================================
 # Numba object creation
 # ======================================================================================
+
 
 def generate_numba_objects(simulation):
     # ==================================================================================
@@ -104,11 +110,11 @@ def generate_numba_objects(simulation):
         getter_targets[name] = []
 
     # Move simulation to last
-    annotations['simulation'] = annotations.pop('simulation')
-    structures['simulation'] = structures.pop('simulation')
-    records['simulation'] = records.pop('simulation')
-    getter_targets['simulation'] = getter_targets.pop('simulation')
-    
+    annotations["simulation"] = annotations.pop("simulation")
+    structures["simulation"] = structures.pop("simulation")
+    records["simulation"] = records.pop("simulation")
+    getter_targets["simulation"] = getter_targets.pop("simulation")
+
     # ==================================================================================
     # Gather the annotations from the classes
     # ==================================================================================
@@ -129,10 +135,7 @@ def generate_numba_objects(simulation):
                 if k not in ["label", "non_numba"]
                 and (
                     "non_numba" not in dir(class_)
-                    or (
-                        "non_numba" in dir(class_)
-                        and k not in class_.non_numba
-                    )
+                    or ("non_numba" in dir(class_) and k not in class_.non_numba)
                 )
             }
             # Evaluate stringified annotation
@@ -143,7 +146,7 @@ def generate_numba_objects(simulation):
                 new_annotations = parse_annotations_dict(new_annotations)
 
             annotations[mcdc_class.label].update(new_annotations)
-    
+
     # Particle banks
     for name in bank_names:
         annotations[name] = {
@@ -153,8 +156,7 @@ def generate_numba_objects(simulation):
             and (
                 "non_numba" not in dir(ParticleBank)
                 or (
-                    "non_numba" in dir(ParticleBank)
-                    and k not in ParticleBank.non_numba
+                    "non_numba" in dir(ParticleBank) and k not in ParticleBank.non_numba
                 )
             )
         }
@@ -165,11 +167,11 @@ def generate_numba_objects(simulation):
 
     # Temporary simulation object structure
     simulation_object_structure = []
-    for field in annotations['simulation']:
-        hint = annotations['simulation'][field]
+    for field in annotations["simulation"]:
+        hint = annotations["simulation"][field]
         hint_origin = get_origin(hint)
         hint_args = get_args(hint)
-       
+
         if hint in all_classes:
             simulation_object_structure.append((field, hint))
             continue
@@ -180,22 +182,26 @@ def generate_numba_objects(simulation):
     # Set the structures and getter targets
     for label in annotations.keys():
         set_structure(label, structures, getter_targets, annotations)
-    
+
     # Generate the getter helper
     generate_mcdc_get(getter_targets)
-    
+
     # Add ID for non-singleton
     for class_ in mcdc_classes:
         if issubclass(class_, ObjectNonSingleton):
-            structures[class_.label].append(('ID', 'i8'))
-    
+            structures[class_.label].append(("ID", "i8"))
+
     # Add particles to particle banks and add particle banks to the simulation
     for name in bank_names:
         bank = getattr(simulation, name)
         size = int(bank.size[0])
-        structures[name] += [('particles', into_dtype(structures['particle_data']), (size,))]
+        structures[name] += [
+            ("particles", into_dtype(structures["particle_data"]), (size,))
+        ]
         #
-        structures['simulation'] = [(name, into_dtype(structures[name]))] + structures['simulation']
+        structures["simulation"] = [(name, into_dtype(structures[name]))] + structures[
+            "simulation"
+        ]
 
     # ==================================================================================
     # Set records and data based on the simulation structures and objects
@@ -246,7 +252,7 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     new_structure = []
-    record = records['simulation']
+    record = records["simulation"]
     for item in simulation_object_structure:
         field = item[0]
         type_1 = item[1]
@@ -258,7 +264,9 @@ def generate_numba_objects(simulation):
             # List of non-polymorphics
             if item[2] not in polymorphic_bases:
                 N = len(records[item[2].label])
-                new_structure.append((field, into_dtype(structures[item[2].label]), (N,)))
+                new_structure.append(
+                    (field, into_dtype(structures[item[2].label]), (N,))
+                )
                 new_structure.append((f"N_{plural_to_singular(field)}", "i8"))
                 record[f"N_{plural_to_singular(field)}"] = N
 
@@ -267,7 +275,13 @@ def generate_numba_objects(simulation):
                 for class_ in mcdc_classes:
                     if issubclass(class_, type_2):
                         N = len(records[class_.label])
-                        new_structure.append((singular_to_plural(class_.label), into_dtype(structures[class_.label]), (N,)))
+                        new_structure.append(
+                            (
+                                singular_to_plural(class_.label),
+                                into_dtype(structures[class_.label]),
+                                (N,),
+                            )
+                        )
                         new_structure.append((f"N_{class_.label}", "i8"))
                         record[f"N_{class_.label}"] = N
 
@@ -278,19 +292,19 @@ def generate_numba_objects(simulation):
         else:
             print_error(f"Unknown type: {item}")
 
-    structures['simulation'] = new_structure + structures['simulation']
+    structures["simulation"] = new_structure + structures["simulation"]
 
     # GPU interop.
-    structures['simulation'] += [
-        ("gpu_state_pointer", 'u8'),
-        ("source_program_pointer", 'u8'),
-        ("precursor_program_pointer", 'u8'),
-        ("source_seed", 'u8'),
+    structures["simulation"] += [
+        ("gpu_state_pointer", "u8"),
+        ("source_program_pointer", "u8"),
+        ("precursor_program_pointer", "u8"),
+        ("source_seed", "u8"),
     ]
-    records['simulation']['gpu_state_pointer'] = 0
-    records['simulation']['source_program_pointer'] = 0
-    records['simulation']['precursor_program_pointer'] = 0
-    records['simulation']['source_seed'] = 0
+    records["simulation"]["gpu_state_pointer"] = 0
+    records["simulation"]["source_program_pointer"] = 0
+    records["simulation"]["precursor_program_pointer"] = 0
+    records["simulation"]["source_seed"] = 0
 
     # Set other record and data for simulation
     set_object(simulation, annotations, structures, records, data)
@@ -309,7 +323,7 @@ def generate_numba_objects(simulation):
                 else:
                     if len(item) == 3:
                         text += f"    ('{item[0]}', {plural_to_singular(item[0])}, {item[2]}),\n"
-                    else:   
+                    else:
                         text += f"    ('{item[0]}', {item[0]}),\n"
             text += "])\n\n"
 
@@ -320,11 +334,11 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     # The global structure/variable container
-    mcdc_simulation_arr = np.zeros(1, dtype=into_dtype(structures['simulation']))
+    mcdc_simulation_arr = np.zeros(1, dtype=into_dtype(structures["simulation"]))
     mcdc_simulation = mcdc_simulation_arr[0]
 
-    record = records['simulation']
-    structure = structures['simulation']
+    record = records["simulation"]
+    structure = structures["simulation"]
     for item in structure:
         field = item[0]
         field_type = item[1]
@@ -351,7 +365,9 @@ def generate_numba_objects(simulation):
                 singular_field = plural_to_singular(field)
                 for i in range(size):
                     for sub_item in structures[singular_field]:
-                        mcdc_simulation[field][i][sub_item[0]] = records[singular_field][i][sub_item[0]]
+                        mcdc_simulation[field][i][sub_item[0]] = records[
+                            singular_field
+                        ][i][sub_item[0]]
 
     return mcdc_simulation_arr, np.array(data)
 
@@ -372,9 +388,9 @@ def set_structure(label, structures, getter_targets, annotations):
         # Process annotation
         if hint_origin is Annotated:
             hint_decoded = decode_annotated_ndarray(hint)
-            hint_origin = hint_decoded['origin']
-            hint_origin_shape = hint_decoded['shape']
-            hint_inner_dtype = get_args(hint_decoded['dtype'])[0]
+            hint_origin = hint_decoded["origin"]
+            hint_origin_shape = hint_decoded["shape"]
+            hint_inner_dtype = get_args(hint_decoded["dtype"])[0]
             fixed_size_array = True
 
             # Mark as arbitrary size if string is used in shape
@@ -384,7 +400,7 @@ def set_structure(label, structures, getter_targets, annotations):
                     break
 
         # Skip simulation object structure
-        if label == 'simulation':
+        if label == "simulation":
             if hint in all_classes:
                 continue
             if hint_origin == list and hint_args[0] in all_classes:
@@ -401,12 +417,16 @@ def set_structure(label, structures, getter_targets, annotations):
         numpy_array = hint_origin == np.ndarray
 
         # MC/DC class
-        non_polymorphic = lambda x: issubclass(x, ObjectNonSingleton) and x not in polymorphic_bases
-        polymorphic_base = lambda x: x in polymorphic_bases 
+        non_polymorphic = (
+            lambda x: issubclass(x, ObjectNonSingleton) and x not in polymorphic_bases
+        )
+        polymorphic_base = lambda x: x in polymorphic_bases
 
         # List of MC/DC classes
         list_of_non_polymorphics = hint_origin == list and non_polymorphic(hint_args[0])
-        list_of_polymorphic_bases = hint_origin == list and polymorphic_base(hint_args[0])
+        list_of_polymorphic_bases = hint_origin == list and polymorphic_base(
+            hint_args[0]
+        )
 
         # ==========================================================================
         # Set the structure
@@ -455,15 +475,16 @@ def set_structure(label, structures, getter_targets, annotations):
 
         # Unknown type
         else:
-            print_error(f"Unknown type hint for {label}/{field}: {hint}") 
+            print_error(f"Unknown type hint for {label}/{field}: {hint}")
+
 
 def set_object(object_, annotations, structures, records, data):
     annotation = annotations[object_.label]
     structure = structures[object_.label]
     record = {}
 
-    if object_.label == 'simulation':
-        record = records['simulation']
+    if object_.label == "simulation":
+        record = records["simulation"]
 
     # Straightforwardly set up attributes
     for key in [x[0] for x in structure]:
@@ -475,12 +496,7 @@ def set_object(object_, annotations, structures, records, data):
 
     # Loop over the supported attributes
     attribute_names = [
-        x
-        for x in dir(object_)
-        if (
-            x[:2] != "__"
-            and not callable(getattr(object_, x))
-        )
+        x for x in dir(object_) if (x[:2] != "__" and not callable(getattr(object_, x)))
     ]
     if "non_numba" in dir(object_):
         attribute_names = list(set(attribute_names) - set(object_.non_numba))
@@ -490,7 +506,7 @@ def set_object(object_, annotations, structures, records, data):
             continue
 
         attribute = getattr(object_, attribute_name)
-        
+
         # Convert list of supported types into Numpy array
         if type(attribute) == list:
             if get_args(annotation[attribute_name])[0] in type_map.keys():
@@ -502,7 +518,7 @@ def set_object(object_, annotations, structures, records, data):
             record[f"{attribute_name}_offset"] = len(data)
             record[f"{attribute_name}_length"] = len(attribute_flatten)
             data.extend(attribute_flatten)
-        
+
         # Polymorphic object
         elif isinstance(attribute, ObjectPolymorphic):
             record[f"{attribute_name}_type"] = attribute.type
@@ -511,7 +527,7 @@ def set_object(object_, annotations, structures, records, data):
         # Non-polymorphic object
         elif isinstance(attribute, ObjectNonSingleton):
             record[f"{attribute_name}_ID"] = attribute.numba_ID
-        
+
         # List of Non-singleton objects
         elif type(attribute) == list:
             inner_type = get_args(annotation[attribute_name])[0]
@@ -544,7 +560,7 @@ def set_object(object_, annotations, structures, records, data):
                 data.extend([x.numba_ID for x in attribute_flatten])
 
     # Complete for simulation object
-    if object_.label == 'simulation':
+    if object_.label == "simulation":
         return
 
     # Set ID of non-singleton
@@ -561,7 +577,7 @@ def set_object(object_, annotations, structures, records, data):
         records[object_.label] = record
     elif isinstance(object_, ObjectNonSingleton):
         records[object_.label].append(record)
-        
+
 
 # ======================================================================================
 # Alignment Logic
@@ -646,6 +662,7 @@ def into_dtype(field_list):
     result = np.dtype(align(field_list), align=True)
     return result
 
+
 # ======================================================================================
 # Type parser
 # ======================================================================================
@@ -729,6 +746,7 @@ def decode_annotated_ndarray(hint):
 # Helpers for mcdc_get generators
 # ======================================================================================
 
+
 def generate_mcdc_get(targets):
     for object_name in targets.keys():
         with open(f"{Path(mcdc.__file__).parent}/mcdc_get/{object_name}.py", "w") as f:
@@ -742,16 +760,18 @@ def generate_mcdc_get(targets):
                     text += _getter_1d_element(object_name, attribute_name)
                     text += _getter_1d_all(object_name, attribute_name, shape[0])
                     text += _getter_1d_last(object_name, attribute_name, shape[0])
-            
+
                 elif len(shape) == 2:
                     text += _getter_2d_vector(object_name, attribute_name, shape[1])
                     text += _getter_2d_element(object_name, attribute_name, shape[1])
-                
+
                 elif len(shape) == 3:
-                    text += _getter_3d_element(object_name, attribute_name, shape[1], shape[2])
-                
+                    text += _getter_3d_element(
+                        object_name, attribute_name, shape[1], shape[2]
+                    )
+
                 text += _getter_chunk(object_name, attribute_name)
-            
+
             f.write(text[:-2])
 
     with open(f"{Path(mcdc.__file__).parent}/mcdc_get/__init__.py", "w") as f:
@@ -759,6 +779,7 @@ def generate_mcdc_get(targets):
         for object_name in targets.keys():
             text += f"import mcdc.mcdc_get.{object_name} as {object_name}\n"
         f.write(text[:-1])
+
 
 def _getter_1d_element(object_name, attribute_name):
     text = f"@njit\n"
@@ -775,8 +796,8 @@ def _getter_1d_all(object_name, attribute_name, size):
     if type(size) == str:
         text += f'    size = {object_name}["{size}"]\n'
     else:
-        text += f'    size = {size}\n'
-    text += f'    end = start + size\n'
+        text += f"    size = {size}\n"
+    text += f"    end = start + size\n"
     text += f"    return data[start:end]\n\n\n"
     return text
 
@@ -788,8 +809,8 @@ def _getter_1d_last(object_name, attribute_name, size):
     if type(size) == str:
         text += f'    size = {object_name}["{size}"]\n'
     else:
-        text += f'    size = {size}\n'
-    text += f'    end = start + size\n'
+        text += f"    size = {size}\n"
+    text += f"    end = start + size\n"
     text += f"    return data[end - 1]\n\n\n"
     return text
 
@@ -810,7 +831,7 @@ def _getter_2d_element(object_name, attribute_name, stride):
     if isinstance(stride, str):
         text += f'    stride = {object_name}["{stride}"]\n'
     else:
-        text += f'    stride = {stride}\n'
+        text += f"    stride = {stride}\n"
     text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
     return text
 
@@ -822,7 +843,7 @@ def _getter_2d_vector(object_name, attribute_name, stride):
     if isinstance(stride, str):
         text += f'    stride = {object_name}["{stride}"]\n'
     else:
-        text += f'    stride = {stride}\n'
+        text += f"    stride = {stride}\n"
     text += f"    start = offset + index_1 * stride\n"
     text += f"    end = start + stride\n"
     text += f"    return data[start:end]\n\n\n"
@@ -839,10 +860,10 @@ def _getter_3d_element(object_name, attribute_name, stride_2, stride_3):
     return text
 
 
-
 # ======================================================================================
 # Misc.
 # ======================================================================================
+
 
 def plural_to_singular(word: str) -> str:
     """
@@ -850,38 +871,38 @@ def plural_to_singular(word: str) -> str:
     Applies only to the last word and handles common irregulars.
     """
     irregulars = {
-        'universes': 'universe',
-        'children': 'child',
-        'men': 'man',
-        'women': 'woman',
-        'people': 'person',
-        'mice': 'mouse',
-        'geese': 'goose',
-        'teeth': 'tooth',
-        'feet': 'foot',
-        'indices': 'index',
-        'matrices': 'matrix',
-        'criteria': 'criterion',
-        'data': 'data'  # invariant
+        "universes": "universe",
+        "children": "child",
+        "men": "man",
+        "women": "woman",
+        "people": "person",
+        "mice": "mouse",
+        "geese": "goose",
+        "teeth": "tooth",
+        "feet": "foot",
+        "indices": "index",
+        "matrices": "matrix",
+        "criteria": "criterion",
+        "data": "data",  # invariant
     }
 
-    parts = word.lower().split('_')
+    parts = word.lower().split("_")
     w = parts[-1]
 
     if w in irregulars:
         parts[-1] = irregulars[w]
-    elif w.endswith('ies') and len(w) > 3:
-        parts[-1] = w[:-3] + 'y'
-    elif w.endswith('ves') and len(w) > 3:
-        parts[-1] = w[:-3] + 'f'
-    elif w.endswith('oes'):
+    elif w.endswith("ies") and len(w) > 3:
+        parts[-1] = w[:-3] + "y"
+    elif w.endswith("ves") and len(w) > 3:
+        parts[-1] = w[:-3] + "f"
+    elif w.endswith("oes"):
         parts[-1] = w[:-2]
-    elif any(w.endswith(suffix) for suffix in ('ses', 'xes', 'zes', 'ches', 'shes')):
+    elif any(w.endswith(suffix) for suffix in ("ses", "xes", "zes", "ches", "shes")):
         parts[-1] = w[:-2]
-    elif w.endswith('s') and not w.endswith('ss'):
+    elif w.endswith("s") and not w.endswith("ss"):
         parts[-1] = w[:-1]
 
-    return '_'.join(parts)
+    return "_".join(parts)
 
 
 def singular_to_plural(word: str) -> str:
@@ -890,38 +911,38 @@ def singular_to_plural(word: str) -> str:
     Applies only to the last word and handles common irregulars.
     """
     irregulars = {
-        'universe': 'universes',
-        'child': 'children',
-        'man': 'men',
-        'woman': 'women',
-        'person': 'people',
-        'mouse': 'mice',
-        'goose': 'geese',
-        'tooth': 'teeth',
-        'foot': 'feet',
-        'index': 'indices',
-        'matrix': 'matrices',
-        'criterion': 'criteria',
-        'data': 'data'  # invariant
+        "universe": "universes",
+        "child": "children",
+        "man": "men",
+        "woman": "women",
+        "person": "people",
+        "mouse": "mice",
+        "goose": "geese",
+        "tooth": "teeth",
+        "foot": "feet",
+        "index": "indices",
+        "matrix": "matrices",
+        "criterion": "criteria",
+        "data": "data",  # invariant
     }
 
-    parts = word.lower().split('_')
+    parts = word.lower().split("_")
     w = parts[-1]
 
     if w in irregulars:
         parts[-1] = irregulars[w]
-    elif w.endswith('y') and w[-2:] not in ('ay', 'ey', 'iy', 'oy', 'uy'):
-        parts[-1] = w[:-1] + 'ies'
-    elif w.endswith('f'):
-        parts[-1] = w[:-1] + 'ves'
-    elif w.endswith('fe'):
-        parts[-1] = w[:-2] + 'ves'
-    elif w.endswith(('s', 'x', 'z', 'ch', 'sh')):
-        parts[-1] = w + 'es'
+    elif w.endswith("y") and w[-2:] not in ("ay", "ey", "iy", "oy", "uy"):
+        parts[-1] = w[:-1] + "ies"
+    elif w.endswith("f"):
+        parts[-1] = w[:-1] + "ves"
+    elif w.endswith("fe"):
+        parts[-1] = w[:-2] + "ves"
+    elif w.endswith(("s", "x", "z", "ch", "sh")):
+        parts[-1] = w + "es"
     else:
-        parts[-1] = w + 's'
+        parts[-1] = w + "s"
 
-    return '_'.join(parts)
+    return "_".join(parts)
 
 
 # ==============================================================================
@@ -943,4 +964,3 @@ def make_size_rpn(cells):
     global rpn_buffer_size
     size = max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in cells])
     rpn_buffer_size = literalize(size)
-

@@ -23,7 +23,6 @@ def get_indices(particle_container, mesh, data):
     uy = particle["uy"]
     uz = particle["uz"]
 
-
     tolerance = COINCIDENCE_TOLERANCE
     ix = find_bin(x, mcdc_get.structured_mesh.x_all(mesh, data), tolerance, ux < 0.0)
     if ix == -1:

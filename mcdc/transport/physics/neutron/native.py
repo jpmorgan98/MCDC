@@ -48,7 +48,7 @@ def particle_speed(particle_container):
 def macro_xs(reaction_type, material_ID, particle_container, mcdc, data):
     particle = particle_container[0]
     E = particle["E"]
-    material = mcdc['materials'][material_ID]
+    material = mcdc["materials"][material_ID]
 
     # Sum over all nuclides
     total = 0.0

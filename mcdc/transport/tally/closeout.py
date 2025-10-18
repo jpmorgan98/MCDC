@@ -14,16 +14,18 @@ from mcdc.print_ import print_structure
 # Reduce tally bins
 # ======================================================================================
 
+
 @njit
 def reduce(mcdc, data):
     for tally_type in literal_unroll(TALLY_LITERALS):
-        for i in range(mcdc[f'N_{tally_type}_tally']):
-            _reduce(mcdc[f'{tally_type}_tallies'][i], mcdc, data)
+        for i in range(mcdc[f"N_{tally_type}_tally"]):
+            _reduce(mcdc[f"{tally_type}_tallies"][i], mcdc, data)
+
 
 @njit
 def _reduce(tally, mcdc, data):
-    N = tally['bin_length']
-    start = tally['bin_offset']
+    N = tally["bin_length"]
+    start = tally["bin_offset"]
     end = start + N
 
     # Normalize
@@ -46,16 +48,16 @@ def _reduce(tally, mcdc, data):
 @njit
 def accumulate(mcdc, data):
     for tally_type in literal_unroll(TALLY_LITERALS):
-        for i in range(mcdc[f'N_{tally_type}_tally']):
-            _accumulate(mcdc[f'{tally_type}_tallies'][i], data)
+        for i in range(mcdc[f"N_{tally_type}_tally"]):
+            _accumulate(mcdc[f"{tally_type}_tallies"][i], data)
 
 
 @njit
 def _accumulate(tally, data):
-    N_bin = tally['bin_length']
-    offset_bin = tally['bin_offset']
-    offset_sum = tally['bin_sum_offset']
-    offset_sum_square = tally['bin_sum_square_offset']
+    N_bin = tally["bin_length"]
+    offset_bin = tally["bin_offset"]
+    offset_sum = tally["bin_sum_offset"]
+    offset_sum_square = tally["bin_sum_square_offset"]
 
     for i in range(N_bin):
         # Accumulate score and square of score into sum and sum_sq
@@ -75,17 +77,17 @@ def _accumulate(tally, data):
 @njit
 def finalize(mcdc, data):
     for tally_type in literal_unroll(TALLY_LITERALS):
-        for i in range(mcdc[f'N_{tally_type}_tally']):
-            _finalize(mcdc[f'{tally_type}_tallies'][i], mcdc, data)
+        for i in range(mcdc[f"N_{tally_type}_tally"]):
+            _finalize(mcdc[f"{tally_type}_tallies"][i], mcdc, data)
 
 
 @njit
 def _finalize(tally, mcdc, data):
     N_history = mcdc["settings"]["N_particle"]
     N_batch = mcdc["settings"]["N_batch"]
-    N_bin = tally['bin_length']
-    sum_start = tally['bin_sum_offset']
-    sum_sq_start = tally['bin_sum_square_offset']
+    N_bin = tally["bin_length"]
+    sum_start = tally["bin_sum_offset"]
+    sum_sq_start = tally["bin_sum_square_offset"]
     sum_end = sum_start + N_bin
     sum_sq_end = sum_sq_start + N_bin
 
@@ -108,9 +110,9 @@ def _finalize(tally, mcdc, data):
     # Calculate and store statistics
     #   sum --> mean
     #   sum_sq --> standard deviation
-    N_bin = tally['bin_length']
-    offset_sum = tally['bin_sum_offset']
-    offset_sum_square = tally['bin_sum_square_offset']
+    N_bin = tally["bin_length"]
+    offset_sum = tally["bin_sum_offset"]
+    offset_sum_square = tally["bin_sum_square_offset"]
     for i in range(N_bin):
         data[offset_sum + i] = data[offset_sum + i] / N_history
         radicand = (

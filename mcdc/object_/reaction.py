@@ -15,7 +15,11 @@ from mcdc.constant import (
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataBase, DataPolynomial, DataTable
-from mcdc.object_.distribution import DistributionBase, DistributionMaxwellian, DistributionMultiPDF
+from mcdc.object_.distribution import (
+    DistributionBase,
+    DistributionMaxwellian,
+    DistributionMultiPDF,
+)
 from mcdc.print_ import print_1d_array
 
 
@@ -55,7 +59,7 @@ def decode_type(type_):
 
 class ReactionNeutronCapture(ReactionBase):
     # Annotations for Numba mode
-    label: str = 'neutron_capture_reaction'
+    label: str = "neutron_capture_reaction"
 
     def __init__(self, xs):
         type_ = REACTION_NEUTRON_CAPTURE
@@ -74,7 +78,7 @@ class ReactionNeutronCapture(ReactionBase):
 
 class ReactionNeutronElasticScattering(ReactionBase):
     # Annotations for Numba mode
-    label: str = 'neutron_elastic_scattering_reaction'
+    label: str = "neutron_elastic_scattering_reaction"
     #
     mu: DistributionMultiPDF
 
@@ -111,7 +115,7 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
 class ReactionNeutronFission(ReactionBase):
     # Annotations for Numba mode
-    label: str = 'neutron_fission_reaction'
+    label: str = "neutron_fission_reaction"
     #
     prompt_yield: DataBase
     prompt_spectrum: DistributionBase

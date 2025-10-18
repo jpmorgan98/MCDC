@@ -87,8 +87,9 @@ class Surface(ObjectNonSingleton):
     decode_BC_type
         Human-readable boundary condition name.
     """
+
     # Annotations for Numba mode
-    label: str = 'surface'
+    label: str = "surface"
     #
     type: int
     name: str
@@ -165,7 +166,6 @@ class Surface(ObjectNonSingleton):
         # Surface tallies
         self.tallies = []
 
-
     def __repr__(self):
         """
         Return a human-readable description including type-specific parameters.
@@ -234,7 +234,7 @@ class Surface(ObjectNonSingleton):
     # ==================================================================================
 
     @classmethod
-    def PlaneX(cls, name: str = "", x: float = 0.0, boundary_condition: str ="none"):
+    def PlaneX(cls, name: str = "", x: float = 0.0, boundary_condition: str = "none"):
         """
         Create a plane perpendicular to +x at x = constant.
 
@@ -261,7 +261,7 @@ class Surface(ObjectNonSingleton):
         return surface
 
     @classmethod
-    def PlaneY(cls, name: str = "", y: float = 0.0, boundary_condition: str ="none"):
+    def PlaneY(cls, name: str = "", y: float = 0.0, boundary_condition: str = "none"):
         """
         Create a plane perpendicular to +y at y = constant.
 
@@ -288,7 +288,7 @@ class Surface(ObjectNonSingleton):
         return surface
 
     @classmethod
-    def PlaneZ(cls, name: str = "", z: float = 0.0, boundary_condition: str ="none"):
+    def PlaneZ(cls, name: str = "", z: float = 0.0, boundary_condition: str = "none"):
         """
         Create a plane perpendicular to +z at z = constant.
 
@@ -322,7 +322,7 @@ class Surface(ObjectNonSingleton):
         B: float = 0.0,
         C: float = 0.0,
         D: float = 0.0,
-        boundary_condition: str ="none"
+        boundary_condition: str = "none",
     ):
         """
         Create a general plane defined by A x + B y + C z + D = 0.
@@ -371,7 +371,7 @@ class Surface(ObjectNonSingleton):
         name: str = "",
         center: Iterable[float] = [0.0, 0.0],
         radius: float = 0.0,
-        boundary_condition: str ="none"
+        boundary_condition: str = "none",
     ):
         """
         Create an infinite cylinder aligned with the x-axis.
@@ -413,7 +413,7 @@ class Surface(ObjectNonSingleton):
         name: str = "",
         center: Iterable[float] = [0.0, 0.0],
         radius: float = 0.0,
-        boundary_condition: str ="none"
+        boundary_condition: str = "none",
     ):
         """
         Create an infinite cylinder aligned with the y-axis.
@@ -455,7 +455,7 @@ class Surface(ObjectNonSingleton):
         name: str = "",
         center: Iterable[float] = [0.0, 0.0],
         radius: float = 0.0,
-        boundary_condition: str ="none"
+        boundary_condition: str = "none",
     ):
         """
         Create an infinite cylinder aligned with the z-axis.
@@ -497,7 +497,7 @@ class Surface(ObjectNonSingleton):
         name: str = "",
         center: Iterable[float] = [0.0, 0.0, 0.0],
         radius: float = 0.0,
-        boundary_condition: str ="none"
+        boundary_condition: str = "none",
     ):
         """
         Create a sphere.
@@ -549,7 +549,7 @@ class Surface(ObjectNonSingleton):
         H: float = 0.0,
         I: float = 0.0,
         J: float = 0.0,
-        boundary_condition: str ="none"
+        boundary_condition: str = "none",
     ):
         """
         Create a general quadric:

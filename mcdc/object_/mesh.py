@@ -57,7 +57,7 @@ def decode_type(type_):
 
 class MeshUniform(MeshBase):
     # Annotations for Numba mode
-    label: str = 'uniform_mesh'
+    label: str = "uniform_mesh"
     #
     x0: float
     dx: float
@@ -105,7 +105,7 @@ class MeshUniform(MeshBase):
 
 class MeshStructured(MeshBase):
     # Annotations for Numba mode
-    label: str = 'structured_mesh'
+    label: str = "structured_mesh"
     #
     x: NDArray[float64]
     y: NDArray[float64]

@@ -14,21 +14,23 @@ import mcdc.object_.numba_types as type_
 # Weight Roulette
 # ======================================================================================
 
+
 @njit
 def weight_roulette(particle_container, mcdc):
     particle = particle_container[0]
-    if particle['w'] < mcdc['weight_roulette']['weight_threshold']:
-        w_target = mcdc['weight_roulette']['weight_target']
-        survival_probability = particle['w'] / w_target
+    if particle["w"] < mcdc["weight_roulette"]["weight_threshold"]:
+        w_target = mcdc["weight_roulette"]["weight_target"]
+        survival_probability = particle["w"] / w_target
         if rng.lcg(particle_container) < survival_probability:
-            particle['w'] = w_target
+            particle["w"] = w_target
         else:
-            particle['alive'] = False
+            particle["alive"] = False
 
 
 # ======================================================================================
 # Population Control
 # ======================================================================================
+
 
 @njit
 def population_control(mcdc):
@@ -76,5 +78,3 @@ def population_control(mcdc):
             # Set weight
             P_rec["w"] = w_survive
             adapt.add_source(P_rec_arr, mcdc)
-
-

@@ -80,7 +80,7 @@ targets = {
         ("x", 1),
         ("y", 1),
         ("z", 1),
-        ("scores", 1)
+        ("scores", 1),
     ],
     "structured_mesh": [
         ("x", 1),
@@ -133,7 +133,7 @@ def getter_2d_element(object_name, attribute_name, stride):
     if isinstance(stride, str):
         text += f'    stride = {object_name}["{stride}"]\n'
     else:
-        text += f'    stride = {stride}\n'
+        text += f"    stride = {stride}\n"
     text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
     return text
 
@@ -145,7 +145,7 @@ def getter_2d_vector(object_name, attribute_name, stride):
     if isinstance(stride, str):
         text += f'    stride = {object_name}["{stride}"]\n'
     else:
-        text += f'    stride = {stride}\n'
+        text += f"    stride = {stride}\n"
     text += f"    start = offset + index_1 * stride\n"
     text += f"    end = start + stride\n"
     text += f"    return data[start:end]\n\n\n"
@@ -178,7 +178,9 @@ for object_name in targets:
                 text += getter_2d_element(object_name, attribute_name, stride)
             if attribute_dim == 3:
                 stride = attribute[2]
-                text += getter_3d_element(object_name, attribute_name, stride[0], stride[1])
+                text += getter_3d_element(
+                    object_name, attribute_name, stride[0], stride[1]
+                )
             text += getter_chunk(object_name, attribute_name)
         f.write(text[:-2])
 

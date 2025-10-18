@@ -74,7 +74,7 @@ def source(**kw):
                 "white_direction",
                 "energy",
                 "time",
-                'particle_type',
+                "particle_type",
                 "prob",
             ],
             False,

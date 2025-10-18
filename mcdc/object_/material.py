@@ -56,7 +56,7 @@ def decode_type(type_):
 
 class Material(MaterialBase):
     # Annotations for Numba mode
-    label: str = 'material'
+    label: str = "material"
     non_numba: list[str] = ["nuclide_composition"]
     #
     nuclide_composition: dict[Nuclide, float]
@@ -103,7 +103,6 @@ class Material(MaterialBase):
             # Some flags
             if nuclide.fissionable:
                 self.fissionable = True
-        
 
     def __repr__(self):
         text = super().__repr__()
@@ -120,7 +119,7 @@ class Material(MaterialBase):
 
 class MaterialMG(MaterialBase):
     # Annotations for Numba mode
-    label: str = 'multigroup_material'
+    label: str = "multigroup_material"
     #
     G: int
     J: int

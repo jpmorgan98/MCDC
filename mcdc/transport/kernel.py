@@ -795,7 +795,7 @@ def manage_particle_banks(seed, mcdc):
         normalize_weight(mcdc["bank_census"], mcdc["settings"]["N_particle"])
 
     # Population control
-    if mcdc["population_control"]['active']:
+    if mcdc["population_control"]["active"]:
         technique.population_control(mcdc)
     else:
         # Swap census and source bank
@@ -1099,6 +1099,7 @@ def split_as_data(P_new_rec_arr, P_rec_arr):
 # =============================================================================
 # Tally operations
 # =============================================================================
+
 
 @njit
 def dd_reduce(data, mcdc):
@@ -1480,15 +1481,15 @@ def move_to_event(P_arr, mcdc, data):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
             tally = mcdc["cell_tallies"][tally_ID]
             tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
-        
+
         # Global tallies
-        for i in range(mcdc['N_global_tally']):
+        for i in range(mcdc["N_global_tally"]):
             tally = mcdc["global_tallies"][i]
             tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
 
         # Mesh tallies
-        for i in range(mcdc['N_mesh_tally']):
-            tally = mcdc['mesh_tallies'][i]
+        for i in range(mcdc["N_mesh_tally"]):
+            tally = mcdc["mesh_tallies"][i]
             tally_module.score.mesh_tally(P_arr, distance, tally, mcdc, data)
 
     if settings["eigenvalue_mode"]:

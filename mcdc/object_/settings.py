@@ -19,7 +19,7 @@ from mcdc.print_ import print_error
 @dataclass
 class Settings(ObjectSingleton):
     # Annotations for Numba mode
-    label: str = 'settings'
+    label: str = "settings"
 
     # Basic
     N_particle: int = 0

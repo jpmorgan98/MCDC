@@ -4,7 +4,12 @@ from numba import njit
 
 import mcdc.transport.rng as rng
 
-from mcdc.transport.distribution import sample_uniform, sample_pmf, sample_white_direction, sample_isotropic_direction
+from mcdc.transport.distribution import (
+    sample_uniform,
+    sample_pmf,
+    sample_white_direction,
+    sample_isotropic_direction,
+)
 
 
 @njit
@@ -22,9 +27,9 @@ def source_particle(P_rec_arr, seed, mcdc, data):
 
     # Position
     if source["point_source"]:
-        x = source['point'][0]
-        y = source['point'][1]
-        z = source['point'][2]
+        x = source["point"][0]
+        y = source["point"][1]
+        z = source["point"][2]
     else:
         x = sample_uniform(source["x"][0], source["x"][1], P_rec_arr)
         y = sample_uniform(source["y"][0], source["y"][1], P_rec_arr)
@@ -34,9 +39,9 @@ def source_particle(P_rec_arr, seed, mcdc, data):
     if source["isotropic_direction"]:
         ux, uy, uz = sample_isotropic_direction(P_rec_arr)
     elif source["white_direction"]:
-        rx = source['direction'][0]
-        ry = source['direction'][1]
-        rz = source['direction'][2]
+        rx = source["direction"][0]
+        ry = source["direction"][1]
+        rz = source["direction"][2]
         ux, uy, uz = sample_white_direction(rx, ry, rz, P_rec_arr)
     elif source["mono_direction"]:
         ux = source["direction"][0]
@@ -47,15 +52,15 @@ def source_particle(P_rec_arr, seed, mcdc, data):
     if mcdc["settings"]["multigroup_mode"]:
         E = 0.0
         if source["mono_energetic"]:
-            g = source['energy_group']
+            g = source["energy_group"]
         else:
-            ID = source['energy_group_pmf_ID']
-            pmf = mcdc['pmf_distributions'][ID]
+            ID = source["energy_group_pmf_ID"]
+            pmf = mcdc["pmf_distributions"][ID]
             g = sample_pmf(pmf, P_rec_arr, data)
 
     # Time
-    if source['discrete_time']:
-        t = source['time']
+    if source["discrete_time"]:
+        t = source["time"]
     else:
         t = sample_uniform(source["time_range"][0], source["time_range"][1], P_rec_arr)
 

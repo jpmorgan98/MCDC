@@ -24,7 +24,7 @@ from mcdc.print_ import print_1d_array
 
 class Nuclide(ObjectNonSingleton):
     # Annotations for Numba mode
-    label: str = 'nuclide'
+    label: str = "nuclide"
     #
     name: str
     atomic_weight_ratio: float

@@ -113,10 +113,11 @@ def full_particle_bank(max_size):
 
 def particle_bank(max_size):
     return [
-            ("particles", particle_record, (max_size,)),
-            ("size", int64, (1,)),
-            ("tag", str_),
-        ]
+        ("particles", particle_record, (max_size,)),
+        ("size", int64, (1,)),
+        ("tag", str_),
+    ]
+
 
 # ==============================================================================
 # GPU Metadata
@@ -201,7 +202,7 @@ def make_type_global(input_deck, structures, records):
         bank_source = particle_bank(N_work)
 
     # Set the global structure
-    global_structure = structures['simulation']
+    global_structure = structures["simulation"]
     global_structure += [
         ("bank_active", bank_active),
         ("bank_census", bank_census),

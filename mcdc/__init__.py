@@ -4,6 +4,7 @@
 
 # The simulation
 from mcdc.object_.simulation import simulation
+
 settings = simulation.settings
 
 # The objects

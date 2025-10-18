@@ -31,7 +31,7 @@ from mcdc.transport.distribution import sample_isotropic_direction
 @njit
 def particle_speed(particle_container, mcdc, data):
     particle = particle_container[0]
-    material = mcdc['multigroup_materials'][particle['material_ID']]
+    material = mcdc["multigroup_materials"][particle["material_ID"]]
     return mcdc_get.multigroup_material.mgxs_speed(particle["g"], material, data)
 
 
@@ -43,7 +43,7 @@ def particle_speed(particle_container, mcdc, data):
 @njit
 def macro_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
-    material = mcdc['multigroup_materials'][particle['material_ID']]
+    material = mcdc["multigroup_materials"][particle["material_ID"]]
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
         return mcdc_get.multigroup_material.mgxs_total(g, material, data)
@@ -59,7 +59,7 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
 @njit
 def neutron_production_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
-    material = mcdc['multigroup_materials'][particle['material_ID']]
+    material = mcdc["multigroup_materials"][particle["material_ID"]]
 
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
@@ -108,15 +108,11 @@ def collision(particle_container, prog, data):
     SigmaS = macro_xs(
         REACTION_NEUTRON_ELASTIC_SCATTERING, particle_container, mcdc, data
     )
-    SigmaC = macro_xs(
-        REACTION_NEUTRON_CAPTURE, particle_container, mcdc, data
-    )
-    SigmaF = macro_xs(
-        REACTION_NEUTRON_FISSION, particle_container, mcdc, data
-    )
-    
+    SigmaC = macro_xs(REACTION_NEUTRON_CAPTURE, particle_container, mcdc, data)
+    SigmaF = macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+
     # Implicit capture
-    if mcdc['implicit_capture']['active']:
+    if mcdc["implicit_capture"]["active"]:
         particle["w"] *= (SigmaT - SigmaC) / SigmaT
         SigmaT -= SigmaC
 
@@ -234,9 +230,7 @@ def fission(particle_container, prog, data):
     weight_new = particle["w"]
 
     # Get number of secondaries
-    N = int(
-        math.floor(nu / mcdc["k_eff"] + rng.lcg(particle_container))
-    )
+    N = int(math.floor(nu / mcdc["k_eff"] + rng.lcg(particle_container)))
 
     # Set up secondary partice container
     particle_container_new = adapt.local_array(1, type_.particle_data)
@@ -269,8 +263,12 @@ def fission(particle_container, prog, data):
             for j in range(J):
                 total += nu_d[j]
                 if xi < total:
-                    spectrum = mcdc_get.multigroup_material.mgxs_chi_d_vector(j, material, data)
-                    decay = mcdc_get.multigroup_material.mgxs_decay_rate(j, material, data)
+                    spectrum = mcdc_get.multigroup_material.mgxs_chi_d_vector(
+                        j, material, data
+                    )
+                    decay = mcdc_get.multigroup_material.mgxs_decay_rate(
+                        j, material, data
+                    )
                     break
 
         # Sample outgoing energy

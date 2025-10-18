@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mcdc.object_.surface import Surface
 
@@ -103,7 +104,7 @@ class Region(ObjectNonSingleton):
 
 class Cell(ObjectNonSingleton):
     # Annotations for Numba mode
-    label: str = 'cell'
+    label: str = "cell"
     non_numba: list[str] = ["region", "fill", "region_RPN"]
     #
     name: str

@@ -3,7 +3,9 @@ from typing import Sequence
 
 
 @njit
-def find_bin(value: float, grid: Sequence[float], epsilon: float = 0.0, go_lower: bool = True) -> int:
+def find_bin(
+    value: float, grid: Sequence[float], epsilon: float = 0.0, go_lower: bool = True
+) -> int:
     """
     Return the bin index i for which grid[i] <= value < grid[i+1], with optional
     epsilon tolerance and tie-breaking toward the lower/upper bin.

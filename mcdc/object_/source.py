@@ -27,7 +27,7 @@ def decode_particle_type(type_):
 
 class Source(ObjectNonSingleton):
     # Annotations for Numba mode
-    label: str = 'source'
+    label: str = "source"
     #
     name: str
     point_source: bool
@@ -50,24 +50,25 @@ class Source(ObjectNonSingleton):
     particle_type: int
     probability: float
 
-    def __init__(self,
-            name: str = "",
-            position: Iterable[float] | NoneType = None,
-            x: Iterable[float] | NoneType = None,
-            y: Iterable[float] | NoneType = None,
-            z: Iterable[float] | NoneType = None,
-            #
-            direction: Iterable[float] | NoneType = None,
-            white_direction: Iterable[float] | NoneType = None,
-            isotropic: bool | NoneType = None,
-            #
-            energy: float | NDArray[float64] | NoneType = None,
-            energy_group: int | NDArray[int64] | NoneType = None,
-            #
-            time: float | Iterable[float] = 0.0,
-            probability: float = 1.0
-        ):
-        
+    def __init__(
+        self,
+        name: str = "",
+        position: Iterable[float] | NoneType = None,
+        x: Iterable[float] | NoneType = None,
+        y: Iterable[float] | NoneType = None,
+        z: Iterable[float] | NoneType = None,
+        #
+        direction: Iterable[float] | NoneType = None,
+        white_direction: Iterable[float] | NoneType = None,
+        isotropic: bool | NoneType = None,
+        #
+        energy: float | NDArray[float64] | NoneType = None,
+        energy_group: int | NDArray[int64] | NoneType = None,
+        #
+        time: float | Iterable[float] = 0.0,
+        probability: float = 1.0,
+    ):
+
         super().__init__()
 
         # Set name
@@ -78,7 +79,7 @@ class Source(ObjectNonSingleton):
 
         # ==============================================================================
         # Default attributes
-        #   Point source at origin, isotropic, mono-energetic at 1 MeV or at group 0, 
+        #   Point source at origin, isotropic, mono-energetic at 1 MeV or at group 0,
         #   time = 0, neutron
         # ==============================================================================
 
@@ -98,9 +99,11 @@ class Source(ObjectNonSingleton):
         # Energy
         self.mono_energetic = True
         self.energy_group = 0
-        self.energy = 1.0E6
+        self.energy = 1.0e6
         self.energy_group_pmf = DistributionPMF(np.array([0.0]), np.array([1.0]))
-        self.energy_pdf = DistributionPDF(np.array([1.E6 - 1.0, 1.E6 + 1.0]), np.array([1.0, 1.0]))
+        self.energy_pdf = DistributionPDF(
+            np.array([1.0e6 - 1.0, 1.0e6 + 1.0]), np.array([1.0, 1.0])
+        )
 
         # Time
         self.discrete_time = True
@@ -116,7 +119,7 @@ class Source(ObjectNonSingleton):
         # ==============================================================================
         # Assignment
         # ==============================================================================
-        
+
         # Position
         if position is not None:
             self.point = np.array(position)
@@ -147,7 +150,9 @@ class Source(ObjectNonSingleton):
                 self.energy_group = energy_group
             else:
                 self.mono_energetic = False
-                self.energy_group_pmf = DistributionPMF(energy_group[0], energy_group[1])
+                self.energy_group_pmf = DistributionPMF(
+                    energy_group[0], energy_group[1]
+                )
         elif energy is not None:
             if type(energy) == float:
                 self.energy = energy
@@ -161,7 +166,7 @@ class Source(ObjectNonSingleton):
         else:
             self.discrete_time = False
             self.time_range = np.array(time)
-   
+
     def __repr__(self):
         text = "\n"
         text += f"Source\n"
@@ -182,7 +187,7 @@ class Source(ObjectNonSingleton):
             text += f"  - Direction [ux, uy, yz]: {self.direction}\n"
         elif self.white_direction:
             text += f"  - Isotropic halfspace: {self.direction}\n"
-        if simulation.materials[0].label == 'multigroup_material':
+        if simulation.materials[0].label == "multigroup_material":
             if self.mono_energetic:
                 text += f"  - Energy group: {self.energy_group} \n"
             else:

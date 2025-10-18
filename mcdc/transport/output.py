@@ -182,6 +182,7 @@ def create_runtime_dataset(file, mcdc):
 # Tally
 # ======================================================================================
 
+
 def create_tally_dataset(file, mcdc, data):
     # Loop over all tally types
     for tally_type in TALLY_LITERALS:
@@ -260,6 +261,7 @@ def create_tally_dataset(file, mcdc, data):
                 group_name = f"tallies/{tally_name}/{score_name}/"
                 file.create_dataset(group_name + "mean", data=score_mean)
                 file.create_dataset(group_name + "sdev", data=score_sdev)
+
 
 # ======================================================================================
 # Tally recombination

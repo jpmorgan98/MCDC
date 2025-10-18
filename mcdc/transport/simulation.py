@@ -68,6 +68,7 @@ def teardown_gpu(mcdc):
 # Fixed-source loop
 # ======================================================================================
 
+
 @njit
 def fixed_source_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program by intentionally leaking their memory
@@ -85,7 +86,7 @@ def fixed_source_simulation(mcdc_arr, data):
     for i_batch in range(N_batch):
         mcdc["idx_batch"] = i_batch
         seed_batch = rng.split_seed(i_batch, settings["rng_seed"])
-        
+
         # Distribute work
         # (TODO: why is this necessary?)
         kernel.distribute_work(N_particle, mcdc)
@@ -123,7 +124,7 @@ def fixed_source_simulation(mcdc_arr, data):
                     tally_module.closeout.accumulate(mcdc, data)
                     with objmode():
                         output_module.generate_census_based_tally(mcdc, data)
-            
+
             # Terminate census loop if all banks are empty
             if (
                 i_census > 0
@@ -228,7 +229,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     if kernel.get_bank_size(mcdc["bank_source"]) == 0:
         # Sample source
         source_particle(P_arr, seed_work, mcdc, data)
-    
+
     # Get from source bank
     else:
         P_arr = mcdc["bank_source"]["particles"][idx_work : (idx_work + 1)]
@@ -514,6 +515,7 @@ def loop_particle(P_arr, prog, data):
     while P["alive"]:
         step_particle(P_arr, prog, data)
 
+
 @njit
 def step_particle(P_arr, prog, data):
     P = P_arr[0]
@@ -550,7 +552,7 @@ def step_particle(P_arr, prog, data):
         P["alive"] = False
 
     # Weight roulette
-    if P['alive']:
+    if P["alive"]:
         technique.weight_roulette(P_arr, prog)
 
 
@@ -685,5 +687,3 @@ def setup_gpu(mcdc):
 @njit
 def teardown_gpu(mcdc):
     pass
-
-

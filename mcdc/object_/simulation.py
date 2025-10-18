@@ -38,8 +38,14 @@ from mcdc.object_.settings import Settings
 
 class Simulation(ObjectSingleton):
     # Annotations for Numba mode
-    label: str = 'simulation'
-    non_numba: list[str] = ['regions', 'bank_active', 'bank_census', 'bank_source', 'bank_future']
+    label: str = "simulation"
+    non_numba: list[str] = [
+        "regions",
+        "bank_active",
+        "bank_census",
+        "bank_source",
+        "bank_future",
+    ]
 
     # Physics
     data: list[DataBase]
@@ -167,13 +173,13 @@ class Simulation(ObjectSingleton):
         self.dd_idx = 0
         self.dd_N_local_source = 0
         self.dd_local_rank = 0
-        
+
         # Eigenvalue simulation
         self.k_eff = 1.0
         self.k_cycle = np.ones(1)
         self.k_avg = 1.0
         self.k_sdv = 0.0
-        self.n_avg = 0.0 # Neutron density
+        self.n_avg = 0.0  # Neutron density
         self.n_sdv = 0.0
         self.n_max = 0.0
         self.C_avg = 0.0  # Precursor density
@@ -186,7 +192,7 @@ class Simulation(ObjectSingleton):
         self.eigenvalue_tally_nuSigmaF = np.zeros(1)
         self.eigenvalue_tally_n = np.zeros(1)
         self.eigenvalue_tally_C = np.zeros(1)
-       
+
         # MPI parameters
         self.mpi_size = MPI.COMM_WORLD.Get_size()
         self.mpi_rank = MPI.COMM_WORLD.Get_rank()

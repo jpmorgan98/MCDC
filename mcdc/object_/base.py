@@ -11,7 +11,7 @@ class ObjectBase:
     def __init__(self, register):
         if register and isinstance(self, ObjectNonSingleton):
             register_object(self)
-    
+
         if "non_numba" in dir(self):
             self.non_numba += ["non_numba", "label"]
         else:
@@ -32,6 +32,7 @@ class ObjectSingleton(ObjectBase):
 class ObjectNonSingleton(ObjectBase):
     ID: int
     numba_ID: int
+
     def __init__(self, register=True):
         self.ID = -1
         self.numba_ID = -1
@@ -42,8 +43,10 @@ class ObjectNonSingleton(ObjectBase):
         else:
             self.non_numba = ["ID", "numba_ID"]
 
+
 class ObjectPolymorphic(ObjectNonSingleton):
     type: int
+
     def __init__(self, type_, register=True):
         self.type = type_
         super().__init__(register)

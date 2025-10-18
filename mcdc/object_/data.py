@@ -38,7 +38,7 @@ def decode_type(type_):
 
 class DataTable(DataBase):
     # Annotations for Numba mode
-    label: str = 'table_data'
+    label: str = "table_data"
     #
     x: NDArray[float64]
     y: NDArray[float64]
@@ -64,7 +64,7 @@ class DataTable(DataBase):
 
 class DataPolynomial(DataBase):
     # Annotations for Numba mode
-    label: str = 'polynomial_data'
+    label: str = "polynomial_data"
     #
     coefficients: NDArray[float64]
 
