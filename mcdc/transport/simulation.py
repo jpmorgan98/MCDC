@@ -65,7 +65,7 @@ def teardown_gpu(mcdc):
 
 
 # ======================================================================================
-# Fixed-source loop
+# Fixed-source simulation
 # ======================================================================================
 
 
@@ -88,7 +88,8 @@ def fixed_source_simulation(mcdc_arr, data):
         seed_batch = rng.split_seed(i_batch, settings["rng_seed"])
 
         # Distribute work
-        # (TODO: why is this necessary?)
+        #   TODO: Check on why is this necessary? Is it possible that the actual number
+        #         of work is not exactly N_particle?
         kernel.distribute_work(N_particle, mcdc)
 
         # Print multi-batch header
