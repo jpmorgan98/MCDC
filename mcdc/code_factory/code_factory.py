@@ -85,19 +85,19 @@ def generate_numba_objects(simulation):
     #   - Numba structures
     #   - Records
     #   - Data: flattened vector to store arbitrary-size arrays
-    #   - Getter targets: to generate getter helpers to easily access data
+    #   - Accessor targets: to generate getter/setter helpers to easily access data
     # ==================================================================================
 
     annotations = {}
     structures = {}
     records = {}
     data = []
-    getter_targets = {}
+    accessor_targets = {}
 
     for mcdc_class in mcdc_classes:
         annotations[mcdc_class.label] = {}
         structures[mcdc_class.label] = []
-        getter_targets[mcdc_class.label] = []
+        accessor_targets[mcdc_class.label] = []
         if issubclass(mcdc_class, ObjectNonSingleton):
             records[mcdc_class.label] = []
         else:
@@ -107,13 +107,13 @@ def generate_numba_objects(simulation):
     for name in bank_names:
         annotations[name] = {}
         structures[name] = []
-        getter_targets[name] = []
+        accessor_targets[name] = []
 
     # Move simulation to last
     annotations["simulation"] = annotations.pop("simulation")
     structures["simulation"] = structures.pop("simulation")
     records["simulation"] = records.pop("simulation")
-    getter_targets["simulation"] = getter_targets.pop("simulation")
+    accessor_targets["simulation"] = accessor_targets.pop("simulation")
 
     # ==================================================================================
     # Gather the annotations from the classes
@@ -162,7 +162,7 @@ def generate_numba_objects(simulation):
         }
 
     # ==================================================================================
-    # Set the structures and getter targets based on the annotations
+    # Set the structures and accessor targets based on the annotations
     # ==================================================================================
 
     # Temporary simulation object structure
@@ -179,13 +179,12 @@ def generate_numba_objects(simulation):
             simulation_object_structure.append((field, list, hint_args[0]))
             continue
 
-    # Set the structures and getter targets
+    # Set the structures and accessor targets
     for label in annotations.keys():
-        set_structure(label, structures, getter_targets, annotations)
+        set_structure(label, structures, accessor_targets, annotations)
 
-    # Generate the getter helper
-    generate_mcdc_get(getter_targets)
-    generate_mcdc_set(getter_targets)
+    # Generate the accessor helper
+    generate_mcdc_access(accessor_targets)
 
     # Add ID for non-singleton
     for class_ in mcdc_classes:
@@ -373,10 +372,10 @@ def generate_numba_objects(simulation):
     return mcdc_simulation_arr, np.array(data)
 
 
-def set_structure(label, structures, getter_targets, annotations):
+def set_structure(label, structures, accessor_targets, annotations):
     structure = structures[label]
     annotation = annotations[label]
-    getter_target = getter_targets[label]
+    accessor_target = accessor_targets[label]
 
     for field in annotation:
         hint = annotation[field]
@@ -442,9 +441,9 @@ def set_structure(label, structures, getter_targets, annotations):
             structure.append((f"{field}_offset", "i8"))
             structure.append((f"{field}_length", "i8"))
             if hint_origin_shape is not None:
-                getter_target.append((f"{field}", hint_origin_shape))
+                accessor_target.append((f"{field}", hint_origin_shape))
             else:
-                getter_target.append((f"{field}", (f"{field}_length",)))
+                accessor_target.append((f"{field}", (f"{field}_length",)))
 
         # MC/DC classes
         elif non_polymorphic(hint):
@@ -459,20 +458,20 @@ def set_structure(label, structures, getter_targets, annotations):
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
             if hint_origin_shape is not None:
-                getter_target.append((f"{singular}_IDs", hint_origin_shape))
+                accessor_target.append((f"{singular}_IDs", hint_origin_shape))
             else:
-                getter_target.append((f"{singular}_IDs", (f"N_{singular}",)))
+                accessor_target.append((f"{singular}_IDs", (f"N_{singular}",)))
         elif list_of_polymorphic_bases:
             singular = plural_to_singular(field)
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_types_offset", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
             if hint_origin_shape is not None:
-                getter_target.append((f"{singular}_IDs", hint_origin_shape))
-                getter_target.append((f"{singular}_types", hint_origin_shape))
+                accessor_target.append((f"{singular}_IDs", hint_origin_shape))
+                accessor_target.append((f"{singular}_types", hint_origin_shape))
             else:
-                getter_target.append((f"{singular}_IDs", (f"N_{singular}",)))
-                getter_target.append((f"{singular}_types", (f"N_{singular}",)))
+                accessor_target.append((f"{singular}_IDs", (f"N_{singular}",)))
+                accessor_target.append((f"{singular}_types", (f"N_{singular}",)))
 
         # Unknown type
         else:
@@ -748,83 +747,76 @@ def decode_annotated_ndarray(hint):
 # ======================================================================================
 
 
-def generate_mcdc_get(targets):
+def generate_mcdc_access(targets):
     for object_name in targets.keys():
-        with open(f"{Path(mcdc.__file__).parent}/mcdc_get/{object_name}.py", "w") as f:
-            text = "from numba import njit\n\n\n"
+        path = f"{Path(mcdc.__file__).parent}"
+        file_getter = open(f"{path}/mcdc_get/{object_name}.py", "w")
+        file_setter = open(f"{path}/mcdc_set/{object_name}.py", "w")
 
-            for attribute in targets[object_name]:
-                attribute_name = attribute[0]
-                shape = attribute[1]
+        text_getter = "from numba import njit\n\n\n"
+        text_setter = "from numba import njit\n\n\n"
 
-                if len(shape) == 1:
-                    text += _getter_1d_element(object_name, attribute_name)
-                    text += _getter_1d_all(object_name, attribute_name, shape[0])
-                    text += _getter_1d_last(object_name, attribute_name, shape[0])
+        for attribute in targets[object_name]:
+            attribute_name = attribute[0]
+            shape = attribute[1]
 
-                elif len(shape) == 2:
-                    text += _getter_2d_vector(object_name, attribute_name, shape[1])
-                    text += _getter_2d_element(object_name, attribute_name, shape[1])
+            if len(shape) == 1:
+                text_getter += _accessor_1d_element(object_name, attribute_name)
+                text_getter += _accessor_1d_all(object_name, attribute_name, shape[0])
+                text_getter += _accessor_1d_last(object_name, attribute_name, shape[0])
 
-                elif len(shape) == 3:
-                    text += _getter_3d_element(
-                        object_name, attribute_name, shape[1], shape[2]
-                    )
+                text_setter += _accessor_1d_element(object_name, attribute_name, True)
+                text_setter += _accessor_1d_all(
+                    object_name, attribute_name, shape[0], True
+                )
+                text_setter += _accessor_1d_last(
+                    object_name, attribute_name, shape[0], True
+                )
 
-                text += _getter_chunk(object_name, attribute_name)
+            elif len(shape) == 2:
+                text_getter += _accessor_2d_vector(
+                    object_name, attribute_name, shape[1]
+                )
+                text_getter += _accessor_2d_element(
+                    object_name, attribute_name, shape[1]
+                )
 
-            f.write(text[:-2])
+                text_setter += _accessor_2d_vector(
+                    object_name, attribute_name, shape[1], True
+                )
+                text_setter += _accessor_2d_element(
+                    object_name, attribute_name, shape[1], True
+                )
 
-    with open(f"{Path(mcdc.__file__).parent}/mcdc_get/__init__.py", "w") as f:
-        text = ""
-        for i, object_name in enumerate(targets.keys()):
-            text += f"import mcdc.mcdc_get.{object_name} as {object_name}\n"
-            if i < len(targets.keys()) - 1:
-                text += "\n"
-        f.write(text)
+            elif len(shape) == 3:
+                text_getter += _accessor_3d_element(
+                    object_name, attribute_name, shape[1], shape[2]
+                )
 
+                text_setter += _accessor_3d_element(
+                    object_name, attribute_name, shape[1], shape[2], True
+                )
 
-def generate_mcdc_set(targets):
-    for object_name in targets.keys():
-        with open(f"{Path(mcdc.__file__).parent}/mcdc_set/{object_name}.py", "w") as f:
-            text = "from numba import njit\n\n\n"
+            text_getter += _accessor_chunk(object_name, attribute_name)
+            text_setter += _accessor_chunk(object_name, attribute_name, True)
 
-            for attribute in targets[object_name]:
-                attribute_name = attribute[0]
-                shape = attribute[1]
+        file_getter.write(text_getter[:-2])
+        file_setter.write(text_setter[:-2])
 
-                if len(shape) == 1:
-                    text += _getter_1d_element(object_name, attribute_name, True)
-                    text += _getter_1d_all(object_name, attribute_name, shape[0], True)
-                    text += _getter_1d_last(object_name, attribute_name, shape[0], True)
+        file_getter.close()
+        file_setter.close()
 
-                elif len(shape) == 2:
-                    text += _getter_2d_vector(
-                        object_name, attribute_name, shape[1], True
-                    )
-                    text += _getter_2d_element(
-                        object_name, attribute_name, shape[1], True
-                    )
-
-                elif len(shape) == 3:
-                    text += _getter_3d_element(
-                        object_name, attribute_name, shape[1], shape[2], True
-                    )
-
-                text += _getter_chunk(object_name, attribute_name, True)
-
-            f.write(text[:-2])
-
-    with open(f"{Path(mcdc.__file__).parent}/mcdc_set/__init__.py", "w") as f:
-        text = ""
-        for i, object_name in enumerate(targets.keys()):
-            text += f"import mcdc.mcdc_set.{object_name} as {object_name}\n"
-            if i < len(targets.keys()) - 1:
-                text += "\n"
-        f.write(text)
+    for key in ["get", "set"]:
+        with open(f"{Path(mcdc.__file__).parent}/mcdc_{key}/__init__.py", "w") as f:
+            text = ""
+            for i, object_name in enumerate(targets.keys()):
+                text += f"import mcdc.mcdc_{key}.{object_name} as {object_name}\n"
+                if i < len(targets.keys()) - 1:
+                    text += "\n"
+            f.write(text)
 
 
-def _getter_1d_element(object_name, attribute_name, setter=False):
+def _accessor_1d_element(object_name, attribute_name, setter=False):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}(index, {object_name}, data, value):\n"
@@ -838,7 +830,7 @@ def _getter_1d_element(object_name, attribute_name, setter=False):
     return text
 
 
-def _getter_1d_all(object_name, attribute_name, size, setter=False):
+def _accessor_1d_all(object_name, attribute_name, size, setter=False):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}_all({object_name}, data, value):\n"
@@ -857,7 +849,7 @@ def _getter_1d_all(object_name, attribute_name, size, setter=False):
     return text
 
 
-def _getter_1d_last(object_name, attribute_name, size, setter=False):
+def _accessor_1d_last(object_name, attribute_name, size, setter=False):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}_last({object_name}, data, value):\n"
@@ -876,7 +868,7 @@ def _getter_1d_last(object_name, attribute_name, size, setter=False):
     return text
 
 
-def _getter_chunk(object_name, attribute_name, setter=False):
+def _accessor_chunk(object_name, attribute_name, setter=False):
     text = f"@njit\n"
     if setter:
         text += (
@@ -893,7 +885,7 @@ def _getter_chunk(object_name, attribute_name, setter=False):
     return text
 
 
-def _getter_2d_element(object_name, attribute_name, stride, setter=False):
+def _accessor_2d_element(object_name, attribute_name, stride, setter=False):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}(index_1, index_2, {object_name}, data, value):\n"
@@ -911,7 +903,7 @@ def _getter_2d_element(object_name, attribute_name, stride, setter=False):
     return text
 
 
-def _getter_2d_vector(object_name, attribute_name, stride, setter=False):
+def _accessor_2d_vector(object_name, attribute_name, stride, setter=False):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}_vector(index_1, {object_name}, data, value):\n"
@@ -931,7 +923,7 @@ def _getter_2d_vector(object_name, attribute_name, stride, setter=False):
     return text
 
 
-def _getter_3d_element(object_name, attribute_name, stride_2, stride_3, setter=False):
+def _accessor_3d_element(object_name, attribute_name, stride_2, stride_3, setter=False):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data, value):\n"
