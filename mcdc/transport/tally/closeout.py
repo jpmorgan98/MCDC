@@ -119,8 +119,8 @@ def _finalize(tally, mcdc, data):
             data[offset_sum_square + i] / N_history - np.square(data[offset_sum + i])
         ) / (N_history - 1)
 
-        # Check for round-off error (TODO: Check if this is needed)
-        if abs(radicand) < 1e-18:
+        # Check for round-off error (TODO: Check why this is needed.)
+        if abs(radicand) < 1e-16:
             data[offset_sum_square + i] = 0.0
         else:
             data[offset_sum_square + i] = math.sqrt(radicand)
