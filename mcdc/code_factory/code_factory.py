@@ -777,9 +777,11 @@ def generate_mcdc_get(targets):
 
     with open(f"{Path(mcdc.__file__).parent}/mcdc_get/__init__.py", "w") as f:
         text = ""
-        for object_name in targets.keys():
+        for i, object_name in enumerate(targets.keys()):
             text += f"import mcdc.mcdc_get.{object_name} as {object_name}\n"
-        f.write(text[:-1])
+            if i < len(targets.keys()) - 1:
+                text += "\n"
+        f.write(text)
 
 
 def generate_mcdc_set(targets):
@@ -815,9 +817,11 @@ def generate_mcdc_set(targets):
 
     with open(f"{Path(mcdc.__file__).parent}/mcdc_set/__init__.py", "w") as f:
         text = ""
-        for object_name in targets.keys():
+        for i, object_name in enumerate(targets.keys()):
             text += f"import mcdc.mcdc_set.{object_name} as {object_name}\n"
-        f.write(text[:-1])
+            if i < len(targets.keys()) - 1:
+                text += "\n"
+        f.write(text)
 
 
 def _getter_1d_element(object_name, attribute_name, setter=False):
