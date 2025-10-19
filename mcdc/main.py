@@ -127,16 +127,16 @@ def preparation():
     # Set physics mode
     settings.multigroup_mode = isinstance(simulation.materials[0], MaterialMG)
 
+    # Set appropriate time boundary
+    settings.time_boundary = min(
+        [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
+    )
+    
     # Reset time grid size of all tallies if census-based tally is desired
     if settings.use_census_based_tally:
         N_bin = settings.census_tally_frequency
         for tally in simulation.tallies:
             tally._use_census_based_tally(N_bin)
-
-    # Set appropriate time boundary
-    settings.time_boundary = min(
-        [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
-    )
 
     # ==================================================================================
     # Simulation parameters

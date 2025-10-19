@@ -25,3 +25,4 @@ from mcdc.main import run, visualize
 # ======================================================================================
 
 import mcdc.config
+from mcdc.output import recombine_tallies

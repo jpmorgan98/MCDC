@@ -10,11 +10,6 @@ import mcdc.print_ as print_module
 from mcdc.constant import (
     MESH_UNIFORM,
     MESH_STRUCTURED,
-    SCORE_FLUX,
-    SCORE_DENSITY,
-    SCORE_COLLISION,
-    SCORE_FISSION,
-    SCORE_NET_CURRENT,
     TALLY_LITERALS,
 )
 
@@ -127,13 +122,11 @@ def create_runtime_datasets(mcdc):
 
     base_name = mcdc["settings"]["output_name"]
 
-    print("HERE")
     main_output = h5py.File(f"{base_name}.h5", "a")
     create_runtime_dataset(main_output, mcdc)
     main_output.close()
 
     if config.args.runtime_output:
-        print("THERE")
         runtime_output = h5py.File(f"{base_name}.h5", "w")
         create_runtime_dataset(runtime_output, mcdc)
         runtime_output.close()
@@ -156,6 +149,8 @@ def create_runtime_dataset(file, mcdc):
 
 
 def create_tally_dataset(file, mcdc, data):
+    from mcdc.object_.tally import decode_score_type
+
     # Loop over all tally types
     for tally_type in TALLY_LITERALS:
         # Loop over tallies
@@ -220,16 +215,7 @@ def create_tally_dataset(file, mcdc, data):
                 score_type = mcdc_get.tally.scores(i, tally, data)
                 score_mean = np.squeeze(mean[i])
                 score_sdev = np.squeeze(sdev[i])
-                if score_type == SCORE_FLUX:
-                    score_name = "flux"
-                elif score_type == SCORE_DENSITY:
-                    score_name = "density"
-                elif score_type == SCORE_COLLISION:
-                    score_name = "total"
-                elif score_type == SCORE_FISSION:
-                    score_name = "fission"
-                elif score_type == SCORE_NET_CURRENT:
-                    score_name = "net-current"
+                score_name = decode_score_type(score_type, lower_case=True)
                 group_name = f"tallies/{tally_name}/{score_name}/"
                 file.create_dataset(group_name + "mean", data=score_mean)
                 file.create_dataset(group_name + "sdev", data=score_sdev)
@@ -247,129 +233,94 @@ def generate_census_based_tally(mcdc, data):
     file.close()
 
 
-def replace_dataset(file_, field, data):
-    if field in file_:
-        del file_[field]
-    file_.create_dataset(field, data=data)
+def replace_dataset(file, field, data):
+    if field in file:
+        del file[field]
+    file.create_dataset(field, data=data)
 
 
-def recombine_tallies(file_name="output.h5"):
+def recombine_tallies():
+    """Combine the tally output into a single file"""
     import h5py
+    from mpi4py import MPI
+    from mcdc.object_.tally import decode_score_type
 
     if MPI.COMM_WORLD.Get_rank() > 0:
         return
 
-    # Load main output file and read input params
-    with h5py.File(file_name, "r") as f:
-        output_name = str(f["settings/output_name"][()])[2:-1]
-        N_particle = f["setting/N_particle"][()]
-        N_census = f["setting/N_census"][()] - 1
-        N_batch = f["setting/N_batch"][()]
-        N_frequency = f["setting/census_tally_frequency"][()]
-    Nt = N_census * N_frequency
-    # Combine the tally output into a single file
+    # Get simulation and settings
+    from mcdc.object_.simulation import simulation
+    settings = simulation.settings
+    if not settings.use_census_based_tally:
+        print("Census-based tally is not used, nothing to recombine.")
 
-    collected_tallies = []
-    collected_tally_names = []
-    # Collecting info on number and types of tallies
-    for i_census in range(N_census):
-        for i_batch in range(N_batch):
-            with h5py.File(
-                output_name + "-batch_%i-census_%i.h5" % (i_batch, i_census), "r"
-            ) as f:
-                tallies = f["tallies"]
-                for tally in tallies:
-                    if tally not in collected_tally_names:
-                        grid = tallies[tally]["grid"]
-                        tally_list = [tally]
-                        for tally_type in tallies[tally]:
-                            if tally_type != "grid":
-                                tally_list.append(tally_type)
-                        collected_tallies.append(tally_list)
-                        collected_tally_names.append(tally)
+    # Settings parameters
+    base_name = settings.output_name
+    N_census = settings.N_census
+    N_batch = settings.N_batch
+    frequency = settings.census_tally_frequency
+    Nt = frequency * (N_census  - 1)
 
-    for i, tally_info in enumerate(collected_tallies):
-        tally_type = tally_info[0].split("_")[0]
-        tally_number = tally_info[0].split("_")[-1]
-        with h5py.File(output_name + ".h5", "a") as f:
-            grid = f[
-                "input_deck/"
-                + tally_type
-                + "_tallies/"
-                + tally_type
-                + "_tallies_"
-                + tally_number
-            ]
-            t_final = f["input_deck/setting/census_time"][()][-2]
-            t = np.linspace(0, t_final, N_census * N_frequency + 1)
-            Nx = len(grid["x"][()]) - 1
-            Ny = len(grid["y"][()]) - 1
-            Nz = len(grid["z"][()]) - 1
-            Nmu = len(grid["mu"][()]) - 1
-            N_azi = len(grid["azi"][()]) - 1
-            Ng = len(grid["g"][()]) - 1
+    # Append the tally dataset structure to the main output
+    main_file = h5py.File(f"{base_name}.h5", 'a')
+    reference_file = h5py.File(f"{base_name}-batch_0-census_0.h5", 'r')
+    tally_group = main_file.create_group('tallies')
+    for tally in simulation.tallies:
+        name = f"tallies/{tally.name}"
+        reference_file.copy(name, tally_group)
+    reference_file.close()
 
-            # Creating structure of correct size to hold combined tally
-            for tally_type in tally_info[1:]:
-                tally_score = np.zeros((Nt, Nmu, N_azi, Ng, Nx, Ny, Nz))
-                tally_score = np.squeeze(tally_score)
-                tally_score_sq = np.zeros_like(tally_score)
+    # Set the time grid
+    time_grid = np.zeros(Nt + 1)
+    for i in range(N_census - 1):
+        start = settings.census_time[i - 1] if i > 0 else 0.0
+        end = settings.census_time[i]
+        new_grid = np.linspace(start, end, frequency + 1)
+        offset = i * frequency + 1
+        time_grid[offset:offset + frequency] = new_grid[1:]
+    for tally in simulation.tallies:
+        name = f"tallies/{tally.name}/grid/t"
+        replace_dataset(main_file, name, time_grid) 
 
-                # Number of shift of time index
-                N_shift = 0
-                if Nmu > 1:
-                    N_shift += 1
-                if N_azi > 1:
-                    N_shift += 1
-                if Ng > 1:
-                    N_shift += 1
+    # Combine the tallies
+    for tally in simulation.tallies:
+        # The combined shape
+        shape = tally.bin_shape
+        shape[3] = Nt
 
-                for i_census in range(N_census):
-                    idx_start = i_census * N_frequency
-                    idx_end = idx_start + N_frequency
-                    for i_batch in range(N_batch):
-                        with h5py.File(
-                            output_name
-                            + "-batch_%i-census_%i.h5" % (i_batch, i_census),
-                            "r",
-                        ) as f1:
-                            score = f1[
-                                "tallies/" + tally_info[0] + "/" + tally_type + "/score"
-                            ][:]
-                            if N_shift > 0:
-                                score = np.rollaxis(score, N_shift, 0)
-                            tally_score[idx_start:idx_end] += score
-                            tally_score_sq[idx_start:idx_end] += score * score
-                tally_score /= N_batch
-                if N_batch > 0:
-                    tally_score_sq = np.sqrt(
-                        (tally_score_sq / N_batch - np.square(tally_score))
-                        / (N_batch - 1)
-                    )
+        for score in tally.scores:
+            score_name = f"tallies/{tally.name}/{decode_score_type(score, True)}"
 
-                field_base = "tallies/" + tally_info[0] + "/" + tally_type
-                replace_dataset(f, field_base + "/mean", tally_score)
-                replace_dataset(f, field_base + "/sdev", tally_score_sq)
+            mean = np.zeros(shape)
+            sdev = np.zeros(shape)
 
-            replace_dataset(f, "tallies/" + tally_info[0] + "/grid/x", grid["x"][()])
-            replace_dataset(f, "tallies/" + tally_info[0] + "/grid/y", grid["y"][()])
-            replace_dataset(f, "tallies/" + tally_info[0] + "/grid/z", grid["z"][()])
-            replace_dataset(f, "tallies/" + tally_info[0] + "/grid/t", grid["t"][()])
-            replace_dataset(f, "tallies/" + tally_info[0] + "/grid/mu", grid["mu"][()])
-            replace_dataset(
-                f, "tallies/" + tally_info[0] + "/grid/azi", grid["azi"][()]
-            )
-            replace_dataset(f, "tallies/" + tally_info[0] + "/grid/g", grid["g"][()])
-    """
-    for i_census in range(N_census):
-        for i_batch in range(N_batch):
-            file_name = (
-                output_name
-                + "-batch_"
-                + str(i_batch)
-                + "-census_"
-                + str(i_census)
-                + ".h5"
-            )
-            os.system("rm " + file_name)
-    """
+            # Selective squeeze
+            axes_to_squeeze = [x for x, size in enumerate(shape) if size == 1 and x > 3]
+            mean = np.squeeze(mean, axis=tuple(axes_to_squeeze))
+            sdev = np.squeeze(sdev, axis=tuple(axes_to_squeeze))
+            
+            for i_census in range(N_census - 1):
+                # Accumulate sum and sum of square
+                for i_batch in range(N_batch):
+                    file_name = f"{base_name}-batch_{i_batch}-census_{i_census}.h5"
+                    file = h5py.File(file_name, 'r')
+                    offset = i_census * frequency
+
+                    score = file[f"{score_name}/mean"][()]
+                    mean[:, :, :, offset:offset+frequency] += score
+                    sdev[:, :, :, offset:offset+frequency] += score * score
+
+                    file.close()
+
+            # Squeeze
+            mean = np.squeeze(mean)
+            sdev = np.squeeze(sdev)
+
+            # Compute statistics
+            mean /= N_batch
+            sdev = np.sqrt((sdev / N_batch - np.square(mean)) / (N_batch - 1))
+
+            replace_dataset(main_file, f"{score_name}/mean", mean)
+            replace_dataset(main_file, f"{score_name}/sdev", sdev)
+
+    main_file.close()

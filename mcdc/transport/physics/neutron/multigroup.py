@@ -209,6 +209,7 @@ def scattering(particle_container, prog, data):
 @njit
 def fission(particle_container, prog, data):
     mcdc = adapt.mcdc_global(prog)
+    settings = mcdc["settings"]
 
     # Particle attributes
     particle = particle_container[0]
@@ -286,32 +287,31 @@ def fission(particle_container, prog, data):
             particle_new["t"] -= math.log(xi) / decay
 
         # Eigenvalue mode: bank right away
-        if mcdc["settings"]["eigenvalue_mode"]:
+        if settings["eigenvalue_mode"]:
             adapt.add_census(particle_container_new, prog)
             continue
         # Below is only relevant for fixed-source problem
 
         # Skip if it's beyond time boundary
-        if particle_new["t"] > mcdc["settings"]["time_boundary"]:
+        if particle_new["t"] > settings["time_boundary"]:
             continue
 
-        # Check if it is beyond current or next census times
-        hit_census = False
-        hit_next_census = False
+        # Check if it hits current or next census times
+        hit_current_census = False
+        hit_future_census = False
         idx_census = mcdc["idx_census"]
-        if idx_census < mcdc["settings"]["N_census"] - 1:
-            settings = mcdc["settings"]
-            if particle["t"] > mcdc_get.settings.census_time(
-                idx_census + 1, settings, data
-            ):
-                hit_census = True
-                hit_next_census = True
-            elif particle_new["t"] > mcdc_get.settings.census_time(
+        if settings["N_census"] > 1:
+            if particle_new["t"] > mcdc_get.settings.census_time(
                 idx_census, settings, data
             ):
-                hit_census = True
+                hit_current_census = True
+                if particle_new["t"] > mcdc_get.settings.census_time(
+                    idx_census + 1, settings, data
+                ):
+                    hit_future_census = True
 
-        if not hit_census:
+        # Not hitting census --> add to active bank
+        if not hit_current_census:
             # Keep it if it is the last particle
             if n == N - 1:
                 particle["alive"] = True
@@ -324,9 +324,13 @@ def fission(particle_container, prog, data):
                 particle["w"] = particle_new["w"]
             else:
                 adapt.add_active(particle_container_new, prog)
-        elif not hit_next_census:
-            # Particle will participate after the current census
-            adapt.add_census(particle_container_new, prog)
-        else:
+
+        # Hit future census --> add to future bank
+        elif hit_future_census:
             # Particle will participate in the future
             adapt.add_future(particle_container_new, prog)
+
+        # Hit current census --> add to census bank
+        else:
+            # Particle will participate after the current census is completed
+            adapt.add_census(particle_container_new, prog)

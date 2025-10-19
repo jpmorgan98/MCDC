@@ -214,17 +214,17 @@ def decode_type(type_):
         return "Mesh tally"
 
 
-def decode_score_type(type_):
+def decode_score_type(type_, lower_case=False):
     if type_ == SCORE_FLUX:
-        return "Flux"
+        return "Flux" if not lower_case else "flux"
     elif type_ == SCORE_DENSITY:
-        return "Density"
+        return "Density" if not lower_case else "density"
     elif type_ == SCORE_COLLISION:
-        return "Collision"
+        return "Collision" if not lower_case else "collision"
     elif type_ == SCORE_FISSION:
-        return "Fission"
+        return "Fission" if not lower_case else "fission"
     elif type_ == SCORE_NET_CURRENT:
-        return "Net current"
+        return "Net current" if not lower_case else "net-current"
 
 
 # ======================================================================================
