@@ -870,7 +870,7 @@ def normalize_weight(bank, norm):
 
     # Normalize weight
     for i in range(get_bank_size(bank)):
-        bank['particles'][i]['w'] *= norm / W
+        bank["particles"][i]["w"] *= norm / W
 
 
 @njit

@@ -797,8 +797,12 @@ def generate_mcdc_set(targets):
                     text += _getter_1d_last(object_name, attribute_name, shape[0], True)
 
                 elif len(shape) == 2:
-                    text += _getter_2d_vector(object_name, attribute_name, shape[1], True)
-                    text += _getter_2d_element(object_name, attribute_name, shape[1], True)
+                    text += _getter_2d_vector(
+                        object_name, attribute_name, shape[1], True
+                    )
+                    text += _getter_2d_element(
+                        object_name, attribute_name, shape[1], True
+                    )
 
                 elif len(shape) == 3:
                     text += _getter_3d_element(
@@ -871,7 +875,9 @@ def _getter_1d_last(object_name, attribute_name, size, setter=False):
 def _getter_chunk(object_name, attribute_name, setter=False):
     text = f"@njit\n"
     if setter:
-        text += f"def {attribute_name}_chunk(start, length, {object_name}, data, value):\n"
+        text += (
+            f"def {attribute_name}_chunk(start, length, {object_name}, data, value):\n"
+        )
     else:
         text += f"def {attribute_name}_chunk(start, length, {object_name}, data):\n"
     text += f'    start += {object_name}["{attribute_name}_offset"]\n'
@@ -926,7 +932,9 @@ def _getter_3d_element(object_name, attribute_name, stride_2, stride_3, setter=F
     if setter:
         text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data, value):\n"
     else:
-        text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data):\n"
+        text += (
+            f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data):\n"
+        )
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
     text += f'    stride_2 = {object_name}["{stride_2}"]\n'
     text += f'    stride_3 = {object_name}["{stride_3}"]\n'

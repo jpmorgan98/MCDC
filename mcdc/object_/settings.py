@@ -123,9 +123,10 @@ class Settings(ObjectSingleton):
                 self.gyration_radius_type = GYRATION_RADIUS_ONLY_Z
             else:
                 print_error("Unknown gyration radius type")
-        
+
         # Allocate cycle-wise quantities
         from mcdc.object_.simulation import simulation
+
         simulation.k_cycle = np.zeros(self.N_cycle)
         simulation.gyration_radius = np.zeros(self.N_cycle)
 

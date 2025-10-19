@@ -164,8 +164,8 @@ def eigenvalue_simulation(mcdc_arr, data):
     # Get some settings
     settings = mcdc["settings"]
     N_inactive = settings["N_inactive"]
-    N_cycle = settings['N_cycle']
-    N_particle = settings['N_particle']
+    N_cycle = settings["N_cycle"]
+    N_particle = settings["N_particle"]
 
     # Distribute work
     kernel.distribute_work(N_particle, mcdc)

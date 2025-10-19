@@ -9,7 +9,16 @@ from mpi4py import MPI
 import mcdc.mcdc_set as mcdc_set
 import mcdc.transport.kernel as kernel
 
-from mcdc.constant import GYRATION_RADIUS_ALL, GYRATION_RADIUS_INFINITE_X, GYRATION_RADIUS_INFINITE_Y, GYRATION_RADIUS_INFINITE_Z, GYRATION_RADIUS_ONLY_X, GYRATION_RADIUS_ONLY_Y, GYRATION_RADIUS_ONLY_Z, TALLY_LITERALS
+from mcdc.constant import (
+    GYRATION_RADIUS_ALL,
+    GYRATION_RADIUS_INFINITE_X,
+    GYRATION_RADIUS_INFINITE_Y,
+    GYRATION_RADIUS_INFINITE_Z,
+    GYRATION_RADIUS_ONLY_X,
+    GYRATION_RADIUS_ONLY_Y,
+    GYRATION_RADIUS_ONLY_Z,
+    TALLY_LITERALS,
+)
 from mcdc.print_ import print_structure
 
 
@@ -132,6 +141,7 @@ def _finalize(tally, mcdc, data):
 # ======================================================================================
 # Eigenvalue
 # ======================================================================================
+
 
 @njit
 def eigenvalue_cycle(mcdc, data):
@@ -274,5 +284,3 @@ def eigenvalue_simulation(mcdc):
     else:
         mcdc["n_sdv"] = 0.0
         mcdc["C_sdv"] = 0.0
-
-

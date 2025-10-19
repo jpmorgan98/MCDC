@@ -43,16 +43,14 @@ c = mcdc.Cell(region=+s1 & -s2, fill=m)
 # ======================================================================================
 
 mcdc.Source(
-    position=(0.0, 0.0, 0.0),
-    isotropic=True,
-    energy_group=np.array([[360],[1.0]])
+    position=(0.0, 0.0, 0.0), isotropic=True, energy_group=np.array([[360], [1.0]])
 )
 
 # ======================================================================================
 # Set tallies, settings, and run MC/DC
 # ======================================================================================
 
-#Tallies
+# Tallies
 mcdc.TallyGlobal(scores=["flux"], energy="all_groups")
 
 # Swttings

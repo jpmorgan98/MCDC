@@ -340,13 +340,15 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
     flux = distance * particle["w"]
 
     # Get nu-fission
-    nuSigmaF = physics.neutron_production_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+    nuSigmaF = physics.neutron_production_xs(
+        REACTION_NEUTRON_FISSION, particle_container, mcdc, data
+    )
 
     # Fission production (needed even during inactive cycle)
     adapt.global_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
 
     # Done, if inactive
-    if not mcdc['cycle_active']:
+    if not mcdc["cycle_active"]:
         return
 
     # ==================================================================================
@@ -356,7 +358,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
     v = physics.particle_speed(particle_container, mcdc, data)
     n_density = flux / v
     adapt.global_add(mcdc["eigenvalue_tally_n"], 0, n_density)
-    
+
     # Maximum neutron density
     if mcdc["n_max"] < n_density:
         mcdc["n_max"] = n_density
@@ -384,11 +386,11 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
                 nu_d = get_nu_group(NU_FISSION_DELAYED, nuclide, E, j)
                 decay = nuclide["ce_decay"][j]
                 total += nu_d / decay
-    
+
     SigmaF = physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
     C_density = flux * total * SigmaF / mcdc["k_eff"]
     adapt.global_add(mcdc["eigenvalue_tally_C"], 0, C_density)
-    
+
     # Maximum precursor density
     if mcdc["C_max"] < C_density:
         mcdc["C_max"] = C_density

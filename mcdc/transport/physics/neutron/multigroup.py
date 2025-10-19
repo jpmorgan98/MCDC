@@ -154,10 +154,10 @@ def scattering(particle_container, prog, data):
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
-    weight_product = particle['w']
-    if mcdc['weighted_emission']['active']:
-        weight_target = mcdc['weighted_emission']['weight_target']
-        weight_production = particle['w'] / weight_target
+    weight_product = particle["w"]
+    if mcdc["weighted_emission"]["active"]:
+        weight_target = mcdc["weighted_emission"]["weight_target"]
+        weight_production = particle["w"] / weight_target
         weight_product = weight_target
 
     # Get number of secondaries
@@ -234,15 +234,16 @@ def fission(particle_container, prog, data):
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
-    weight_product = particle['w']
-    if mcdc['weighted_emission']['active']:
-        weight_target = mcdc['weighted_emission']['weight_target']
-        weight_production = particle['w'] / weight_target
+    weight_product = particle["w"]
+    if mcdc["weighted_emission"]["active"]:
+        weight_target = mcdc["weighted_emission"]["weight_target"]
+        weight_production = particle["w"] / weight_target
         weight_product = weight_target
 
-
     # Get number of secondaries
-    N = int(math.floor(weight_production * nu / mcdc["k_eff"] + rng.lcg(particle_container)))
+    N = int(
+        math.floor(weight_production * nu / mcdc["k_eff"] + rng.lcg(particle_container))
+    )
 
     # Set up secondary partice container
     particle_container_new = adapt.local_array(1, type_.particle_data)

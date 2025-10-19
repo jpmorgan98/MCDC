@@ -24,7 +24,7 @@ def generate_output(mcdc, data):
 
     if not mcdc["mpi_master"]:
         return
-    
+
     settings = mcdc["settings"]
 
     # Header
@@ -50,28 +50,23 @@ def generate_output(mcdc, data):
 
     # Eigenvalues
     if mcdc["settings"]["eigenvalue_mode"]:
-        if mcdc["technique"]["iQMC"]:
-            file.create_dataset("k_eff", data=mcdc["k_eff"])
-            if mcdc["technique"]["iqmc"]["mode"] == "batched":
-                N_cycle = mcdc["setting"]["N_cycle"]
-                file.create_dataset("k_cycle", data=mcdc["k_cycle"][:N_cycle])
-                file.create_dataset("k_mean", data=mcdc["k_avg_running"])
-                file.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
-        else:
-            N_cycle = mcdc["settings"]["N_cycle"]
-            file.create_dataset("k_cycle", data=mcdc["k_cycle"][:N_cycle])
-            file.create_dataset("k_mean", data=mcdc["k_avg_running"])
-            file.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
-            file.create_dataset("global_tally/neutron/mean", data=mcdc["n_avg"])
-            file.create_dataset("global_tally/neutron/sdev", data=mcdc["n_sdv"])
-            file.create_dataset("global_tally/neutron/max", data=mcdc["n_max"])
-            file.create_dataset("global_tally/precursor/mean", data=mcdc["C_avg"])
-            file.create_dataset("global_tally/precursor/sdev", data=mcdc["C_sdv"])
-            file.create_dataset("global_tally/precursor/max", data=mcdc["C_max"])
-            if mcdc["settings"]["use_gyration_radius"]:
-                file.create_dataset(
-                    "gyration_radius", data=mcdc["gyration_radius"][:N_cycle]
-                )
+        N_cycle = mcdc["settings"]["N_cycle"]
+        file.create_dataset(
+            "k_cycle", data=mcdc_get.simulation.k_cycle_chunk(0, N_cycle, mcdc, data)
+        )
+        file.create_dataset("k_mean", data=mcdc["k_avg_running"])
+        file.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
+        file.create_dataset("global_tally/neutron/mean", data=mcdc["n_avg"])
+        file.create_dataset("global_tally/neutron/sdev", data=mcdc["n_sdv"])
+        file.create_dataset("global_tally/neutron/max", data=mcdc["n_max"])
+        file.create_dataset("global_tally/precursor/mean", data=mcdc["C_avg"])
+        file.create_dataset("global_tally/precursor/sdev", data=mcdc["C_sdv"])
+        file.create_dataset("global_tally/precursor/max", data=mcdc["C_max"])
+        if mcdc["settings"]["use_gyration_radius"]:
+            file.create_dataset(
+                "gyration_radius",
+                data=mcdc_get.simulation.gyration_radius_chunk(0, N_cycle, mcdc, data),
+            )
 
     # Save particle?
     if mcdc["settings"]["save_particle"]:
@@ -248,6 +243,7 @@ def recombine_tallies():
 
     # Get simulation and settings
     from mcdc.object_.simulation import simulation
+
     settings = simulation.settings
     if not settings.use_census_based_tally:
         print("Census-based tally is not used, nothing to recombine.")
@@ -257,12 +253,12 @@ def recombine_tallies():
     N_census = settings.N_census
     N_batch = settings.N_batch
     frequency = settings.census_tally_frequency
-    Nt = frequency * (N_census  - 1)
+    Nt = frequency * (N_census - 1)
 
     # Append the tally dataset structure to the main output
-    main_file = h5py.File(f"{base_name}.h5", 'a')
-    reference_file = h5py.File(f"{base_name}-batch_0-census_0.h5", 'r')
-    tally_group = main_file.create_group('tallies')
+    main_file = h5py.File(f"{base_name}.h5", "a")
+    reference_file = h5py.File(f"{base_name}-batch_0-census_0.h5", "r")
+    tally_group = main_file.create_group("tallies")
     for tally in simulation.tallies:
         name = f"tallies/{tally.name}"
         reference_file.copy(name, tally_group)
@@ -275,10 +271,10 @@ def recombine_tallies():
         end = settings.census_time[i]
         new_grid = np.linspace(start, end, frequency + 1)
         offset = i * frequency + 1
-        time_grid[offset:offset + frequency] = new_grid[1:]
+        time_grid[offset : offset + frequency] = new_grid[1:]
     for tally in simulation.tallies:
         name = f"tallies/{tally.name}/grid/t"
-        replace_dataset(main_file, name, time_grid) 
+        replace_dataset(main_file, name, time_grid)
 
     # Combine the tallies
     for tally in simulation.tallies:
@@ -296,17 +292,17 @@ def recombine_tallies():
             axes_to_squeeze = [x for x, size in enumerate(shape) if size == 1 and x > 3]
             mean = np.squeeze(mean, axis=tuple(axes_to_squeeze))
             sdev = np.squeeze(sdev, axis=tuple(axes_to_squeeze))
-            
+
             for i_census in range(N_census - 1):
                 # Accumulate sum and sum of square
                 for i_batch in range(N_batch):
                     file_name = f"{base_name}-batch_{i_batch}-census_{i_census}.h5"
-                    file = h5py.File(file_name, 'r')
+                    file = h5py.File(file_name, "r")
                     offset = i_census * frequency
 
                     score = file[f"{score_name}/mean"][()]
-                    mean[:, :, :, offset:offset+frequency] += score
-                    sdev[:, :, :, offset:offset+frequency] += score * score
+                    mean[:, :, :, offset : offset + frequency] += score
+                    sdev[:, :, :, offset : offset + frequency] += score * score
 
                     file.close()
 

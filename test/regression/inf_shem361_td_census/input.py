@@ -45,17 +45,19 @@ c = mcdc.Cell(region=+s1 & -s2, fill=m)
 # ======================================================================================
 
 mcdc.Source(
-    position=(0.0, 0.0, 0.0),
-    isotropic=True,
-    energy_group=np.array([[360],[1.0]])
+    position=(0.0, 0.0, 0.0), isotropic=True, energy_group=np.array([[360], [1.0]])
 )
 
 # ======================================================================================
 # Set tallies, settings, techniques, and run MC/DC
 # ======================================================================================
 
-#Tallies
-mcdc.TallyGlobal(scores=["flux"], time=np.insert(np.logspace(-8, 1, 100), 0, 0.0), energy="all_groups")
+# Tallies
+mcdc.TallyGlobal(
+    scores=["flux"],
+    time=np.insert(np.logspace(-8, 1, 100), 0, 0.0),
+    energy="all_groups",
+)
 
 # Settings
 mcdc.settings.N_particle = 20

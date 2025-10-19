@@ -87,7 +87,7 @@ mesh = mcdc.MeshStructured(
     x=np.linspace(-10, 10, 201),
     z=np.linspace(-5, 5, 101),
 )
-mcdc.TallyMesh(mesh=mesh, scores=['fission'])
+mcdc.TallyMesh(mesh=mesh, scores=["fission"])
 
 # Settings
 mcdc.settings.N_particle = 100
@@ -100,8 +100,10 @@ if not visualize:
     mcdc.run()
 else:
     colors = {
-        fuel: 'red',
-        cover: 'gray',
-        water: 'blue',
+        fuel: "red",
+        cover: "gray",
+        water: "blue",
     }
-    mcdc.visualize('xz', y=0.0, x=[-11., 11.], z=[-6, 6], pixels=(400, 400), colors=colors)
+    mcdc.visualize(
+        "xz", y=0.0, x=[-11.0, 11.0], z=[-6, 6], pixels=(400, 400), colors=colors
+    )

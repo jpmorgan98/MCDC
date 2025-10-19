@@ -1,7 +1,12 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated
 
-from mcdc.object_.technique import ImplicitCapture, PopulationControl, WeightRoulette, WeightedEmission
+from mcdc.object_.technique import (
+    ImplicitCapture,
+    PopulationControl,
+    WeightRoulette,
+    WeightedEmission,
+)
 
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
@@ -177,9 +182,9 @@ class Simulation(ObjectSingleton):
         self.dd_local_rank = 0
 
         # Eigenvalue simulation
-        self.k_eff = 1.0
+        self.k_eff = 0.0
         self.k_cycle = np.ones(1)
-        self.k_avg = 1.0
+        self.k_avg = 0.0
         self.k_sdv = 0.0
         self.n_avg = 0.0  # Neutron density
         self.n_sdv = 0.0

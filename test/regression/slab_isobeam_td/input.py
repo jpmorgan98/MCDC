@@ -24,10 +24,10 @@ mcdc.Cell(region=+s1 & -s2, fill=m)
 # Isotropic beam from left-end
 
 mcdc.Source(
-    position=(1e-10, 0.0, 0.0), 
+    position=(1e-10, 0.0, 0.0),
     white_direction=(1.0, 0.0, 0.0),
     energy_group=0,
-    time=[0.0, 5.0]
+    time=[0.0, 5.0],
 )
 
 # ======================================================================================

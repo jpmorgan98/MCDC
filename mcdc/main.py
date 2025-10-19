@@ -131,7 +131,7 @@ def preparation():
     settings.time_boundary = min(
         [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
     )
-    
+
     # Reset time grid size of all tallies if census-based tally is desired
     if settings.use_census_based_tally:
         N_bin = settings.census_tally_frequency
@@ -338,7 +338,7 @@ def visualize(
 
     mcdc_container, data = preparation()
     mcdc = mcdc_container[0]
-    
+
     import mcdc.object_.numba_types as type_
 
     # Color assignment for materials (by material ID)
@@ -396,6 +396,7 @@ def visualize(
 
     # Set dummy particle
     import mcdc.code_factory.adapt as adapt
+
     particle_container = adapt.local_array(1, type_.particle)
     particle = particle_container[0]
     particle[reference_key] = reference
@@ -407,13 +408,13 @@ def visualize(
         particle["t"] = t
 
         # Random direction
-        particle["ux"], particle["uy"], particle["uz"] = (
-            sample_isotropic_direction(particle_container)
+        particle["ux"], particle["uy"], particle["uz"] = sample_isotropic_direction(
+            particle_container
         )
 
         # RGB color data for each pixels
         pixel_data = np.zeros(pixels + (3,))
-    
+
         import mcdc.transport.geometry as geometry
 
         # Loop over the two axes
