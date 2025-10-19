@@ -23,6 +23,7 @@ import mcdc.mcdc_set.settings as settings
 import mcdc.mcdc_set.implicit_capture as implicit_capture
 import mcdc.mcdc_set.population_control as population_control
 import mcdc.mcdc_set.weight_roulette as weight_roulette
+import mcdc.mcdc_set.weighted_emission as weighted_emission
 import mcdc.mcdc_set.source as source
 import mcdc.mcdc_set.surface as surface
 import mcdc.mcdc_set.surface_tally as surface_tally

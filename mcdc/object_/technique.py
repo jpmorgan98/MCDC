@@ -20,6 +20,27 @@ class ImplicitCapture(ObjectSingleton):
 
 
 # ======================================================================================
+# Weighted emission
+# ======================================================================================
+
+
+class WeightedEmission(ObjectSingleton):
+    # Annotations for Numba mode
+    label: str = "weighted_emission"
+
+    active: bool
+    weight_target: float
+
+    def __init__(self):
+        self.active = False
+        self.weight_target = 0.0
+
+    def __call__(self, active: bool = True, weight_target: float = 1.0):
+        self.active = active
+        self.weight_target = weight_target
+
+
+# ======================================================================================
 # Weight roulette
 # ======================================================================================
 

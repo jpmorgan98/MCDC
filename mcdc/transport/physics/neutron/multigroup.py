@@ -152,12 +152,17 @@ def scattering(particle_container, prog, data):
     # Kill the current particle
     particle["alive"] = False
 
-    # Get effective and new weight
-    weight_new = particle["w"]
+    # Adjust production and product weights if weighted emission
+    weight_production = 1.0
+    weight_product = particle['w']
+    if mcdc['weighted_emission']['active']:
+        weight_target = mcdc['weighted_emission']['weight_target']
+        weight_production = particle['w'] / weight_target
+        weight_product = weight_target
 
     # Get number of secondaries
     nu_s = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
-    N = int(math.floor(nu_s + rng.lcg(particle_container)))
+    N = int(math.floor(weight_production * nu_s + rng.lcg(particle_container)))
 
     # Set up secondary partice container
     particle_container_new = adapt.local_array(1, type_.particle_data)
@@ -169,7 +174,7 @@ def scattering(particle_container, prog, data):
         kernel.split_as_data(particle_container_new, particle_container)
 
         # Set weight
-        particle_new["w"] = weight_new
+        particle_new["w"] = weight_product
 
         # Sample scattering angle
         mu0 = 2.0 * rng.lcg(particle_container_new) - 1.0
@@ -227,11 +232,17 @@ def fission(particle_container, prog, data):
     # Kill the current particle
     particle["alive"] = False
 
-    # Get effective and new weight
-    weight_new = particle["w"]
+    # Adjust production and product weights if weighted emission
+    weight_production = 1.0
+    weight_product = particle['w']
+    if mcdc['weighted_emission']['active']:
+        weight_target = mcdc['weighted_emission']['weight_target']
+        weight_production = particle['w'] / weight_target
+        weight_product = weight_target
+
 
     # Get number of secondaries
-    N = int(math.floor(nu / mcdc["k_eff"] + rng.lcg(particle_container)))
+    N = int(math.floor(weight_production * nu / mcdc["k_eff"] + rng.lcg(particle_container)))
 
     # Set up secondary partice container
     particle_container_new = adapt.local_array(1, type_.particle_data)
@@ -243,7 +254,7 @@ def fission(particle_container, prog, data):
         kernel.split_as_data(particle_container_new, particle_container)
 
         # Set weight
-        particle_new["w"] = weight_new
+        particle_new["w"] = weight_product
 
         # Sample isotropic direction
         ux_new, uy_new, uz_new = sample_isotropic_direction(particle_container_new)

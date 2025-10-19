@@ -83,5 +83,7 @@ mcdc.settings.census_bank_buffer_ratio = 2.0
 mcdc.settings.source_bank_buffer_ratio = 2.0
 mcdc.settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="only-x")
 
+mcdc.simulation.weighted_emission()
+
 # Run
 mcdc.run()
