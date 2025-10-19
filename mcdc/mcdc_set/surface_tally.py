@@ -1,0 +1,262 @@
+from numba import njit
+
+
+@njit
+def scores(index, surface_tally, data, value):
+    offset = surface_tally["scores_offset"]
+    data[offset + index] = value
+
+
+@njit
+def scores_all(surface_tally, data, value):
+    start = surface_tally["scores_offset"]
+    size = surface_tally["scores_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def scores_last(surface_tally, data, value):
+    start = surface_tally["scores_offset"]
+    size = surface_tally["scores_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def scores_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["scores_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def mu(index, surface_tally, data, value):
+    offset = surface_tally["mu_offset"]
+    data[offset + index] = value
+
+
+@njit
+def mu_all(surface_tally, data, value):
+    start = surface_tally["mu_offset"]
+    size = surface_tally["mu_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def mu_last(surface_tally, data, value):
+    start = surface_tally["mu_offset"]
+    size = surface_tally["mu_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def mu_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["mu_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def azi(index, surface_tally, data, value):
+    offset = surface_tally["azi_offset"]
+    data[offset + index] = value
+
+
+@njit
+def azi_all(surface_tally, data, value):
+    start = surface_tally["azi_offset"]
+    size = surface_tally["azi_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def azi_last(surface_tally, data, value):
+    start = surface_tally["azi_offset"]
+    size = surface_tally["azi_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def azi_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["azi_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def energy(index, surface_tally, data, value):
+    offset = surface_tally["energy_offset"]
+    data[offset + index] = value
+
+
+@njit
+def energy_all(surface_tally, data, value):
+    start = surface_tally["energy_offset"]
+    size = surface_tally["energy_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def energy_last(surface_tally, data, value):
+    start = surface_tally["energy_offset"]
+    size = surface_tally["energy_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def energy_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["energy_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def time(index, surface_tally, data, value):
+    offset = surface_tally["time_offset"]
+    data[offset + index] = value
+
+
+@njit
+def time_all(surface_tally, data, value):
+    start = surface_tally["time_offset"]
+    size = surface_tally["time_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def time_last(surface_tally, data, value):
+    start = surface_tally["time_offset"]
+    size = surface_tally["time_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def time_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["time_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def bin(index, surface_tally, data, value):
+    offset = surface_tally["bin_offset"]
+    data[offset + index] = value
+
+
+@njit
+def bin_all(surface_tally, data, value):
+    start = surface_tally["bin_offset"]
+    size = surface_tally["bin_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def bin_last(surface_tally, data, value):
+    start = surface_tally["bin_offset"]
+    size = surface_tally["bin_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def bin_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["bin_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def bin_sum(index, surface_tally, data, value):
+    offset = surface_tally["bin_sum_offset"]
+    data[offset + index] = value
+
+
+@njit
+def bin_sum_all(surface_tally, data, value):
+    start = surface_tally["bin_sum_offset"]
+    size = surface_tally["bin_sum_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def bin_sum_last(surface_tally, data, value):
+    start = surface_tally["bin_sum_offset"]
+    size = surface_tally["bin_sum_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def bin_sum_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["bin_sum_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def bin_sum_square(index, surface_tally, data, value):
+    offset = surface_tally["bin_sum_square_offset"]
+    data[offset + index] = value
+
+
+@njit
+def bin_sum_square_all(surface_tally, data, value):
+    start = surface_tally["bin_sum_square_offset"]
+    size = surface_tally["bin_sum_square_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def bin_sum_square_last(surface_tally, data, value):
+    start = surface_tally["bin_sum_square_offset"]
+    size = surface_tally["bin_sum_square_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def bin_sum_square_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["bin_sum_square_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def bin_shape(index, surface_tally, data, value):
+    offset = surface_tally["bin_shape_offset"]
+    data[offset + index] = value
+
+
+@njit
+def bin_shape_all(surface_tally, data, value):
+    start = surface_tally["bin_shape_offset"]
+    size = surface_tally["bin_shape_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def bin_shape_last(surface_tally, data, value):
+    start = surface_tally["bin_shape_offset"]
+    size = surface_tally["bin_shape_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def bin_shape_chunk(start, length, surface_tally, data, value):
+    start += surface_tally["bin_shape_offset"]
+    end = start + length
+    data[start:end] = value

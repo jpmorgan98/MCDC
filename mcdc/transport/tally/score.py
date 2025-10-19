@@ -327,3 +327,68 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
             if i_time == tally["time_length"] - 1:
                 break
             idx_base += tally["stride_time"]
+
+
+# =============================================================================
+# Eigenvalue tally
+# =============================================================================
+
+
+@njit
+def eigenvalue_tally(particle_container, distance, mcdc, data):
+    particle = particle_container[0]
+    flux = distance * particle["w"]
+
+    # Get nu-fission
+    nuSigmaF = physics.neutron_production_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+
+    # Fission production (needed even during inactive cycle)
+    adapt.global_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
+
+    # Done, if inactive
+    if not mcdc['cycle_active']:
+        return
+
+    # ==================================================================================
+    # Neutron density
+    # ==================================================================================
+
+    v = physics.particle_speed(particle_container, mcdc, data)
+    n_density = flux / v
+    adapt.global_add(mcdc["eigenvalue_tally_n"], 0, n_density)
+    
+    # Maximum neutron density
+    if mcdc["n_max"] < n_density:
+        mcdc["n_max"] = n_density
+
+    # ==================================================================================
+    # TODO: Delayed neutron precursor density
+    # ==================================================================================
+    return
+    # Get the decay-wighted multiplicity
+    total = 0.0
+    if mcdc["settings"]["multigroup_mode"]:
+        g = particle["g"]
+        for j in range(J):
+            nu_d = mcdc_get.material.mgxs_nu_d(g, j, material, data)
+            decay = mcdc_get.material.mgxs_decay_rate(j, material, data)
+            total += nu_d / decay
+    else:
+        E = P["E"]
+        for i in range(material["N_nuclide"]):
+            ID_nuclide = material["nuclide_IDs"][i]
+            nuclide = mcdc["nuclides"][ID_nuclide]
+            if not nuclide["fissionable"]:
+                continue
+            for j in range(J):
+                nu_d = get_nu_group(NU_FISSION_DELAYED, nuclide, E, j)
+                decay = nuclide["ce_decay"][j]
+                total += nu_d / decay
+    
+    SigmaF = physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+    C_density = flux * total * SigmaF / mcdc["k_eff"]
+    adapt.global_add(mcdc["eigenvalue_tally_C"], 0, C_density)
+    
+    # Maximum precursor density
+    if mcdc["C_max"] < C_density:
+        mcdc["C_max"] = C_density

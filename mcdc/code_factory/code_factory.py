@@ -185,6 +185,7 @@ def generate_numba_objects(simulation):
 
     # Generate the getter helper
     generate_mcdc_get(getter_targets)
+    generate_mcdc_set(getter_targets)
 
     # Add ID for non-singleton
     for class_ in mcdc_classes:
@@ -781,64 +782,131 @@ def generate_mcdc_get(targets):
         f.write(text[:-1])
 
 
-def _getter_1d_element(object_name, attribute_name):
+def generate_mcdc_set(targets):
+    for object_name in targets.keys():
+        with open(f"{Path(mcdc.__file__).parent}/mcdc_set/{object_name}.py", "w") as f:
+            text = "from numba import njit\n\n\n"
+
+            for attribute in targets[object_name]:
+                attribute_name = attribute[0]
+                shape = attribute[1]
+
+                if len(shape) == 1:
+                    text += _getter_1d_element(object_name, attribute_name, True)
+                    text += _getter_1d_all(object_name, attribute_name, shape[0], True)
+                    text += _getter_1d_last(object_name, attribute_name, shape[0], True)
+
+                elif len(shape) == 2:
+                    text += _getter_2d_vector(object_name, attribute_name, shape[1], True)
+                    text += _getter_2d_element(object_name, attribute_name, shape[1], True)
+
+                elif len(shape) == 3:
+                    text += _getter_3d_element(
+                        object_name, attribute_name, shape[1], shape[2], True
+                    )
+
+                text += _getter_chunk(object_name, attribute_name, True)
+
+            f.write(text[:-2])
+
+    with open(f"{Path(mcdc.__file__).parent}/mcdc_set/__init__.py", "w") as f:
+        text = ""
+        for object_name in targets.keys():
+            text += f"import mcdc.mcdc_set.{object_name} as {object_name}\n"
+        f.write(text[:-1])
+
+
+def _getter_1d_element(object_name, attribute_name, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}(index, {object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}(index, {object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}(index, {object_name}, data):\n"
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
-    text += f"    return data[offset + index]\n\n\n"
+    if setter:
+        text += f"    data[offset + index] = value\n\n\n"
+    else:
+        text += f"    return data[offset + index]\n\n\n"
     return text
 
 
-def _getter_1d_all(object_name, attribute_name, size):
+def _getter_1d_all(object_name, attribute_name, size, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}_all({object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}_all({object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}_all({object_name}, data):\n"
     text += f'    start = {object_name}["{attribute_name}_offset"]\n'
     if type(size) == str:
         text += f'    size = {object_name}["{size}"]\n'
     else:
         text += f"    size = {size}\n"
     text += f"    end = start + size\n"
-    text += f"    return data[start:end]\n\n\n"
+    if setter:
+        text += f"    data[start:end] = value\n\n\n"
+    else:
+        text += f"    return data[start:end]\n\n\n"
     return text
 
 
-def _getter_1d_last(object_name, attribute_name, size):
+def _getter_1d_last(object_name, attribute_name, size, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}_last({object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}_last({object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}_last({object_name}, data):\n"
     text += f'    start = {object_name}["{attribute_name}_offset"]\n'
     if type(size) == str:
         text += f'    size = {object_name}["{size}"]\n'
     else:
         text += f"    size = {size}\n"
     text += f"    end = start + size\n"
-    text += f"    return data[end - 1]\n\n\n"
+    if setter:
+        text += f"    data[end - 1] = value\n\n\n"
+    else:
+        text += f"    return data[end - 1]\n\n\n"
     return text
 
 
-def _getter_chunk(object_name, attribute_name):
+def _getter_chunk(object_name, attribute_name, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}_chunk(start, length, {object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}_chunk(start, length, {object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}_chunk(start, length, {object_name}, data):\n"
     text += f'    start += {object_name}["{attribute_name}_offset"]\n'
     text += f"    end = start + length\n"
-    text += f"    return data[start:end]\n\n\n"
+    if setter:
+        text += f"    data[start:end] = value\n\n\n"
+    else:
+        text += f"    return data[start:end]\n\n\n"
     return text
 
 
-def _getter_2d_element(object_name, attribute_name, stride):
+def _getter_2d_element(object_name, attribute_name, stride, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}(index_1, index_2, {object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}(index_1, index_2, {object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}(index_1, index_2, {object_name}, data):\n"
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
     if isinstance(stride, str):
         text += f'    stride = {object_name}["{stride}"]\n'
     else:
         text += f"    stride = {stride}\n"
-    text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
+    if setter:
+        text += f"    data[offset + index_1 * stride + index_2] = value\n\n\n"
+    else:
+        text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
     return text
 
 
-def _getter_2d_vector(object_name, attribute_name, stride):
+def _getter_2d_vector(object_name, attribute_name, stride, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}_vector(index_1, {object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}_vector(index_1, {object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}_vector(index_1, {object_name}, data):\n"
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
     if isinstance(stride, str):
         text += f'    stride = {object_name}["{stride}"]\n'
@@ -846,17 +914,26 @@ def _getter_2d_vector(object_name, attribute_name, stride):
         text += f"    stride = {stride}\n"
     text += f"    start = offset + index_1 * stride\n"
     text += f"    end = start + stride\n"
-    text += f"    return data[start:end]\n\n\n"
+    if setter:
+        text += f"    data[start:end] - value\n\n\n"
+    else:
+        text += f"    return data[start:end]\n\n\n"
     return text
 
 
-def _getter_3d_element(object_name, attribute_name, stride_2, stride_3):
+def _getter_3d_element(object_name, attribute_name, stride_2, stride_3, setter=False):
     text = f"@njit\n"
-    text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data):\n"
+    if setter:
+        text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}(index_1, index_2, index_3, {object_name}, data):\n"
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
     text += f'    stride_2 = {object_name}["{stride_2}"]\n'
     text += f'    stride_3 = {object_name}["{stride_3}"]\n'
-    text += f"    return data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3]\n\n\n"
+    if setter:
+        text += f"    data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3] = value\n\n\n"
+    else:
+        text += f"    return data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3]\n\n\n"
     return text
 
 

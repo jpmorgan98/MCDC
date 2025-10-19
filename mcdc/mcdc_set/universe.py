@@ -1,0 +1,30 @@
+from numba import njit
+
+
+@njit
+def cell_IDs(index, universe, data, value):
+    offset = universe["cell_IDs_offset"]
+    data[offset + index] = value
+
+
+@njit
+def cell_IDs_all(universe, data, value):
+    start = universe["cell_IDs_offset"]
+    size = universe["N_cell"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def cell_IDs_last(universe, data, value):
+    start = universe["cell_IDs_offset"]
+    size = universe["N_cell"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def cell_IDs_chunk(start, length, universe, data, value):
+    start += universe["cell_IDs_offset"]
+    end = start + length
+    data[start:end] = value

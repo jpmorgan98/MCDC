@@ -11,6 +11,8 @@ import sys
 
 from colorama import Fore, Style
 
+import mcdc.mcdc_get as mcdc_get
+
 
 def print_1d_array(arr):
     N = len(arr)
@@ -196,13 +198,13 @@ def print_header_batch(i, N):
         sys.stdout.flush()
 
 
-def print_progress_eigenvalue(mcdc):
+def print_progress_eigenvalue(mcdc, data):
     if master:
         idx_cycle = mcdc["idx_cycle"]
         k_eff = mcdc["k_eff"]
         k_avg = mcdc["k_avg_running"]
         k_sdv = mcdc["k_sdv_running"]
-        gr = mcdc["gyration_radius"][idx_cycle]
+        gr = mcdc_get.simulation.gyration_radius(idx_cycle, mcdc, data)
         if mcdc["settings"]["use_progress_bar"]:
             sys.stdout.write("\r")
             sys.stdout.write("\033[K")

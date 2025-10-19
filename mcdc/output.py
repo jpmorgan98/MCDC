@@ -80,15 +80,13 @@ def generate_output(mcdc, data):
         N = mcdc["bank_source"]["size"][0]
         neutrons = MPI.COMM_WORLD.gather(mcdc["bank_source"]["particles"][:N])
 
-        # Master saves the particle
-        if mcdc["mpi_master"]:
-            # Remove unwanted particle fields
-            neutrons = np.concatenate(neutrons[:])
+        # Remove unwanted particle fields
+        neutrons = np.concatenate(neutrons[:])
 
-            # Create dataset
-            with h5py.File(mcdc["setting"]["output_name"] + ".h5", "a") as f:
-                file.create_dataset("particles", data=neutrons[:])
-                file.create_dataset("particles_size", data=len(neutrons[:]))
+        # Create dataset
+        with h5py.File(mcdc["setting"]["output_name"] + ".h5", "a") as f:
+            file.create_dataset("particles", data=neutrons[:])
+            file.create_dataset("particles_size", data=len(neutrons[:]))
 
     # Close the file
     file.close()

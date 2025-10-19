@@ -21,7 +21,6 @@ from mcdc.print_ import (
     print_header_batch,
     print_progress,
     print_progress_eigenvalue,
-    print_structure,
 )
 from mcdc.transport.source import source_particle
 
@@ -83,23 +82,21 @@ def fixed_source_simulation(mcdc_arr, data):
     use_census_based_tally = settings["use_census_based_tally"]
 
     # Loop over batches
-    for i_batch in range(N_batch):
-        mcdc["idx_batch"] = i_batch
-        seed_batch = rng.split_seed(i_batch, settings["rng_seed"])
+    for idx_batch in range(N_batch):
+        mcdc["idx_batch"] = idx_batch
+        seed_batch = rng.split_seed(idx_batch, settings["rng_seed"])
 
         # Distribute work
-        #   TODO: Check on why is this necessary? Is it possible that the actual number
-        #         of work is not exactly N_particle?
         kernel.distribute_work(N_particle, mcdc)
 
         # Print multi-batch header
         if N_batch > 1:
             with objmode():
-                print_header_batch(i_batch, N_batch)
+                print_header_batch(idx_batch, N_batch)
 
         # Loop over time censuses
-        for i_census in range(N_census):
-            mcdc["idx_census"] = i_census
+        for idx_census in range(N_census):
+            mcdc["idx_census"] = idx_census
             seed_census = rng.split_seed(seed_batch, rng.SEED_SPLIT_CENSUS)
 
             # Reset tally time filters if census-based tally is used
@@ -115,20 +112,19 @@ def fixed_source_simulation(mcdc_arr, data):
             loop_source(seed_source, mcdc, data)
 
             # Manage particle banks: population control and work rebalance
-            seed_bank = rng.split_seed(seed_census, rng.SEED_SPLIT_BANK)
-            kernel.manage_particle_banks(seed_bank, mcdc)
+            kernel.manage_particle_banks(mcdc)
 
             # Time census-based tally closeout
             if use_census_based_tally:
                 tally_module.closeout.reduce(mcdc, data)
+                tally_module.closeout.accumulate(mcdc, data)
                 if mcdc["mpi_master"]:
-                    tally_module.closeout.accumulate(mcdc, data)
                     with objmode():
                         output_module.generate_census_based_tally(mcdc, data)
 
             # Terminate census loop if all banks are empty
             if (
-                i_census > 0
+                idx_census > 0
                 and kernel.get_bank_size(mcdc["bank_source"]) == 0
                 and kernel.get_bank_size(mcdc["bank_census"]) == 0
                 and kernel.get_bank_size(mcdc["bank_future"]) == 0
@@ -154,7 +150,7 @@ def fixed_source_simulation(mcdc_arr, data):
 
 
 # =========================================================================
-# Eigenvalue loop
+# Eigenvalue simulation
 # =========================================================================
 
 
@@ -165,37 +161,36 @@ def eigenvalue_simulation(mcdc_arr, data):
     # adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
 
+    # Get some settings
     settings = mcdc["settings"]
+    N_inactive = settings["N_inactive"]
+    N_cycle = settings['N_cycle']
+    N_particle = settings['N_particle']
+
+    # Distribute work
+    kernel.distribute_work(N_particle, mcdc)
 
     # Loop over power iteration cycles
-    N_active = settings["N_active"]
-    N_inactive = settings["N_inactive"]
-    N_cycle = N_active + N_inactive
     for idx_cycle in range(N_cycle):
+        mcdc["idx_cycle"] = idx_cycle
         seed_cycle = rng.split_seed(idx_cycle, settings["rng_seed"])
 
         # Loop over source particles
         seed_source = rng.split_seed(seed_cycle, rng.SEED_SPLIT_SOURCE)
-        loop_source(seed_source, data_tally, mcdc, data)
+        loop_source(seed_source, mcdc, data)
+
+        # Manage particle banks: population control and work rebalance
+        kernel.manage_particle_banks(mcdc)
 
         # Tally "history" closeout
-        kernel.eigenvalue_tally_closeout_history(mcdc)
+        tally_module.closeout.eigenvalue_cycle(mcdc, data)
         if mcdc["cycle_active"]:
-            kernel.tally_reduce(data_tally, mcdc)
-            kernel.tally_accumulate(data_tally, mcdc)
-
-        # DD closeout
-        if mcdc["technique"]["domain_decomposition"]:
-            mcdc["dd_N_local_source"] = 0
-            mcdc["domain_decomp"]["work_done"] = False
+            tally_module.closeout.reduce(mcdc, data)
+            tally_module.closeout.accumulate(mcdc, data)
 
         # Print progress
         with objmode():
-            print_progress_eigenvalue(mcdc)
-
-        # Manage particle banks
-        seed_bank = rng.split_seed(seed_cycle, rng.SEED_SPLIT_BANK)
-        kernel.manage_particle_banks(seed_bank, mcdc)
+            print_progress_eigenvalue(mcdc, data)
 
         # Entering active cycle?
         mcdc["idx_cycle"] += 1
@@ -203,8 +198,8 @@ def eigenvalue_simulation(mcdc_arr, data):
             mcdc["cycle_active"] = True
 
     # Tally closeout
-    kernel.tally_closeout(data_tally, mcdc)
-    kernel.eigenvalue_tally_closeout(mcdc)
+    tally_module.closeout.finalize(mcdc, data)
+    tally_module.closeout.eigenvalue_simulation(mcdc)
 
 
 # =============================================================================
@@ -366,7 +361,6 @@ def loop_source(seed, mcdc, data):
     # Loop over particle sources
     work_start = mcdc["mpi_work_start"]
     work_size = mcdc["mpi_work_size"]
-    work_end = work_start + work_size
 
     for idx_work in range(work_size):
         generate_source_particle(work_start, idx_work, seed, mcdc, data)
