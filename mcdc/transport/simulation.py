@@ -179,14 +179,14 @@ def eigenvalue_simulation(mcdc_arr, data):
         seed_source = rng.split_seed(seed_cycle, rng.SEED_SPLIT_SOURCE)
         loop_source(seed_source, mcdc, data)
 
-        # Manage particle banks: population control and work rebalance
-        kernel.manage_particle_banks(mcdc)
-
         # Tally "history" closeout
         tally_module.closeout.eigenvalue_cycle(mcdc, data)
         if mcdc["cycle_active"]:
             tally_module.closeout.reduce(mcdc, data)
             tally_module.closeout.accumulate(mcdc, data)
+
+        # Manage particle banks: population control and work rebalance
+        kernel.manage_particle_banks(mcdc)
 
         # Print progress
         with objmode():
