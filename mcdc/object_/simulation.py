@@ -32,8 +32,8 @@ from mcdc.object_.mesh import MeshBase
 from mcdc.object_.nuclide import Nuclide
 from mcdc.object_.particle import ParticleBank
 from mcdc.object_.reaction import ReactionBase
-from mcdc.object_.universe import Universe, Lattice
 from mcdc.object_.settings import Settings
+from mcdc.object_.universe import Universe, Lattice
 
 
 # ======================================================================================

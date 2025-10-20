@@ -1,4 +1,5 @@
 from __future__ import annotations
+from types import NoneType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -78,9 +79,9 @@ class Lattice(ObjectNonSingleton):
     def __init__(
         self,
         name: str = "",
-        x: tuple[float, float, int] = (-INF, 2 * INF, 1),
-        y: tuple[float, float, int] = (-INF, 2 * INF, 1),
-        z: tuple[float, float, int] = (-INF, 2 * INF, 1),
+        x: tuple[float, float, int] | NoneType = None,
+        y: tuple[float, float, int] | NoneType = None,
+        z: tuple[float, float, int] | NoneType = None,
         universes: list[Universe] = None,
     ):
         super().__init__()
@@ -119,8 +120,14 @@ class Lattice(ObjectNonSingleton):
             self.dz = z[1]
             self.Nz = z[2]
 
+        # Dictionary to map universe ID to the object
+        universe_map = {}
+        def obj_to_ID(obj):
+            universe_map[obj.ID] = obj
+            return obj.ID
+
         # Set universe IDs
-        get_ID = np.vectorize(lambda obj: obj.ID)
+        get_ID = np.vectorize(obj_to_ID)
         universe_IDs = get_ID(universes)
         ax_expand = []
         if x is None:
@@ -148,7 +155,7 @@ class Lattice(ObjectNonSingleton):
                 self.universes[-1].append([])
                 for iz in range(Nz):
                     ID = universe_IDs[ix, iy, iz]
-                    self.universes[-1][-1].append(simulation.universes[ID])
+                    self.universes[-1][-1].append(universe_map[ID])
 
     def __repr__(self):
         text = "\n"
