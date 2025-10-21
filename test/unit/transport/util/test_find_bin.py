@@ -5,9 +5,11 @@ import pytest
 
 from mcdc.transport.util import find_bin
 
+
 @pytest.fixture
 def grid():
     return np.array([0.0, 1.0, 2.0, 5.0, 10.0])
+
 
 @pytest.fixture
 def eps():

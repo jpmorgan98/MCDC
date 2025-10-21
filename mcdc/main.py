@@ -204,16 +204,15 @@ def preparation():
 
     importlib.reload(mcdc_get)
 
-
     # ==================================================================================
     # Set some Numba object fields
     # ==================================================================================
 
     # Particle bank tags
-    mcdc['bank_active']['tag'] = 'active'
-    mcdc['bank_census']['tag'] = 'census'
-    mcdc['bank_source']['tag'] = 'source'
-    mcdc['bank_future']['tag'] = 'future'
+    mcdc["bank_active"]["tag"] = "active"
+    mcdc["bank_census"]["tag"] = "census"
+    mcdc["bank_source"]["tag"] = "source"
+    mcdc["bank_future"]["tag"] = "future"
 
     # ==================================================================================
     # Platform Targeting, Adapters, Toggles, etc

@@ -122,6 +122,7 @@ class Lattice(ObjectNonSingleton):
 
         # Dictionary to map universe ID to the object
         universe_map = {}
+
         def obj_to_ID(obj):
             universe_map[obj.ID] = obj
             return obj.ID

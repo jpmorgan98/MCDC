@@ -48,7 +48,7 @@ mcdc.Source(
     x=[-pitch / 2, pitch / 2],
     y=[-pitch / 2, pitch / 2],
     isotropic=True,
-    energy=1E6,
+    energy=1e6,
 )
 
 # =============================================================================

@@ -27,9 +27,7 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
 
 @njit
 def neutron_production_xs(reaction_type, particle_container, mcdc, data):
-    return native.neutron_production_xs(
-        reaction_type, particle_container, mcdc, data
-    )
+    return native.neutron_production_xs(reaction_type, particle_container, mcdc, data)
 
 
 # ======================================================================================

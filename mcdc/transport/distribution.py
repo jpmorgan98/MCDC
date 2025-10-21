@@ -126,7 +126,9 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
             if idx + 2 == len(grid):
                 end = multipdf["value_length"]
             else:
-                end = int(mcdc_get.multipdf_distribution.offset(idx + 2, multipdf, data))
+                end = int(
+                    mcdc_get.multipdf_distribution.offset(idx + 2, multipdf, data)
+                )
             val1_min = mcdc_get.multipdf_distribution.value(start, multipdf, data)
             val1_max = mcdc_get.multipdf_distribution.value(end - 1, multipdf, data)
 

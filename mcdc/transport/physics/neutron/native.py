@@ -302,9 +302,7 @@ def sample_nucleus_velocity(A, particle_container, mcdc, data):
     while True:
         if rng.lcg(particle_container) < 2.0 / (2.0 + PI_SQRT * y):
             x = math.sqrt(
-                -math.log(
-                    rng.lcg(particle_container) * rng.lcg(particle_container)
-                )
+                -math.log(rng.lcg(particle_container) * rng.lcg(particle_container))
             )
         else:
             cos_val = math.cos(PI_HALF * rng.lcg(particle_container))
@@ -480,8 +478,12 @@ def fission_yield_prompt(E, reaction, mcdc, data):
 
 @njit
 def fission_yield_delayed(E, group, reaction, mcdc, data):
-    data_type = int(mcdc_get.neutron_fission_reaction.delayed_yield_types(group, reaction, data))
-    index = int(mcdc_get.neutron_fission_reaction.delayed_yield_IDs(group, reaction, data))
+    data_type = int(
+        mcdc_get.neutron_fission_reaction.delayed_yield_types(group, reaction, data)
+    )
+    index = int(
+        mcdc_get.neutron_fission_reaction.delayed_yield_IDs(group, reaction, data)
+    )
     return evaluate_data(E, data_type, index, mcdc, data)
 
 
@@ -497,5 +499,7 @@ def sample_fission_spectrum_delayed(E, group, reaction, rng_state, mcdc, data):
     data_type = int(
         mcdc_get.neutron_fission_reaction.delayed_spectrum_types(group, reaction, data)
     )
-    index = int(mcdc_get.neutron_fission_reaction.delayed_spectrum_IDs(group, reaction, data))
+    index = int(
+        mcdc_get.neutron_fission_reaction.delayed_spectrum_IDs(group, reaction, data)
+    )
     return sample_distribution(E, data_type, index, rng_state, mcdc, data, True)
