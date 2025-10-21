@@ -1,6 +1,6 @@
 from __future__ import annotations
 from types import NoneType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell
@@ -8,6 +8,9 @@ if TYPE_CHECKING:
 ####
 
 import numpy as np
+
+from numpy import int64
+from numpy._typing import NDArray
 
 ####
 
@@ -74,7 +77,7 @@ class Lattice(ObjectNonSingleton):
     z0: float
     dz: float
     Nz: int
-    universes: list[Universe]
+    universe_IDs: Annotated[NDArray[int64], ("Nx", "Ny", "Nz")]
 
     def __init__(
         self,
@@ -120,15 +123,9 @@ class Lattice(ObjectNonSingleton):
             self.dz = z[1]
             self.Nz = z[2]
 
-        # Dictionary to map universe ID to the object
-        universe_map = {}
-
-        def obj_to_ID(obj):
-            universe_map[obj.ID] = obj
-            return obj.ID
 
         # Set universe IDs
-        get_ID = np.vectorize(obj_to_ID)
+        get_ID = np.vectorize(lambda obj: obj.ID)
         universe_IDs = get_ID(universes)
         ax_expand = []
         if x is None:
@@ -144,19 +141,7 @@ class Lattice(ObjectNonSingleton):
         universe_IDs = np.transpose(universe_IDs)
         universe_IDs = np.flip(universe_IDs, axis=1)
         universe_IDs = np.flip(universe_IDs, axis=2)
-
-        # Set up the universes
-        Nx = self.Nx
-        Ny = self.Ny
-        Nz = self.Nz
-        self.universes = []
-        for ix in range(Nx):
-            self.universes.append([])
-            for iy in range(Ny):
-                self.universes[-1].append([])
-                for iz in range(Nz):
-                    ID = universe_IDs[ix, iy, iz]
-                    self.universes[-1][-1].append(universe_map[ID])
+        self.universe_IDs = np.array(universe_IDs)
 
     def __repr__(self):
         text = "\n"

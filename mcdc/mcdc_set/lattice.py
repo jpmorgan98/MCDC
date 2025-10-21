@@ -4,25 +4,11 @@ from numba import njit
 
 
 @njit
-def universe_IDs(index, lattice, data, value):
+def universe_IDs(index_1, index_2, index_3, lattice, data, value):
     offset = lattice["universe_IDs_offset"]
-    data[offset + index] = value
-
-
-@njit
-def universe_IDs_all(lattice, data, value):
-    start = lattice["universe_IDs_offset"]
-    size = lattice["N_universe"]
-    end = start + size
-    data[start:end] = value
-
-
-@njit
-def universe_IDs_last(lattice, data, value):
-    start = lattice["universe_IDs_offset"]
-    size = lattice["N_universe"]
-    end = start + size
-    data[end - 1] = value
+    stride_2 = lattice["Ny"]
+    stride_3 = lattice["Nz"]
+    data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3] = value
 
 
 @njit

@@ -288,7 +288,7 @@ def source_closeout(prog, idx_work, N_prog, data):
     # Tally history closeout for one-batch fixed-source simulation
     if not mcdc["settings"]["eigenvalue_mode"] and mcdc["settings"]["N_batch"] == 1:
         if not mcdc["settings"]["use_census_based_tally"]:
-            kernel.tally_accumulate(data, mcdc)
+            tally_module.closeout.accumulate(mcdc, data)
 
     # Progress printout
     percent = (idx_work + 1.0) / mcdc["mpi_work_size"]
