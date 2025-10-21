@@ -1,9 +1,11 @@
 import math
+
 from numba import literal_unroll, njit
 
 ####
 
 import mcdc.mcdc_get as mcdc_get
+import mcdc.mcdc_set as mcdc_set
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE_DIRECTION,
@@ -107,7 +109,7 @@ def set_census_based_time_grid(mcdc, data):
     for tally_type in literal_unroll(TALLY_LITERALS):
         for i in range(mcdc[f"N_{tally_type}_tally"]):
             tally = mcdc[f"{tally_type}_tallies"][i]
-            offset = tally["time_offset"]
-            data[offset] = t_start
+            mcdc_set.tally.time(0, tally, data, t_start)
             for j in range(tally_frequency):
-                data[offset + j + 1] = data[offset + j] + dt
+                t_next = mcdc_get.tally.time(j, tally, data) + dt
+                mcdc_set.tally.time(j + 1, tally, data, t_next)
