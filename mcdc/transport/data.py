@@ -11,10 +11,10 @@ from mcdc.transport.util import find_bin, linear_interpolation
 @njit
 def evaluate_data(x, data_type, index, mcdc, data):
     if data_type == DATA_TABLE:
-        table = mcdc["data_tables"][index]
+        table = mcdc["table_data"][index]
         return evaluate_table(x, table, data)
     elif data_type == DATA_POLYNOMIAL:
-        polynomial = mcdc["data_polynomials"][index]
+        polynomial = mcdc["polynomial_data"][index]
         return evaluate_polynomial(x, polynomial, data)
     else:
         return 0.0
@@ -22,18 +22,18 @@ def evaluate_data(x, data_type, index, mcdc, data):
 
 @njit
 def evaluate_table(x, table, data):
-    grid = mcdc_get.table.x_all(table, data)
-    idx = binary_search(x, grid)
+    grid = mcdc_get.table_data.x_all(table, data)
+    idx = find_bin(x, grid)
     x1 = grid[idx]
     x2 = grid[idx + 1]
-    y1 = mcdc_get.table.y(idx, table, data)
-    y2 = mcdc_get.table.y(idx + 1, table, data)
+    y1 = mcdc_get.table_data.y(idx, table, data)
+    y2 = mcdc_get.table_data.y(idx + 1, table, data)
     return linear_interpolation(x, x1, x2, y1, y2)
 
 
 @njit
 def evaluate_polynomial(x, polynomial, data):
-    coeffs = mcdc_get.polynomial.coefficients_all(polynomial, data)
+    coeffs = mcdc_get.polynomial_data.coefficients_all(polynomial, data)
     total = 0.0
     for i in range(len(coeffs)):
         total += coeffs[i] * x**i

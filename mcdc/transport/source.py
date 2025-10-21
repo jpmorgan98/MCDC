@@ -6,6 +6,7 @@ import mcdc.transport.rng as rng
 
 from mcdc.transport.distribution import (
     sample_uniform,
+    sample_pdf,
     sample_pmf,
     sample_white_direction,
     sample_isotropic_direction,
@@ -18,6 +19,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
     P_rec["rng_seed"] = seed
 
     # Sample source
+    # TODO: use cdf and binary search instead
     xi = rng.lcg(P_rec_arr)
     tot = 0.0
     for source in mcdc["sources"]:
@@ -48,7 +50,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         uy = source["direction"][1]
         uz = source["direction"][2]
 
-    # Energy and time
+    # Energy
     if mcdc["settings"]["multigroup_mode"]:
         E = 0.0
         if source["mono_energetic"]:
@@ -57,6 +59,14 @@ def source_particle(P_rec_arr, seed, mcdc, data):
             ID = source["energy_group_pmf_ID"]
             pmf = mcdc["pmf_distributions"][ID]
             g = sample_pmf(pmf, P_rec_arr, data)
+    else:
+        g = 0
+        if source["mono_energetic"]:
+            E = source["energy"]
+        else:
+            ID = source["energy_pdf_ID"]
+            pdf = mcdc["pdf_distributions"][ID]
+            E = sample_pdf(pdf, P_rec_arr, data)
 
     # Time
     if source["discrete_time"]:

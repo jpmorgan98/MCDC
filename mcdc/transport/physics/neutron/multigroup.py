@@ -45,6 +45,7 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
     material = mcdc["multigroup_materials"][particle["material_ID"]]
     g = particle["g"]
+
     if reaction_type == REACTION_TOTAL:
         return mcdc_get.multigroup_material.mgxs_total(g, material, data)
     elif reaction_type == REACTION_NEUTRON_CAPTURE:
@@ -66,15 +67,16 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
         total = 0.0
         total += neutron_production_xs(
             REACTION_NEUTRON_ELASTIC_SCATTERING,
-            material,
             particle_container,
             mcdc,
             data,
         )
         total += neutron_production_xs(
-            REACTION_NEUTRON_FISSION, material, particle_container, mcdc, data
+            REACTION_NEUTRON_FISSION, particle_container, mcdc, data
         )
         return total
+    elif reaction_type == REACTION_NEUTRON_CAPTURE:
+        return 0.0
     elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
         nu = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_scatter(g, material, data)

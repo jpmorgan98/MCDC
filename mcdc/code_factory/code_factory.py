@@ -554,7 +554,7 @@ def set_object(object_, annotations, structures, records, data):
                 offset_id = offset_type + length
 
                 record[f"N_{singular_name}"] = length
-                record[f"{singular_name}_type_offset"] = offset_type
+                record[f"{singular_name}_types_offset"] = offset_type
                 record[f"{singular_name}_IDs_offset"] = offset_id
                 data.extend([x.type for x in attribute_flatten])
                 data.extend([x.numba_ID for x in attribute_flatten])

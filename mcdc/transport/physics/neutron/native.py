@@ -6,8 +6,10 @@ from numba import njit
 ####
 
 import mcdc.code_factory.adapt as adapt
+from mcdc.transport import rng
 import mcdc.transport.kernel as kernel
 import mcdc.mcdc_get as mcdc_get
+import mcdc.object_.numba_types as type_
 
 from mcdc.constant import (
     DISTRIBUTION_MULTIPDF,
@@ -24,7 +26,7 @@ from mcdc.constant import (
 )
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import sample_distribution, sample_isotropic_direction
-from mcdc.transport.physics.util import scatter_direction
+from mcdc.transport.physics.util import evaluate_xs_energy_grid, scatter_direction
 from mcdc.transport.util import linear_interpolation
 
 
@@ -45,15 +47,14 @@ def particle_speed(particle_container):
 
 
 @njit
-def macro_xs(reaction_type, material_ID, particle_container, mcdc, data):
+def macro_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
+    material = mcdc["materials"][particle["material_ID"]]
     E = particle["E"]
-    material = mcdc["materials"][material_ID]
 
-    # Sum over all nuclides
     total = 0.0
     for i in range(material["N_nuclide"]):
-        nuclide_ID = int(mcdc_get.material.nuclide_index(i, material, data))
+        nuclide_ID = int(mcdc_get.material.nuclide_IDs(i, material, data))
         nuclide = mcdc["nuclides"][nuclide_ID]
         nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
         xs = micro_xs(E, reaction_type, nuclide, mcdc, data)
@@ -72,11 +73,11 @@ def micro_xs(E, reaction_type, nuclide, mcdc, data):
 
     # Search if the reaction exists
     for i in range(nuclide["N_reaction"]):
-        the_type = int(mcdc_get.nuclide.reaction_type(i, nuclide, data))
+        the_type = int(mcdc_get.nuclide.reaction_types(i, nuclide, data))
 
         if the_type == reaction_type:
             # Reaction exists!
-            reaction_idx = int(mcdc_get.nuclide.reaction_index(i, nuclide, data))
+            reaction_idx = int(mcdc_get.nuclide.reaction_IDs(i, nuclide, data))
             idx, E0, E1 = evaluate_xs_energy_grid(E, nuclide, data)
 
             if reaction_type == REACTION_NEUTRON_CAPTURE:
@@ -101,34 +102,33 @@ def micro_xs(E, reaction_type, nuclide, mcdc, data):
 
 
 @njit
-def neutron_production_xs(reaction_type, material, particle_container, mcdc, data):
+def neutron_production_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
-    E = particle["E"]
+    material = mcdc["materials"][particle["material_ID"]]
 
-    if reaction_type == REACTION_NEUTRON_CAPTURE:
-        return 0.0
-    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
-        return macro_xs(reaction_type, material, particle_container, mcdc, data)
-    elif reaction_type == REACTION_TOTAL:
+    E = particle["E"]
+    if reaction_type == REACTION_TOTAL:
         elastic_type = REACTION_NEUTRON_ELASTIC_SCATTERING
         fission_type = REACTION_NEUTRON_FISSION
-        elastic_xs = macro_xs(elastic_type, material, particle_container, mcdc, data)
-        fission_xs = neutron_production_xs(
-            fission_type, material, particle_container, mcdc, data
-        )
+        elastic_xs = neutron_production_xs(elastic_type, particle_container, mcdc, data)
+        fission_xs = neutron_production_xs(fission_type, particle_container, mcdc, data)
         return elastic_xs + fission_xs
+    elif reaction_type == REACTION_NEUTRON_CAPTURE:
+        return 0.0
+    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+        return macro_xs(reaction_type, particle_container, mcdc, data)
     elif reaction_type == REACTION_NEUTRON_FISSION:
         if not material["fissionable"]:
             return 0.0
         total = 0.0
         for i in range(material["N_nuclide"]):
-            nuclide_ID = int(mcdc_get.material.nuclide_index(i, material, data))
+            nuclide_ID = int(mcdc_get.material.nuclide_IDs(i, material, data))
             nuclide = mcdc["nuclides"][nuclide_ID]
             if not nuclide["fissionable"]:
                 continue
             nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
             xs = micro_xs(E, reaction_type, nuclide, mcdc, data)
-            reaction_idx = int(mcdc_get.nuclide.reaction_index(i, nuclide, data))
+            reaction_idx = int(mcdc_get.nuclide.reaction_IDs(i, nuclide, data))
             reaction = mcdc["neutron_fission_reactions"][reaction_idx]
             nu = fission_yield_prompt(E, reaction, mcdc, data)
             for j in range(reaction["N_delayed"]):
@@ -136,7 +136,7 @@ def neutron_production_xs(reaction_type, material, particle_container, mcdc, dat
             total += nuclide_density * nu * xs
         return total
     else:
-        return 0.0
+        return -1.0
 
 
 # ======================================================================================
@@ -156,11 +156,11 @@ def collision(particle_container, prog, data):
     # Sample colliding nuclide
     # ==================================================================================
 
-    SigmaT = macro_xs(REACTION_TOTAL, material, particle_container, mcdc, data)
-    xi = kernel.rng(particle_container) * SigmaT
+    SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
+    xi = rng.lcg(particle_container) * SigmaT
     total = 0.0
     for i in range(material["N_nuclide"]):
-        nuclide_ID = int(mcdc_get.material.nuclide_index(i, material, data))
+        nuclide_ID = int(mcdc_get.material.nuclide_IDs(i, material, data))
         nuclide = mcdc["nuclides"][nuclide_ID]
         nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
         sigmaT = micro_xs(particle["E"], REACTION_TOTAL, nuclide, mcdc, data)
@@ -173,17 +173,17 @@ def collision(particle_container, prog, data):
     # Sample and perform reaction
     # ==================================================================================
 
-    xi = kernel.rng(particle_container) * sigmaT
+    xi = rng.lcg(particle_container) * sigmaT
     total = 0.0
     for i in range(nuclide["N_reaction"]):
-        reaction_type = int(mcdc_get.nuclide.reaction_type(i, nuclide, data))
+        reaction_type = int(mcdc_get.nuclide.reaction_types(i, nuclide, data))
         reaction_xs = micro_xs(particle["E"], reaction_type, nuclide, mcdc, data)
         total += reaction_xs
         if total < xi:
             continue
 
         # Reaction is sampled
-        reaction_idx = int(mcdc_get.nuclide.reaction_index(i, nuclide, data))
+        reaction_idx = int(mcdc_get.nuclide.reaction_IDs(i, nuclide, data))
         if reaction_type == REACTION_NEUTRON_CAPTURE:
             particle["alive"] = False
         elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
@@ -250,13 +250,13 @@ def elastic_scattering(particle_container, nuclide, reaction, prog, data):
     uz = vz / speed
 
     # Sample the scattering cosine from the multi-PDF distribution
-    index = reaction["mu_index"]
+    index = reaction["mu_ID"]
     mu0 = sample_distribution(
         E, DISTRIBUTION_MULTIPDF, index, particle_container, mcdc, data
     )
 
     # Scatter the direction in COM
-    azi = 2.0 * PI * kernel.rng(particle_container)
+    azi = 2.0 * PI * rng.lcg(particle_container)
     ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu0, azi)
 
     # Neutron final velocity - COM
@@ -300,29 +300,29 @@ def sample_nucleus_velocity(A, particle_container, mcdc, data):
     #   rejection sampling
     y = beta * speed
     while True:
-        if kernel.rng(particle_container) < 2.0 / (2.0 + PI_SQRT * y):
+        if rng.lcg(particle_container) < 2.0 / (2.0 + PI_SQRT * y):
             x = math.sqrt(
                 -math.log(
-                    kernel.rng(particle_container) * kernel.rng(particle_container)
+                    rng.lcg(particle_container) * rng.lcg(particle_container)
                 )
             )
         else:
-            cos_val = math.cos(PI_HALF * kernel.rng(particle_container))
+            cos_val = math.cos(PI_HALF * rng.lcg(particle_container))
             x = math.sqrt(
-                -math.log(kernel.rng(particle_container))
-                - math.log(kernel.rng(particle_container)) * cos_val * cos_val
+                -math.log(rng.lcg(particle_container))
+                - math.log(rng.lcg(particle_container)) * cos_val * cos_val
             )
         V_tilda = x / beta
-        mu_tilda = 2.0 * kernel.rng(particle_container) - 1.0
+        mu_tilda = 2.0 * rng.lcg(particle_container) - 1.0
 
         # Accept candidate V_tilda and mu_tilda?
-        if kernel.rng(particle_container) > math.sqrt(
+        if rng.lcg(particle_container) > math.sqrt(
             speed * speed + V_tilda * V_tilda - 2.0 * speed * V_tilda * mu_tilda
         ) / (speed + V_tilda):
             break
 
     # Set nuclide velocity - LAB
-    azi = 2.0 * PI * kernel.rng(particle_container)
+    azi = 2.0 * PI * rng.lcg(particle_container)
     ux, uy, uz = scatter_direction(
         particle["ux"], particle["uy"], particle["uz"], mu_tilda, azi
     )
@@ -352,13 +352,13 @@ def fission(particle_container, nuclide, reaction, prog, data):
     # Kill the current particle
     particle["alive"] = False
 
-    # Get effective and new weight
-    if mcdc["technique"]["weighted_emission"]:
-        weight_eff = particle["w"]
-        weight_new = 1.0
-    else:
-        weight_eff = 1.0
-        weight_new = particle["w"]
+    # Adjust production and product weights if weighted emission
+    weight_production = 1.0
+    weight_product = particle["w"]
+    if mcdc["weighted_emission"]["active"]:
+        weight_target = mcdc["weighted_emission"]["weight_target"]
+        weight_production = particle["w"] / weight_target
+        weight_product = weight_target
 
     # Fission yields
     nu_p = fission_yield_prompt(E, reaction, mcdc, data)
@@ -371,7 +371,7 @@ def fission(particle_container, nuclide, reaction, prog, data):
 
     # Number of fission neutrons
     N = int(
-        math.floor(weight_eff * nu / mcdc["k_eff"] + kernel.rng(particle_container))
+        math.floor(weight_production * nu / mcdc["k_eff"] + rng.lcg(particle_container))
     )
 
     # Set up secondary partice container
@@ -384,7 +384,7 @@ def fission(particle_container, nuclide, reaction, prog, data):
         kernel.split_as_data(particle_container_new, particle_container)
 
         # Set weight
-        particle_new["w"] = weight_new
+        particle_new["w"] = weight_product
 
         # Sample isotropic direction
         ux_new, uy_new, uz_new = sample_isotropic_direction(particle_container_new)
@@ -395,7 +395,7 @@ def fission(particle_container, nuclide, reaction, prog, data):
         # Prompt or delayed?
         prompt = True
         delayed_group = -1
-        xi = kernel.rng(particle_container_new) * nu
+        xi = rng.lcg(particle_container_new) * nu
         total = nu_p
         if xi > total:
             prompt = False
@@ -417,11 +417,11 @@ def fission(particle_container, nuclide, reaction, prog, data):
             )
 
         # Sample emission time
-        decay = mcdc_get.neutron_fission.delayed_decay_rates(
+        decay = mcdc_get.neutron_fission_reaction.delayed_decay_rates(
             delayed_group, reaction, data
         )
         if not prompt:
-            xi = kernel.rng(particle_container_new)
+            xi = rng.lcg(particle_container_new)
             particle_new["t"] -= math.log(xi) / decay
 
         # Eigenvalue mode: bank right away
@@ -474,28 +474,28 @@ def fission(particle_container, nuclide, reaction, prog, data):
 @njit
 def fission_yield_prompt(E, reaction, mcdc, data):
     data_type = reaction["prompt_yield_type"]
-    index = reaction["prompt_yield_index"]
+    index = reaction["prompt_yield_ID"]
     return evaluate_data(E, data_type, index, mcdc, data)
 
 
 @njit
 def fission_yield_delayed(E, group, reaction, mcdc, data):
-    data_type = int(mcdc_get.neutron_fission.delayed_yield_type(group, reaction, data))
-    index = int(mcdc_get.neutron_fission.delayed_yield_index(group, reaction, data))
+    data_type = int(mcdc_get.neutron_fission_reaction.delayed_yield_types(group, reaction, data))
+    index = int(mcdc_get.neutron_fission_reaction.delayed_yield_IDs(group, reaction, data))
     return evaluate_data(E, data_type, index, mcdc, data)
 
 
 @njit
 def sample_fission_spectrum_prompt(E, reaction, rng_state, mcdc, data):
     data_type = int(reaction["prompt_spectrum_type"])
-    index = int(reaction["prompt_spectrum_index"])
+    index = int(reaction["prompt_spectrum_ID"])
     return sample_distribution(E, data_type, index, rng_state, mcdc, data, True)
 
 
 @njit
 def sample_fission_spectrum_delayed(E, group, reaction, rng_state, mcdc, data):
     data_type = int(
-        mcdc_get.neutron_fission.delayed_spectrum_type(group, reaction, data)
+        mcdc_get.neutron_fission_reaction.delayed_spectrum_types(group, reaction, data)
     )
-    index = int(mcdc_get.neutron_fission.delayed_spectrum_index(group, reaction, data))
+    index = int(mcdc_get.neutron_fission_reaction.delayed_spectrum_IDs(group, reaction, data))
     return sample_distribution(E, data_type, index, rng_state, mcdc, data, True)

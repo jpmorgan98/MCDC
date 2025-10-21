@@ -8,7 +8,7 @@ from typing import Annotated
 ####
 
 from mcdc.constant import MATERIAL, MATERIAL_MG
-from mcdc.object_.base import ObjectNonSingleton
+from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.nuclide import Nuclide
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
@@ -18,7 +18,7 @@ from mcdc.print_ import print_1d_array, print_error
 # ======================================================================================
 
 
-class MaterialBase(ObjectNonSingleton):
+class MaterialBase(ObjectPolymorphic):
     name: str
     fissionable: bool
 
@@ -67,7 +67,7 @@ class Material(MaterialBase):
     def __init__(
         self,
         name: str = "",
-        nuclide_composition: dict[Nuclide, float] = {},
+        nuclide_composition: dict[str, float] = {},
     ):
         type_ = MATERIAL
         super().__init__(type_, name)

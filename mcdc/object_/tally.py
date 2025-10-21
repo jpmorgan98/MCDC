@@ -122,7 +122,7 @@ class TallyBase(ObjectPolymorphic):
             polar_reference = np.array(polar_reference)
             self.polar_reference /= polar_reference / np.linalg.norm(polar_reference)
         if energy is not None:
-            if energy == "all_groups":
+            if type(energy) == str and energy == "all_groups":
                 G = simulation.materials[0].G
                 self.energy = np.linspace(0, G, G + 1) - 0.5
             else:

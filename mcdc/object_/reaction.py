@@ -29,6 +29,9 @@ from mcdc.print_ import print_1d_array
 
 
 class ReactionBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    label: str = "reaction"
+    #
     xs: NDArray[float64]
 
     def __init__(self, type_, xs):

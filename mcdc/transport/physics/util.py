@@ -4,17 +4,15 @@ from numba import njit
 
 ####
 
-import mcdc.transport.kernel as kernel
 import mcdc.mcdc_get as mcdc_get
 
-from mcdc.constant import PI
 from mcdc.transport.util import find_bin
 
 
 @njit
 def evaluate_xs_energy_grid(e, nuclide, data):
     energy_grid = mcdc_get.nuclide.xs_energy_grid_all(nuclide, data)
-    idx = binary_search(e, energy_grid)
+    idx = find_bin(e, energy_grid)
     e0 = energy_grid[idx]
     e1 = energy_grid[idx + 1]
     return idx, e0, e1

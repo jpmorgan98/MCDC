@@ -21,14 +21,14 @@ def particle_speed(particle_container, mcdc, data):
 
 
 @njit
-def macro_xs(reaction_type, material_ID, particle_container, mcdc, data):
-    return native.macro_xs(reaction_type, material_ID, particle_container, mcdc, data)
+def macro_xs(reaction_type, particle_container, mcdc, data):
+    return native.macro_xs(reaction_type, particle_container, mcdc, data)
 
 
 @njit
-def neutron_production_xs(reaction_type, material_ID, particle_container, mcdc, data):
+def neutron_production_xs(reaction_type, particle_container, mcdc, data):
     return native.neutron_production_xs(
-        reaction_type, material_ID, particle_container, mcdc, data
+        reaction_type, particle_container, mcdc, data
     )
 
 

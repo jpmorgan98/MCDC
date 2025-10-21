@@ -158,7 +158,7 @@ class Source(ObjectNonSingleton):
                 self.energy = energy
             else:
                 self.mono_energetic = False
-                self.energy_pdf = np.array(energy)
+                self.energy_pdf = DistributionPDF(energy[0], energy[1])
 
         # Time
         if type(time) == float:
