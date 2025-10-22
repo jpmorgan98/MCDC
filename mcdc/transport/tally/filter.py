@@ -11,7 +11,6 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE_DIRECTION,
     COINCIDENCE_TOLERANCE_ENERGY,
     COINCIDENCE_TOLERANCE_TIME,
-    TALLY_LITERALS,
 )
 from mcdc.transport.util import find_bin
 
@@ -106,10 +105,30 @@ def set_census_based_time_grid(mcdc, data):
     dt = (t_end - t_start) / tally_frequency
 
     # Set the time grid to all tallies
-    for tally_type in literal_unroll(TALLY_LITERALS):
-        for i in range(mcdc[f"N_{tally_type}_tally"]):
-            tally = mcdc[f"{tally_type}_tallies"][i]
-            mcdc_set.tally.time(0, tally, data, t_start)
-            for j in range(tally_frequency):
-                t_next = mcdc_get.tally.time(j, tally, data) + dt
-                mcdc_set.tally.time(j + 1, tally, data, t_next)
+    for i in range(mcdc['N_global_tally']):
+        tally = mcdc['global_tallies'][i]
+        mcdc_set.tally.time(0, tally, data, t_start)
+        for j in range(tally_frequency):
+            t_next = mcdc_get.tally.time(j, tally, data) + dt
+            mcdc_set.tally.time(j + 1, tally, data, t_next)
+    
+    for i in range(mcdc['N_cell_tally']):
+        tally = mcdc['cell_tallies'][i]
+        mcdc_set.tally.time(0, tally, data, t_start)
+        for j in range(tally_frequency):
+            t_next = mcdc_get.tally.time(j, tally, data) + dt
+            mcdc_set.tally.time(j + 1, tally, data, t_next)
+    
+    for i in range(mcdc['N_surface_tally']):
+        tally = mcdc['surface_tallies'][i]
+        mcdc_set.tally.time(0, tally, data, t_start)
+        for j in range(tally_frequency):
+            t_next = mcdc_get.tally.time(j, tally, data) + dt
+            mcdc_set.tally.time(j + 1, tally, data, t_next)
+    
+    for i in range(mcdc['N_mesh_tally']):
+        tally = mcdc['mesh_tallies'][i]
+        mcdc_set.tally.time(0, tally, data, t_start)
+        for j in range(tally_frequency):
+            t_next = mcdc_get.tally.time(j, tally, data) + dt
+            mcdc_set.tally.time(j + 1, tally, data, t_next)

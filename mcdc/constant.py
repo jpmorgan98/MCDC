@@ -8,7 +8,6 @@ TALLY_GLOBAL = 0
 TALLY_CELL = 1
 TALLY_SURFACE = 2
 TALLY_MESH = 3
-TALLY_LITERALS = ("global", "cell", "surface", "mesh")
 
 # Meshes
 MESH_UNIFORM = 0

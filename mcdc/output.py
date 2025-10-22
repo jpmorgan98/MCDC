@@ -10,7 +10,6 @@ import mcdc.print_ as print_module
 from mcdc.constant import (
     MESH_UNIFORM,
     MESH_STRUCTURED,
-    TALLY_LITERALS,
 )
 
 
@@ -145,7 +144,7 @@ def create_tally_dataset(file, mcdc, data):
     from mcdc.object_.tally import decode_score_type
 
     # Loop over all tally types
-    for tally_type in TALLY_LITERALS:
+    for tally_type in ['global', 'cell', 'surface', 'mesh']:
         # Loop over tallies
         for i in range(mcdc[f"N_{tally_type}_tally"]):
             tally = mcdc[f"{tally_type}_tallies"][i]
