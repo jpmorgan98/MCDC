@@ -1,3 +1,5 @@
+import numpy as np
+
 from mpi4py import MPI
 from numba import njit, objmode
 from numba.misc.special import literally
@@ -218,7 +220,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     # Get a source particle and put into active bank
     # =====================================================================
 
-    P_arr = adapt.local_array(1, type_.particle_data)
+    P_arr = np.zeros(1, type_.particle_data)
     P = P_arr[0]
 
     # Get from fixed-source?
@@ -267,7 +269,7 @@ def prep_particle(P_arr, prog):
 @njit
 def exhaust_active_bank(prog, data):
     mcdc = adapt.mcdc_global(prog)
-    P_arr = adapt.local_array(1, type_.particle)
+    P_arr = np.zeros(1, type_.particle)
     P = P_arr[0]
 
     # Loop until active bank is exhausted
@@ -309,7 +311,7 @@ def source_dd_resolution(data_tally, prog, data):
     if mcdc["domain_decomp"]["work_done"]:
         terminated = True
 
-    P_arr = adapt.local_array(1, type_.particle)
+    P_arr = np.zeros(1, type_.particle)
     P = P_arr[0]
 
     while not terminated:

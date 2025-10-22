@@ -373,7 +373,7 @@ def fission(particle_container, nuclide, reaction, prog, data):
     )
 
     # Set up secondary partice container
-    particle_container_new = adapt.local_array(1, type_.particle_data)
+    particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries

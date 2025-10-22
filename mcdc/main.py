@@ -111,6 +111,7 @@ def run():
 
 def preparation():
     import math
+    import numpy as np
 
     from mpi4py import MPI
 
@@ -195,14 +196,16 @@ def preparation():
 
     import mcdc.code_factory.code_factory as code_factory
 
+    code_factory.make_literals(simulation)
     mcdc_arr, data = code_factory.generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
 
-    # Reload mcdc_get
+    # Reload mcdc getters and setters
     import importlib
     import mcdc.mcdc_get as mcdc_get
-
+    import mcdc.mcdc_set as mcdc_set
     importlib.reload(mcdc_get)
+    importlib.reload(mcdc_set)
 
     # ==================================================================================
     # Set some Numba object fields
@@ -223,7 +226,6 @@ def preparation():
     import mcdc.config as config
     import mcdc.transport.kernel as kernel
 
-    code_factory.make_size_rpn(simulation.cells)
     settings.target_gpu = True if config.target == "gpu" else False
 
     if config.target == "gpu":
@@ -407,7 +409,7 @@ def visualize(
     # Set dummy particle
     import mcdc.code_factory.adapt as adapt
 
-    particle_container = adapt.local_array(1, type_.particle)
+    particle_container = np.zeros(1, type_.particle)
     particle = particle_container[0]
     particle[reference_key] = reference
     particle["g"] = 0

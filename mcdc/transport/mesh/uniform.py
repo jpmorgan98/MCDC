@@ -1,6 +1,6 @@
 import math
 
-from numba import int64, njit
+from numba import njit
 
 from mcdc.constant import COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME, INF
 
@@ -119,7 +119,7 @@ def _grid_index(value, direction, start, width, tolerance):
     (within tolerance).
     Note: It assumes the value is inside the grid.
     """
-    idx = int64(math.floor((value + tolerance - start) / width))
+    idx = int(math.floor((value + tolerance - start) / width))
 
     # Coinciding cases
     if abs(start + width * idx - value) < tolerance:
@@ -141,7 +141,7 @@ def _grid_distance(value, direction, start, width, tolerance):
     if direction == 0.0:
         return INF
 
-    idx = int64(math.floor((value + tolerance - start) / width))
+    idx = int(math.floor((value + tolerance - start) / width))
 
     # Coinciding cases
     if abs(start + width * idx - value) < tolerance:

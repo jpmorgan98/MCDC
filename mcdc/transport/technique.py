@@ -54,7 +54,7 @@ def population_control(mcdc):
     # Splitting Number
     sn = 1.0 / ws
 
-    P_rec_arr = adapt.local_array(1, type_.particle_data)
+    P_rec_arr = np.zeros(1, type_.particle_data)
     P_rec = P_rec_arr[0]
 
     # Perform split-roulette to all particles in local bank

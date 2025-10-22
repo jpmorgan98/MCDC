@@ -757,7 +757,7 @@ def check_future_bank(mcdc, data):
     )
 
     # Particle container
-    P_arr = adapt.local_array(1, type_.particle_data)
+    P_arr = np.zeros(1, type_.particle_data)
     P = P_arr[0]
 
     # Loop over all particles in future bank
@@ -1318,7 +1318,7 @@ def weight_window(P_arr, prog):
     # Window width
     width = mcdc["technique"]["ww"]["width"]
 
-    P_new_arr = adapt.local_array(1, type_.particle_data)
+    P_new_arr = np.zeros(1, type_.particle_data)
 
     # If above target
     if p > width:

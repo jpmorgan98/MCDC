@@ -1,3 +1,4 @@
+import numpy as np
 import math
 
 from numba import njit
@@ -167,7 +168,7 @@ def scattering(particle_container, prog, data):
     N = int(math.floor(weight_production * nu_s + rng.lcg(particle_container)))
 
     # Set up secondary partice container
-    particle_container_new = adapt.local_array(1, type_.particle_data)
+    particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries
@@ -248,7 +249,7 @@ def fission(particle_container, prog, data):
     )
 
     # Set up secondary partice container
-    particle_container_new = adapt.local_array(1, type_.particle_data)
+    particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries

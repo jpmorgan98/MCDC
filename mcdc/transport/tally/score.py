@@ -3,7 +3,7 @@ from numba import njit
 ####
 
 import mcdc.mcdc_get as mcdc_get
-import mcdc.transport.mesh as mesh_
+import mcdc.transport.mesh as mesh_module
 import mcdc.transport.physics as physics
 
 from mcdc.code_factory import adapt
@@ -191,7 +191,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         return
 
     # Get mesh bin indices
-    i_x, i_y, i_z = mesh_.get_indices(
+    i_x, i_y, i_z = mesh_module.get_indices(
         particle_container, mesh_type, mesh_ID, mcdc, data
     )
 
@@ -221,10 +221,10 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
             dx = INF
         else:
             if ux > 0.0:
-                x_next = mesh_.get_x(i_x + 1, mesh_type, mesh_ID, mcdc, data)
+                x_next = mesh_module.get_x(i_x + 1, mesh_type, mesh_ID, mcdc, data)
                 x_next = min(x_next, x_final)
             else:
-                x_next = mesh_.get_x(i_x, mesh_type, mesh_ID, mcdc, data)
+                x_next = mesh_module.get_x(i_x, mesh_type, mesh_ID, mcdc, data)
                 x_next = max(x_next, x_final)
             dx = (x_next - x) / ux
 
@@ -233,10 +233,10 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
             dy = INF
         else:
             if uy > 0.0:
-                y_next = mesh_.get_y(i_y + 1, mesh_type, mesh_ID, mcdc, data)
+                y_next = mesh_module.get_y(i_y + 1, mesh_type, mesh_ID, mcdc, data)
                 y_next = min(y_next, y_final)
             else:
-                y_next = mesh_.get_y(i_y, mesh_type, mesh_ID, mcdc, data)
+                y_next = mesh_module.get_y(i_y, mesh_type, mesh_ID, mcdc, data)
                 y_next = max(y_next, y_final)
             dy = (y_next - y) / uy
 
@@ -245,10 +245,10 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
             dz = INF
         else:
             if uz > 0.0:
-                z_next = mesh_.get_z(i_z + 1, mesh_type, mesh_ID, mcdc, data)
+                z_next = mesh_module.get_z(i_z + 1, mesh_type, mesh_ID, mcdc, data)
                 z_next = min(z_next, z_final)
             else:
-                z_next = mesh_.get_z(i_z, mesh_type, mesh_ID, mcdc, data)
+                z_next = mesh_module.get_z(i_z, mesh_type, mesh_ID, mcdc, data)
                 z_next = max(z_next, z_final)
             dz = (z_next - z) / uz
 
