@@ -8,13 +8,19 @@ import mcdc.mcdc_get.cell as cell
 
 import mcdc.mcdc_get.lattice as lattice
 
+import mcdc.mcdc_get.material as material
+
 import mcdc.mcdc_get.cell_tally as cell_tally
 
 import mcdc.mcdc_get.universe as universe
 
+import mcdc.mcdc_get.data as data
+
 import mcdc.mcdc_get.polynomial_data as polynomial_data
 
 import mcdc.mcdc_get.table_data as table_data
+
+import mcdc.mcdc_get.distribution as distribution
 
 import mcdc.mcdc_get.maxwellian_distribution as maxwellian_distribution
 
@@ -24,11 +30,13 @@ import mcdc.mcdc_get.pdf_distribution as pdf_distribution
 
 import mcdc.mcdc_get.pmf_distribution as pmf_distribution
 
-import mcdc.mcdc_get.material as material
+import mcdc.mcdc_get.native_material as native_material
 
 import mcdc.mcdc_get.multigroup_material as multigroup_material
 
 import mcdc.mcdc_get.nuclide as nuclide
+
+import mcdc.mcdc_get.mesh as mesh
 
 import mcdc.mcdc_get.structured_mesh as structured_mesh
 

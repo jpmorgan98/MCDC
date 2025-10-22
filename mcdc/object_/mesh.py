@@ -17,6 +17,9 @@ from mcdc.print_ import print_1d_array
 
 
 class MeshBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    label: str = "mesh"
+    #
     name: str
     N_bin: int
     Nx: int

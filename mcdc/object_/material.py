@@ -19,6 +19,9 @@ from mcdc.print_ import print_1d_array, print_error
 
 
 class MaterialBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    label: str = "material"
+    #
     name: str
     fissionable: bool
 
@@ -56,7 +59,7 @@ def decode_type(type_):
 
 class Material(MaterialBase):
     # Annotations for Numba mode
-    label: str = "material"
+    label: str = "native_material"
     non_numba: list[str] = ["nuclide_composition"]
     #
     nuclide_composition: dict[Nuclide, float]

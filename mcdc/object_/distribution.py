@@ -21,6 +21,9 @@ from mcdc.object_.util import cdf_from_pdf, multi_cdf_from_pdf, cmf_from_pmf
 
 
 class DistributionBase(ObjectPolymorphic):
+    # Annotations for Numba mode
+    label: str = "distribution"
+
     def __init__(self, type_):
         super().__init__(type_)
 
