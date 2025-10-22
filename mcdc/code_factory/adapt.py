@@ -4,7 +4,7 @@ from numba import njit, jit, objmode, literal_unroll, types
 from numba.extending import intrinsic
 import numba
 import mcdc.config as config
-import mcdc.togo.type_ as type_
+import mcdc.object_.numba_types as type_
 import mcdc.transport.kernel as kernel
 
 
