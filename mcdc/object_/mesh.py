@@ -33,7 +33,7 @@ class MeshBase(ObjectPolymorphic):
         if name != "":
             self.name = name
         else:
-            self.name = f"{self.label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.child_ID}"
 
         self.N_bin = 0
 
@@ -64,10 +64,13 @@ class MeshUniform(MeshBase):
     #
     x0: float
     dx: float
+    Nx: int
     y0: float
     dy: float
+    Ny: int
     z0: float
     dz: float
+    Nz: int
 
     def __init__(
         self,

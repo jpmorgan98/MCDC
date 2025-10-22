@@ -126,6 +126,10 @@ def generate_numba_objects(simulation):
                 break
             classes.append(item)
 
+        # If polymorphic, don't include the polymorphic base
+        if issubclass(mcdc_class, ObjectPolymorphic):
+            classes = [mcdc_class]
+
         # Get the annotations
         for class_ in classes:
             new_annotations = {
@@ -143,7 +147,7 @@ def generate_numba_objects(simulation):
                 and type(next(iter(new_annotations.values()))) == str
             ):
                 new_annotations = parse_annotations_dict(new_annotations)
-
+           
             annotations[mcdc_class.label].update(new_annotations)
 
     # Particle banks
@@ -453,14 +457,11 @@ def set_structure(label, structures, accessor_targets, annotations):
                 accessor_target.append((f"{field}", (f"{field}_length",)))
 
         # MC/DC classes
-        elif non_polymorphic(hint):
-            structure.append((f"{field}_ID", "i8"))
-        elif polymorphic_base(hint):
-            structure.append((f"{field}_type", "i8"))
+        elif non_polymorphic(hint) or polymorphic_base(hint):
             structure.append((f"{field}_ID", "i8"))
 
         # List of MC/DC classes
-        elif list_of_non_polymorphics:
+        elif list_of_non_polymorphics or list_of_polymorphic_bases:
             singular = plural_to_singular(field)
             structure.append((f"N_{singular}", "i8"))
             structure.append((f"{singular}_IDs_offset", "i8"))
@@ -468,17 +469,6 @@ def set_structure(label, structures, accessor_targets, annotations):
                 accessor_target.append((f"{singular}_IDs", hint_origin_shape))
             else:
                 accessor_target.append((f"{singular}_IDs", (f"N_{singular}",)))
-        elif list_of_polymorphic_bases:
-            singular = plural_to_singular(field)
-            structure.append((f"N_{singular}", "i8"))
-            structure.append((f"{singular}_types_offset", "i8"))
-            structure.append((f"{singular}_IDs_offset", "i8"))
-            if hint_origin_shape is not None:
-                accessor_target.append((f"{singular}_IDs", hint_origin_shape))
-                accessor_target.append((f"{singular}_types", hint_origin_shape))
-            else:
-                accessor_target.append((f"{singular}_IDs", (f"N_{singular}",)))
-                accessor_target.append((f"{singular}_types", (f"N_{singular}",)))
 
         # Unknown type
         else:
@@ -539,14 +529,12 @@ def set_object(object_, annotations, structures, records, data, class_=None):
             record[f"{attribute_name}_length"] = len(attribute_flatten)
             data.extend(attribute_flatten)
 
-        # Polymorphic object
-        elif isinstance(attribute, ObjectPolymorphic):
-            record[f"{attribute_name}_type"] = attribute.type
-            record[f"{attribute_name}_ID"] = attribute.numba_ID
-
-        # Non-polymorphic object
+        # Non-singleton object
         elif isinstance(attribute, ObjectNonSingleton):
-            record[f"{attribute_name}_ID"] = attribute.numba_ID
+            if not isinstance(attribute, ObjectPolymorphic) or annotation[attribute_name] in polymorphic_bases:
+                record[f"{attribute_name}_ID"] = attribute.ID
+            else:
+                record[f"{attribute_name}_ID"] = attribute.child_ID
 
         # List of Non-singleton objects
         elif type(attribute) == list:
@@ -561,23 +549,13 @@ def set_object(object_, annotations, structures, records, data, class_=None):
                     f"[ERROR] Get a list of non-object for {attribute_name}: {attribute}"
                 )
 
-            # List of non-polymorphic objects
-            if not issubclass(inner_type, ObjectPolymorphic):
-                record[f"N_{singular_name}"] = len(attribute_flatten)
-                record[f"{singular_name}_IDs_offset"] = len(data)
-                data.extend([x.numba_ID for x in attribute_flatten])
+            record[f"N_{singular_name}"] = len(attribute_flatten)
+            record[f"{singular_name}_IDs_offset"] = len(data)
 
-            # List of polymorphic objects
+            if not issubclass(inner_type, ObjectPolymorphic) or inner_type in polymorphic_bases:
+                data.extend([x.ID for x in attribute_flatten])
             else:
-                length = len(attribute_flatten)
-                offset_type = len(data)
-                offset_id = offset_type + length
-
-                record[f"N_{singular_name}"] = length
-                record[f"{singular_name}_types_offset"] = offset_type
-                record[f"{singular_name}_IDs_offset"] = offset_id
-                data.extend([x.type for x in attribute_flatten])
-                data.extend([x.numba_ID for x in attribute_flatten])
+                data.extend([x.child_ID for x in attribute_flatten])
 
     # Complete for simulation object
     if class_.label == "simulation":
@@ -585,16 +563,19 @@ def set_object(object_, annotations, structures, records, data, class_=None):
 
     # Set ID of non-singleton
     if isinstance(object_, ObjectNonSingleton):
-        record["ID"] = object_.numba_ID
+        if not isinstance(object_, ObjectPolymorphic):
+            record["ID"] = object_.ID
 
         # Set parent and child ID and type if polymorphic
-        if isinstance(object_, ObjectPolymorphic):
+        else:
             # Parent
             if class_ in polymorphic_bases:
-                record["child_ID"] = object_.type
-                record["child_type"] = object_.numba_ID
+                record["ID"] = object_.ID
+                record["child_ID"] = object_.child_ID
+                record["child_type"] = object_.type
             # Child
             else:
+                record["ID"] = object_.child_ID
                 record["parent_ID"] = object_.ID
 
     # Check structure-record compatibility

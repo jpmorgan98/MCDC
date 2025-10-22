@@ -31,25 +31,27 @@ class ObjectSingleton(ObjectBase):
 
 class ObjectNonSingleton(ObjectBase):
     ID: int
-    numba_ID: int
 
     def __init__(self, register=True):
         self.ID = -1
-        self.numba_ID = -1
         super().__init__(register)
 
         if "non_numba" in dir(self):
-            self.non_numba += ["ID", "numba_ID"]
+            self.non_numba += ["ID"]
         else:
-            self.non_numba = ["ID", "numba_ID"]
+            self.non_numba = ["ID"]
 
 
 class ObjectPolymorphic(ObjectNonSingleton):
+    child_ID: int
     type: int
 
     def __init__(self, type_, register=True):
+        self.child_ID = -1
         self.type = type_
         super().__init__(register)
+        
+        self.non_numba += ["child_ID"]
 
 
 # ======================================================================================
@@ -103,7 +105,6 @@ def register_object(object_):
         print_error(f"Unidentified object list for object {object_}")
 
     object_.ID = len(object_list)
-    object_.numba_ID = len(object_list)
     if isinstance(object_, ObjectPolymorphic):
-        object_.numba_ID = sum([x.type == object_.type for x in object_list])
+        object_.child_ID = sum([x.type == object_.type for x in object_list])
     object_list.append(object_)

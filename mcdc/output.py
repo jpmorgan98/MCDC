@@ -10,6 +10,7 @@ import mcdc.print_ as print_module
 from mcdc.constant import (
     MESH_UNIFORM,
     MESH_STRUCTURED,
+    TALLY_MESH,
 )
 
 
@@ -144,73 +145,72 @@ def create_tally_dataset(file, mcdc, data):
     from mcdc.object_.tally import decode_score_type
 
     # Loop over all tally types
-    for tally_type in ['global', 'cell', 'surface', 'mesh']:
-        # Loop over tallies
-        for i in range(mcdc[f"N_{tally_type}_tally"]):
-            tally = mcdc[f"{tally_type}_tallies"][i]
-            tally_name = tally["name"]
+    for tally in mcdc['tallies']:
+        tally_name = tally["name"]
 
-            # Filter grids
-            file.create_dataset(
-                f"tallies/{tally_name}/grid/mu", data=mcdc_get.tally.mu_all(tally, data)
-            )
-            file.create_dataset(
-                f"tallies/{tally_name}/grid/azi",
-                data=mcdc_get.tally.azi_all(tally, data),
-            )
-            file.create_dataset(
-                f"tallies/{tally_name}/grid/energy",
-                data=mcdc_get.tally.energy_all(tally, data),
-            )
-            file.create_dataset(
-                f"tallies/{tally_name}/grid/time",
-                data=mcdc_get.tally.time_all(tally, data),
-            )
+        # Filter grids
+        file.create_dataset(
+            f"tallies/{tally_name}/grid/mu", data=mcdc_get.tally.mu_all(tally, data)
+        )
+        file.create_dataset(
+            f"tallies/{tally_name}/grid/azi",
+            data=mcdc_get.tally.azi_all(tally, data),
+        )
+        file.create_dataset(
+            f"tallies/{tally_name}/grid/energy",
+            data=mcdc_get.tally.energy_all(tally, data),
+        )
+        file.create_dataset(
+            f"tallies/{tally_name}/grid/time",
+            data=mcdc_get.tally.time_all(tally, data),
+        )
 
-            # Mesh grid (TODO: Make mesh dataset in a separate group)
-            if tally_type == "mesh":
-                mesh_type = tally["mesh_type"]
-                mesh_ID = tally["mesh_ID"]
-                if mesh_type == MESH_UNIFORM:
-                    mesh = mcdc["uniform_meshes"][mesh_ID]
-                    x = np.linspace(mesh["x0"], mesh["x0"] + mesh["dx"], mesh["Nx"] + 1)
-                    y = np.linspace(mesh["y0"], mesh["y0"] + mesh["dy"], mesh["Ny"] + 1)
-                    z = np.linspace(mesh["z0"], mesh["z0"] + mesh["dz"], mesh["Nz"] + 1)
-                elif mesh_type == MESH_STRUCTURED:
-                    mesh = mcdc["structured_meshes"][mesh_ID]
-                    x = mcdc_get.structured_mesh.x_all(mesh, data)
-                    y = mcdc_get.structured_mesh.y_all(mesh, data)
-                    z = mcdc_get.structured_mesh.z_all(mesh, data)
-                file.create_dataset(f"tallies/{tally_name}/grid/x", data=x)
-                file.create_dataset(f"tallies/{tally_name}/grid/y", data=y)
-                file.create_dataset(f"tallies/{tally_name}/grid/z", data=z)
+        # Mesh grid (TODO: Make mesh dataset in a separate group)
+        if tally['child_type'] == TALLY_MESH:
+            mesh_tally = mcdc['mesh_tallies'][tally['child_ID']]
+            mesh_base = mcdc['meshes'][mesh_tally['mesh_ID']]
+            mesh_type = mesh_base['child_type']
+            mesh_ID = mesh_base['child_ID']
+            if mesh_type == MESH_UNIFORM:
+                mesh = mcdc["uniform_meshes"][mesh_ID]
+                x = np.linspace(mesh["x0"], mesh["x0"] + mesh["dx"], mesh["Nx"] + 1)
+                y = np.linspace(mesh["y0"], mesh["y0"] + mesh["dy"], mesh["Ny"] + 1)
+                z = np.linspace(mesh["z0"], mesh["z0"] + mesh["dz"], mesh["Nz"] + 1)
+            elif mesh_type == MESH_STRUCTURED:
+                mesh = mcdc["structured_meshes"][mesh_ID]
+                x = mcdc_get.structured_mesh.x_all(mesh, data)
+                y = mcdc_get.structured_mesh.y_all(mesh, data)
+                z = mcdc_get.structured_mesh.z_all(mesh, data)
+            file.create_dataset(f"tallies/{tally_name}/grid/x", data=x)
+            file.create_dataset(f"tallies/{tally_name}/grid/y", data=y)
+            file.create_dataset(f"tallies/{tally_name}/grid/z", data=z)
 
-            # Get and reshape tally
-            N_bin = tally["bin_length"]
-            start_mean = tally["bin_sum_offset"]
-            start_sdev = tally["bin_sum_square_offset"]
-            mean = data[start_mean : start_mean + N_bin]
-            sdev = data[start_sdev : start_sdev + N_bin]
-            shape = tuple([int(x) for x in mcdc_get.tally.bin_shape_all(tally, data)])
-            mean = mean.reshape(shape)
-            sdev = sdev.reshape(shape)
+        # Get and reshape tally
+        N_bin = tally["bin_length"]
+        start_mean = tally["bin_sum_offset"]
+        start_sdev = tally["bin_sum_square_offset"]
+        mean = data[start_mean : start_mean + N_bin]
+        sdev = data[start_sdev : start_sdev + N_bin]
+        shape = tuple([int(x) for x in mcdc_get.tally.bin_shape_all(tally, data)])
+        mean = mean.reshape(shape)
+        sdev = sdev.reshape(shape)
 
-            # Roll tally so that score is in the front
-            roll_reference = 4
-            if tally_type == "mesh":
-                roll_reference = 7
-            mean = np.rollaxis(mean, roll_reference, 0)
-            sdev = np.rollaxis(sdev, roll_reference, 0)
+        # Roll tally so that score is in the front
+        roll_reference = 4
+        if tally['child_type'] == TALLY_MESH:
+            roll_reference = 7
+        mean = np.rollaxis(mean, roll_reference, 0)
+        sdev = np.rollaxis(sdev, roll_reference, 0)
 
-            # Iterate over scores
-            for i in range(tally["scores_length"]):
-                score_type = mcdc_get.tally.scores(i, tally, data)
-                score_mean = np.squeeze(mean[i])
-                score_sdev = np.squeeze(sdev[i])
-                score_name = decode_score_type(score_type, lower_case=True)
-                group_name = f"tallies/{tally_name}/{score_name}/"
-                file.create_dataset(group_name + "mean", data=score_mean)
-                file.create_dataset(group_name + "sdev", data=score_sdev)
+        # Iterate over scores
+        for i in range(tally["scores_length"]):
+            score_type = mcdc_get.tally.scores(i, tally, data)
+            score_mean = np.squeeze(mean[i])
+            score_sdev = np.squeeze(sdev[i])
+            score_name = decode_score_type(score_type, lower_case=True)
+            group_name = f"tallies/{tally_name}/{score_name}/"
+            file.create_dataset(group_name + "mean", data=score_mean)
+            file.create_dataset(group_name + "sdev", data=score_sdev)
 
 
 def generate_census_based_tally(mcdc, data):

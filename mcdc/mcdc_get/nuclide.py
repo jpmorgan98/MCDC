@@ -62,35 +62,6 @@ def reaction_IDs_chunk(start, length, nuclide, data):
 
 
 @njit
-def reaction_types(index, nuclide, data):
-    offset = nuclide["reaction_types_offset"]
-    return data[offset + index]
-
-
-@njit
-def reaction_types_all(nuclide, data):
-    start = nuclide["reaction_types_offset"]
-    size = nuclide["N_reaction"]
-    end = start + size
-    return data[start:end]
-
-
-@njit
-def reaction_types_last(nuclide, data):
-    start = nuclide["reaction_types_offset"]
-    size = nuclide["N_reaction"]
-    end = start + size
-    return data[end - 1]
-
-
-@njit
-def reaction_types_chunk(start, length, nuclide, data):
-    start += nuclide["reaction_types_offset"]
-    end = start + length
-    return data[start:end]
-
-
-@njit
 def total_xs(index, nuclide, data):
     offset = nuclide["total_xs_offset"]
     return data[offset + index]

@@ -7,18 +7,25 @@ import mcdc.transport.mesh.uniform as uniform
 
 
 @njit
-def get_indices(particle_container, mesh_type, mesh_ID, mcdc, data):
+def get_indices(particle_container, mesh_base, mcdc, data):
+    mesh_type = mesh_base['child_type']
+    mesh_ID = mesh_base['child_ID']
+
     if mesh_type == MESH_UNIFORM:
         mesh = mcdc["uniform_meshes"][mesh_ID]
         return uniform.get_indices(particle_container, mesh)
     elif mesh_type == MESH_STRUCTURED:
         mesh = mcdc["structured_meshes"][mesh_ID]
         return structured.get_indices(particle_container, mesh, data)
+
     return -1, -1, -1
 
 
 @njit
-def get_x(index, mesh_type, mesh_ID, mcdc, data):
+def get_x(index, mesh_base, mcdc, data):
+    mesh_type = mesh_base['child_type']
+    mesh_ID = mesh_base['child_ID']
+
     if mesh_type == MESH_UNIFORM:
         mesh = mcdc["uniform_meshes"][mesh_ID]
         return mesh["x0"] + mesh["dx"] * index
@@ -29,7 +36,10 @@ def get_x(index, mesh_type, mesh_ID, mcdc, data):
 
 
 @njit
-def get_y(index, mesh_type, mesh_ID, mcdc, data):
+def get_y(index, mesh_base, mcdc, data):
+    mesh_type = mesh_base['child_type']
+    mesh_ID = mesh_base['child_ID']
+
     if mesh_type == MESH_UNIFORM:
         mesh = mcdc["uniform_meshes"][mesh_ID]
         return mesh["y0"] + mesh["dy"] * index
@@ -40,7 +50,10 @@ def get_y(index, mesh_type, mesh_ID, mcdc, data):
 
 
 @njit
-def get_z(index, mesh_type, mesh_ID, mcdc, data):
+def get_z(index, mesh_base, mcdc, data):
+    mesh_type = mesh_base['child_type']
+    mesh_ID = mesh_base['child_ID']
+
     if mesh_type == MESH_UNIFORM:
         mesh = mcdc["uniform_meshes"][mesh_ID]
         return mesh["z0"] + mesh["dz"] * index

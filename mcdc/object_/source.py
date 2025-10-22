@@ -75,7 +75,7 @@ class Source(ObjectNonSingleton):
         if name != "":
             self.name = name
         else:
-            self.name = f"{self.label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.ID}"
 
         # ==============================================================================
         # Default attributes

@@ -9,12 +9,14 @@ from mcdc.transport.util import find_bin, linear_interpolation
 
 
 @njit
-def evaluate_data(x, data_type, index, mcdc, data):
+def evaluate_data(x, data_base, mcdc, data):
+    data_type = data_base['child_type']
+    ID = data_base['child_ID']
     if data_type == DATA_TABLE:
-        table = mcdc["table_data"][index]
+        table = mcdc["table_data"][ID]
         return evaluate_table(x, table, data)
     elif data_type == DATA_POLYNOMIAL:
-        polynomial = mcdc["polynomial_data"][index]
+        polynomial = mcdc["polynomial_data"][ID]
         return evaluate_polynomial(x, polynomial, data)
     else:
         return 0.0

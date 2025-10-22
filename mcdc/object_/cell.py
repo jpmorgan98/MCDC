@@ -136,7 +136,7 @@ class Cell(ObjectNonSingleton):
         if name != "":
             self.name = name
         else:
-            self.name = f"{self.label}_{self.numba_ID}"
+            self.name = f"{self.label}_{self.ID}"
 
         # Set region
         if region is None:
@@ -181,13 +181,13 @@ class Cell(ObjectNonSingleton):
         #   (Because polymorphic Ffill object is not supported)
         if isinstance(fill, MaterialBase):
             self.fill_type = FILL_MATERIAL
-            self.fill_ID = fill.numba_ID
+            self.fill_ID = fill.ID
         elif isinstance(fill, Universe):
             self.fill_type = FILL_UNIVERSE
-            self.fill_ID = fill.numba_ID
+            self.fill_ID = fill.ID
         elif isinstance(fill, Lattice):
             self.fill_type = FILL_LATTICE
-            self.fill_ID = fill.numba_ID
+            self.fill_ID = fill.ID
         elif fill == None:
             self.fill_type = FILL_NONE
             self.fill_ID = -1

@@ -1272,12 +1272,12 @@ def move_to_event(P_arr, mcdc, data):
         for i in range(cell["N_tally"]):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
             tally = mcdc["cell_tallies"][tally_ID]
-            tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
+            tally_module.score.tracklength_tally(P_arr, distance, tally, mcdc, data)
 
         # Global tallies
         for i in range(mcdc["N_global_tally"]):
             tally = mcdc["global_tallies"][i]
-            tally_module.score.cell_tally(P_arr, distance, tally, mcdc, data)
+            tally_module.score.tracklength_tally(P_arr, distance, tally, mcdc, data)
 
         # Mesh tallies
         for i in range(mcdc["N_mesh_tally"]):
