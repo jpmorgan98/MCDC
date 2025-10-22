@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from numba import njit
 from pathlib import Path
 
 ####
@@ -23,12 +22,6 @@ from mcdc.object_.particle import Particle, ParticleBank, ParticleData
 from mcdc.print_ import print_error
 from mcdc.util import flatten
 
-base_classes = [
-    getattr(base, x)
-    for x in dir(base)
-    if isinstance(getattr(base, x), type) and issubclass(getattr(base, x), ObjectBase)
-]
-
 type_map = {
     bool: "?",
     float: "f8",
@@ -44,8 +37,14 @@ type_map = {
 bank_names = ["bank_active", "bank_census", "bank_source", "bank_future"]
 
 # ======================================================================================
-# Get MC/DC classes
+# Gather and group the classes
 # ======================================================================================
+
+base_classes = [
+    getattr(base, x)
+    for x in dir(base)
+    if isinstance(getattr(base, x), type) and issubclass(getattr(base, x), ObjectBase)
+]
 
 all_classes = [ParticleData, Particle]
 mcdc_classes = [ParticleData, Particle]
@@ -71,7 +70,7 @@ for file_name in file_names:
             ):
                 mcdc_classes.append(item)
 
-polymorphic_bases = [x for x in all_classes if x.__name__[-4:] == "Base"]
+polymorphic_bases = [x for x in all_classes if x.__name__[-4:] == "Base" and "label" in dir(x)]
 
 # ======================================================================================
 # Numba object creation
@@ -190,6 +189,14 @@ def generate_numba_objects(simulation):
     for class_ in mcdc_classes:
         if issubclass(class_, ObjectNonSingleton):
             structures[class_.label].append(("ID", "i8"))
+        # Set parent and child ID and type if polymorphic
+        if issubclass(class_, ObjectPolymorphic):
+            if class_.__name__[-4:] == "Base":
+                structures[class_.label].append(("child_type", "i8"))
+                structures[class_.label].append(("child_ID", "i8"))
+            else:
+                structures[class_.label].append(("parent_ID", "i8"))
+
 
     # Add particles to particle banks and add particle banks to the simulation
     for name in bank_names:
@@ -478,12 +485,21 @@ def set_structure(label, structures, accessor_targets, annotations):
             print_error(f"Unknown type hint for {label}/{field}: {hint}")
 
 
-def set_object(object_, annotations, structures, records, data):
-    annotation = annotations[object_.label]
-    structure = structures[object_.label]
+def set_object(object_, annotations, structures, records, data, class_=None):
+    if class_ == None:
+        class_ = object_.__class__
+    
+    # Set the parent first if polymorphics
+    if isinstance(object_, ObjectPolymorphic) and class_ not in polymorphic_bases:
+        for parent_class in polymorphic_bases:
+            if issubclass(class_, parent_class):
+                set_object(object_, annotations, structures, records, data, parent_class)
+
+    annotation = annotations[class_.label]
+    structure = structures[class_.label]
     record = {}
 
-    if object_.label == "simulation":
+    if class_.label == "simulation":
         record = records["simulation"]
 
     # Straightforwardly set up attributes
@@ -503,6 +519,10 @@ def set_object(object_, annotations, structures, records, data):
     for attribute_name in attribute_names:
         # Skip if set already
         if attribute_name in record.keys():
+            continue
+
+        # Skip if not in annotation
+        if attribute_name not in annotation.keys():
             continue
 
         attribute = getattr(object_, attribute_name)
@@ -560,23 +580,33 @@ def set_object(object_, annotations, structures, records, data):
                 data.extend([x.numba_ID for x in attribute_flatten])
 
     # Complete for simulation object
-    if object_.label == "simulation":
+    if class_.label == "simulation":
         return
 
     # Set ID of non-singleton
     if isinstance(object_, ObjectNonSingleton):
         record["ID"] = object_.numba_ID
 
+        # Set parent and child ID and type if polymorphic
+        if isinstance(object_, ObjectPolymorphic):
+            # Parent
+            if class_ in polymorphic_bases:
+                record["child_ID"] = object_.type
+                record["child_type"] = object_.numba_ID
+            # Child
+            else:
+                record["parent_ID"] = object_.ID
+
     # Check structure-record compatibility
     missing = set([x[0] for x in structure]) - set(record.keys())
     if len(missing) > 0:
-        print_error(f"Missing structure keys in record for {object_.label}: {missing}")
+        print_error(f"Missing structure keys in record for {class_.label}: {missing}")
 
     # Register the record
     if isinstance(object_, ObjectSingleton):
-        records[object_.label] = record
+        records[class_.label] = record
     elif isinstance(object_, ObjectNonSingleton):
-        records[object_.label].append(record)
+        records[class_.label].append(record)
 
 
 # ======================================================================================
@@ -1058,14 +1088,17 @@ def make_size_rpn(cells):
 # Make literals
 # ======================================================================================
 
+
 def make_literals(simulation):
     # Sizes
-    rpn_evaluation_buffer_size = int(max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells]))
+    rpn_evaluation_buffer_size = int(
+        max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells])
+    )
 
     path = f"{Path(mcdc.__file__).parent}"
-    with open(f"{path}/transport/literals.py", 'w') as f:
+    with open(f"{path}/transport/literals.py", "w") as f:
         text = "# The following is automatically generated by code_factory.py\n\n"
 
-        text+= f"rpn_evaluation_buffer_size = {rpn_evaluation_buffer_size}\n" 
+        text += f"rpn_evaluation_buffer_size = {rpn_evaluation_buffer_size}\n"
 
         f.write(text)
