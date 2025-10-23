@@ -219,18 +219,14 @@ def fission(particle_container, prog, data):
     mcdc = adapt.mcdc_global(prog)
     settings = mcdc["settings"]
 
-    # Particle attributes
+    # Particle properties
     particle = particle_container[0]
     g = particle["g"]
 
-    # Material attributes
+    # Material properties
     material = mcdc["multigroup_materials"][particle["material_ID"]]
     G = material["G"]
     J = material["J"]
-    nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
-    nu_p = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
-    if J > 0:
-        nu_d = mcdc_get.multigroup_material.mgxs_nu_d_vector(g, material, data)
 
     # Kill the current particle
     particle["alive"] = False
@@ -242,6 +238,12 @@ def fission(particle_container, prog, data):
         weight_target = mcdc["weighted_emission"]["weight_target"]
         weight_production = particle["w"] / weight_target
         weight_product = weight_target
+
+    # Fission yields
+    nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
+    nu_p = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
+    if J > 0:
+        nu_d = mcdc_get.multigroup_material.mgxs_nu_d_vector(g, material, data)
 
     # Get number of secondaries
     N = int(

@@ -219,12 +219,7 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     # Allocate object containers
-    objects = {}
-    for mcdc_class in mcdc_classes:
-        if issubclass(mcdc_class, ObjectNonSingleton):
-            objects[mcdc_class] = []
-        else:
-            objects[mcdc_class] = None
+    objects = []
 
     # Gather the objects from the simulation
     attribute_names = [
@@ -242,21 +237,15 @@ def generate_numba_objects(simulation):
     for attribute_name in attribute_names:
         attribute = getattr(simulation, attribute_name)
         if type(attribute) in mcdc_classes:
-            objects[type(attribute)] = attribute
+            objects.append(attribute)
         if type(attribute) == list:
             for item in attribute:
                 if type(item) in mcdc_classes:
-                    objects[type(item)].append(item)
+                    objects.append(item)
 
     # Set the objects
-    for class_ in objects.keys():
-        if issubclass(class_, ObjectNonSingleton):
-            for object_ in objects[class_]:
-                set_object(object_, annotations, structures, records, data)
-        else:
-            object_ = objects[class_]
-            if object_ is not None:
-                set_object(object_, annotations, structures, records, data)
+    for object_ in objects:
+        set_object(object_, annotations, structures, records, data)
 
     # ==================================================================================
     # Finalize the simulation object structure and set record

@@ -4,7 +4,7 @@ import mcdc
 
 
 # Set the XS library directory
-os.environ["MCDC_XSLIB"] = os.path.dirname(os.getcwd()) + "/dummy_data"
+os.environ["MCDC_XSLIB"] = os.path.dirname(os.getcwd()) + "/data"
 
 # =============================================================================
 # Set model
@@ -14,17 +14,17 @@ os.environ["MCDC_XSLIB"] = os.path.dirname(os.getcwd()) + "/dummy_data"
 
 fuel = mcdc.Material(
     nuclide_composition={
-        "dummy_nuclide_4": 0.0005581658948833916,
-        "dummy_nuclide_5": 0.022404594715383263,
-        "dummy_nuclide_3": 0.045831301393656466,
+        "U235": 0.0005581658948833916,
+        "U238": 0.022404594715383263,
+        "O16": 0.045831301393656466,
     }
 )
 
 water = mcdc.Material(
     nuclide_composition={
-        "dummy_nuclide_2": 0.0001357003217727274,
-        "dummy_nuclide_1": 0.0684556951587359,
-        "dummy_nuclide_3": 0.032785655643293984,
+        "B10": 0.0001357003217727274 * 100.0,
+        "H1": 0.0684556951587359,
+        "O16": 0.032785655643293984,
     }
 )
 

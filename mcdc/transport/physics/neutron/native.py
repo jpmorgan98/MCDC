@@ -97,37 +97,47 @@ def reaction_micro_xs(E, reaction, nuclide, data):
 @njit
 def neutron_production_xs(reaction_type, particle_container, mcdc, data):
     particle = particle_container[0]
-    material = mcdc["native_materials"][particle["material_ID"]]
+    material_base = mcdc["materials"][particle["material_ID"]]
+    material = mcdc['native_materials'][material_base['child_ID']]
 
-    E = particle["E"]
     if reaction_type == REACTION_TOTAL:
         elastic_type = REACTION_NEUTRON_ELASTIC_SCATTERING
         fission_type = REACTION_NEUTRON_FISSION
         elastic_xs = neutron_production_xs(elastic_type, particle_container, mcdc, data)
         fission_xs = neutron_production_xs(fission_type, particle_container, mcdc, data)
         return elastic_xs + fission_xs
+
     elif reaction_type == REACTION_NEUTRON_CAPTURE:
         return 0.0
+
     elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
         return macro_xs(reaction_type, particle_container, mcdc, data)
+
     elif reaction_type == REACTION_NEUTRON_FISSION:
-        if not material["fissionable"]:
+        if not material_base["fissionable"]:
             return 0.0
+
         total = 0.0
         for i in range(material["N_nuclide"]):
             nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
             nuclide = mcdc["nuclides"][nuclide_ID]
             if not nuclide["fissionable"]:
                 continue
+
+            E = particle["E"]
             nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-            xs = micro_xs(E, reaction_type, nuclide, mcdc, data)
-            reaction_idx = int(mcdc_get.nuclide.reaction_IDs(i, nuclide, data))
-            reaction = mcdc["neutron_fission_reactions"][reaction_idx]
-            nu = fission_yield_prompt(E, reaction, mcdc, data)
-            for j in range(reaction["N_delayed"]):
-                nu += fission_yield_delayed(E, j, reaction, mcdc, data)
-            total += nuclide_density * nu * xs
+            xs = micro_xs(reaction_type, E, nuclide, mcdc, data)
+
+            for j in range(nuclide["N_reaction"]):
+                reaction_ID = int(mcdc_get.nuclide.reaction_IDs(j, nuclide, data))
+                reaction_base = mcdc['reactions'][reaction_ID]
+                reaction = mcdc["neutron_fission_reactions"][reaction_base['child_ID']]
+                nu = fission_yield_prompt(E, reaction, mcdc, data)
+                for group in range(reaction["N_delayed"]):
+                    nu += fission_yield_delayed(E, group, reaction, mcdc, data)
+                total += nuclide_density * nu * xs
         return total
+
     else:
         return -1.0
 
@@ -196,6 +206,7 @@ def collision(particle_container, prog, data):
 
         # Execute the sampled reaction
         execute_reaction(reaction, particle_container, nuclide, prog, data)
+        
         return
 
 
@@ -356,15 +367,14 @@ def sample_nucleus_velocity(A, particle_container, mcdc, data):
 @njit
 def fission(reaction_base, particle_container, nuclide, prog, data):
     mcdc = adapt.mcdc_global(prog)
+    settings = mcdc["settings"]
+
     reaction_ID = reaction_base['child_ID']
     reaction = mcdc['neutron_fission_reactions'][reaction_ID]
 
-    # Particle attributes
+    # Particle properties
     particle = particle_container[0]
     E = particle["E"]
-
-    # Nuclide properties
-    N_delayed = reaction["N_delayed"]
 
     # Kill the current particle
     particle["alive"] = False
@@ -378,6 +388,7 @@ def fission(reaction_base, particle_container, nuclide, prog, data):
         weight_product = weight_target
 
     # Fission yields
+    N_delayed = reaction["N_delayed"]
     nu_p = fission_yield_prompt(E, reaction, mcdc, data)
     nu_d = np.zeros(N_delayed)
     nu_d_total = 0.0
@@ -386,7 +397,7 @@ def fission(reaction_base, particle_container, nuclide, prog, data):
         nu_d_total += nu_d[j]
     nu = nu_p + nu_d_total
 
-    # Number of fission neutrons
+    # Get number of secondaries
     N = int(
         math.floor(weight_production * nu / mcdc["k_eff"] + rng.lcg(particle_container))
     )
@@ -442,32 +453,31 @@ def fission(reaction_base, particle_container, nuclide, prog, data):
             particle_new["t"] -= math.log(xi) / decay
 
         # Eigenvalue mode: bank right away
-        if mcdc["settings"]["eigenvalue_mode"]:
+        if settings["eigenvalue_mode"]:
             adapt.add_census(particle_container_new, prog)
             continue
         # Below is only relevant for fixed-source problem
 
         # Skip if it's beyond time boundary
-        if particle_new["t"] > mcdc["settings"]["time_boundary"]:
+        if particle_new["t"] > settings["time_boundary"]:
             continue
 
-        # Check if it is beyond current or next census times
-        hit_census = False
-        hit_next_census = False
+        # Check if it hits current or next census times
+        hit_current_census = False
+        hit_future_census = False
         idx_census = mcdc["idx_census"]
-        if idx_census < mcdc["settings"]["N_census"] - 1:
-            settings = mcdc["settings"]
-            if particle["t"] > mcdc_get.settings.census_time(
-                idx_census + 1, settings, data
-            ):
-                hit_census = True
-                hit_next_census = True
-            elif particle_new["t"] > mcdc_get.settings.census_time(
+        if settings["N_census"] > 1:
+            if particle_new["t"] > mcdc_get.settings.census_time(
                 idx_census, settings, data
             ):
-                hit_census = True
+                hit_current_census = True
+                if particle_new["t"] > mcdc_get.settings.census_time(
+                    idx_census + 1, settings, data
+                ):
+                    hit_future_census = True
 
-        if not hit_census:
+        # Not hitting census --> add to active bank
+        if not hit_current_census:
             # Keep it if it is the last particle
             if n == N - 1:
                 particle["alive"] = True
@@ -480,12 +490,16 @@ def fission(reaction_base, particle_container, nuclide, prog, data):
                 particle["w"] = particle_new["w"]
             else:
                 adapt.add_active(particle_container_new, prog)
-        elif not hit_next_census:
-            # Particle will participate after the current census
-            adapt.add_census(particle_container_new, prog)
-        else:
+
+        # Hit future census --> add to future bank
+        elif hit_future_census:
             # Particle will participate in the future
             adapt.add_future(particle_container_new, prog)
+
+        # Hit current census --> add to census bank
+        else:
+            # Particle will participate after the current census is completed
+            adapt.add_census(particle_container_new, prog)
 
 
 @njit
