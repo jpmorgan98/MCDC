@@ -210,6 +210,7 @@ def collision(particle_container, prog, data):
         return
 
 
+@njit
 def execute_reaction(reaction_base, particle_container, nuclide, prog, data):
     particle = particle_container[0]
     reaction_type = reaction_base['child_type']

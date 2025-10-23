@@ -185,7 +185,7 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
 @njit
 def sample_maxwellian(x, rng_state, maxwellian, mcdc, data):
     # Get nuclear temperature
-    table = mcdc["data_tables"][maxwellian["T_index"]]
+    table = mcdc["table_data"][maxwellian["T_ID"]]
     T = evaluate_table(x, table, data)
     U = maxwellian["U"]
 
