@@ -79,5 +79,5 @@ class Nuclide(ObjectNonSingleton):
         text += f"  - XS energy grid {print_1d_array(self.xs_energy_grid)} eV\n"
         text += f"  - Reactions\n"
         for reaction in self.reactions:
-            text += f"    - {decode_type(reaction.type)}\n"
+            text += f"    - {decode_type(reaction.type)} [ID: {reaction.ID}]\n"
         return text
