@@ -49,7 +49,11 @@ def wrapping_add_python(a, b):
 
 @njit
 def split_seed(key, seed):
-    """murmur_hash64a"""
+    """
+    murmur_hash64a
+
+    If called from non-jitted function, may need to recast the argument key with numba.uint64
+    """
     multiplier = uint64(0xC6A4A7935BD1E995)
     length = uint64(8)
     rotator = uint64(47)

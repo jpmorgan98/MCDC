@@ -1,8 +1,7 @@
 import numpy as np
 
 from mpi4py import MPI
-from numba import njit, objmode
-from numba.misc.special import literally
+from numba import njit, objmode, uint64
 
 ####
 
@@ -70,7 +69,6 @@ def teardown_gpu(mcdc):
 # ======================================================================================
 
 
-@njit
 def fixed_source_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program by intentionally leaking their memory
     # adapt.leak(mcdc_arr)
@@ -86,7 +84,7 @@ def fixed_source_simulation(mcdc_arr, data):
     # Loop over batches
     for idx_batch in range(N_batch):
         mcdc["idx_batch"] = idx_batch
-        seed_batch = rng.split_seed(idx_batch, settings["rng_seed"])
+        seed_batch = rng.split_seed(uint64(idx_batch), settings["rng_seed"])
 
         # Distribute work
         kernel.distribute_work(N_particle, mcdc)
@@ -99,7 +97,7 @@ def fixed_source_simulation(mcdc_arr, data):
         # Loop over time censuses
         for idx_census in range(N_census):
             mcdc["idx_census"] = idx_census
-            seed_census = rng.split_seed(seed_batch, rng.SEED_SPLIT_CENSUS)
+            seed_census = rng.split_seed(uint64(seed_batch), rng.SEED_SPLIT_CENSUS)
 
             # Reset tally time filters if census-based tally is used
             if use_census_based_tally:
@@ -110,8 +108,8 @@ def fixed_source_simulation(mcdc_arr, data):
                 kernel.check_future_bank(mcdc, data)
 
             # Loop over source particles
-            seed_source = rng.split_seed(seed_census, rng.SEED_SPLIT_SOURCE)
-            loop_source(seed_source, mcdc, data)
+            seed_source = rng.split_seed(uint64(seed_census), rng.SEED_SPLIT_SOURCE)
+            loop_source(uint64(seed_source), mcdc, data)
 
             # Manage particle banks: population control and work rebalance
             kernel.manage_particle_banks(mcdc)
@@ -156,7 +154,6 @@ def fixed_source_simulation(mcdc_arr, data):
 # =========================================================================
 
 
-@njit
 def eigenvalue_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
@@ -175,11 +172,10 @@ def eigenvalue_simulation(mcdc_arr, data):
     # Loop over power iteration cycles
     for idx_cycle in range(N_cycle):
         mcdc["idx_cycle"] = idx_cycle
-        seed_cycle = rng.split_seed(idx_cycle, settings["rng_seed"])
+        seed_cycle = rng.split_seed(uint64(idx_cycle), settings["rng_seed"])
 
         # Loop over source particles
-        seed_source = rng.split_seed(seed_cycle, rng.SEED_SPLIT_SOURCE)
-        loop_source(seed_source, mcdc, data)
+        loop_source(uint64(seed_cycle), mcdc, data)
 
         # Tally "history" closeout
         tally_module.closeout.eigenvalue_cycle(mcdc, data)
