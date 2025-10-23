@@ -60,7 +60,7 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
 @njit
 def tracklength_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
-    tally_base = mcdc['tallies'][tally['parent_ID']]
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
 
     # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
@@ -122,7 +122,7 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 @njit
 def surface_tally(particle_container, surface, tally, mcdc, data):
     particle = particle_container[0]
-    tally_base = mcdc['tallies'][tally['parent_ID']]
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
 
     # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
@@ -153,7 +153,7 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
 @njit
 def mesh_tally(particle_container, distance, tally, mcdc, data):
     particle = particle_container[0]
-    tally_base = mcdc['tallies'][tally['parent_ID']]
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
 
     # Get filter indices
     MG_mode = mcdc["settings"]["multigroup_mode"]
@@ -166,7 +166,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         return
 
     # Get the mesh
-    mesh = mcdc['meshes'][tally['mesh_ID']]
+    mesh = mcdc["meshes"][tally["mesh_ID"]]
 
     # Particle/track properties
     x = particle["x"]

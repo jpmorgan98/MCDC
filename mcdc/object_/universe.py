@@ -123,7 +123,6 @@ class Lattice(ObjectNonSingleton):
             self.dz = z[1]
             self.Nz = z[2]
 
-
         # Set universe IDs
         get_ID = np.vectorize(lambda obj: obj.ID)
         universe_IDs = get_ID(universes)

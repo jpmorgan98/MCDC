@@ -10,8 +10,8 @@ from mcdc.transport.util import find_bin, linear_interpolation
 
 @njit
 def evaluate_data(x, data_base, mcdc, data):
-    data_type = data_base['child_type']
-    ID = data_base['child_ID']
+    data_type = data_base["child_type"]
+    ID = data_base["child_ID"]
     if data_type == DATA_TABLE:
         table = mcdc["table_data"][ID]
         return evaluate_table(x, table, data)

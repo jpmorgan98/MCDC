@@ -105,7 +105,7 @@ def set_census_based_time_grid(mcdc, data):
     dt = (t_end - t_start) / tally_frequency
 
     # Set the time grid to all tallies
-    for tally in mcdc['tallies']:
+    for tally in mcdc["tallies"]:
         mcdc_set.tally.time(0, tally, data, t_start)
         for j in range(tally_frequency):
             t_next = mcdc_get.tally.time(j, tally, data) + dt

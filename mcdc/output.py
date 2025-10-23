@@ -145,7 +145,7 @@ def create_tally_dataset(file, mcdc, data):
     from mcdc.object_.tally import decode_score_type
 
     # Loop over all tally types
-    for tally in mcdc['tallies']:
+    for tally in mcdc["tallies"]:
         tally_name = tally["name"]
 
         # Filter grids
@@ -166,11 +166,11 @@ def create_tally_dataset(file, mcdc, data):
         )
 
         # Mesh grid (TODO: Make mesh dataset in a separate group)
-        if tally['child_type'] == TALLY_MESH:
-            mesh_tally = mcdc['mesh_tallies'][tally['child_ID']]
-            mesh_base = mcdc['meshes'][mesh_tally['mesh_ID']]
-            mesh_type = mesh_base['child_type']
-            mesh_ID = mesh_base['child_ID']
+        if tally["child_type"] == TALLY_MESH:
+            mesh_tally = mcdc["mesh_tallies"][tally["child_ID"]]
+            mesh_base = mcdc["meshes"][mesh_tally["mesh_ID"]]
+            mesh_type = mesh_base["child_type"]
+            mesh_ID = mesh_base["child_ID"]
             if mesh_type == MESH_UNIFORM:
                 mesh = mcdc["uniform_meshes"][mesh_ID]
                 x = np.linspace(mesh["x0"], mesh["x0"] + mesh["dx"], mesh["Nx"] + 1)
@@ -197,7 +197,7 @@ def create_tally_dataset(file, mcdc, data):
 
         # Roll tally so that score is in the front
         roll_reference = 4
-        if tally['child_type'] == TALLY_MESH:
+        if tally["child_type"] == TALLY_MESH:
             roll_reference = 7
         mean = np.rollaxis(mean, roll_reference, 0)
         sdev = np.rollaxis(sdev, roll_reference, 0)

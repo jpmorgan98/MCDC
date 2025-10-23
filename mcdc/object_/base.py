@@ -50,7 +50,7 @@ class ObjectPolymorphic(ObjectNonSingleton):
         self.child_ID = -1
         self.type = type_
         super().__init__(register)
-        
+
         self.non_numba += ["child_ID"]
 
 

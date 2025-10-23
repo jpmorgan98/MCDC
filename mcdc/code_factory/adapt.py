@@ -112,7 +112,7 @@ def leak_overload(arg):
 # =============================================================================
 
 
-'''
+"""
 def local_array(shape, dtype):
     return np.zeros(shape, dtype=dtype)
 
@@ -264,7 +264,7 @@ def builtin_local_array(context, builder, sig, args):
         raise numba.core.errors.UnsupportedError(
             f"Unsupported target context {context}."
         )
-'''
+"""
 
 # =============================================================================
 # Decorators

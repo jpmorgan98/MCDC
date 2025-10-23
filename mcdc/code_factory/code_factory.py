@@ -70,7 +70,9 @@ for file_name in file_names:
             ):
                 mcdc_classes.append(item)
 
-polymorphic_bases = [x for x in all_classes if x.__name__[-4:] == "Base" and "label" in dir(x)]
+polymorphic_bases = [
+    x for x in all_classes if x.__name__[-4:] == "Base" and "label" in dir(x)
+]
 
 # ======================================================================================
 # Numba object creation
@@ -147,7 +149,7 @@ def generate_numba_objects(simulation):
                 and type(next(iter(new_annotations.values()))) == str
             ):
                 new_annotations = parse_annotations_dict(new_annotations)
-           
+
             annotations[mcdc_class.label].update(new_annotations)
 
     # Particle banks
@@ -200,7 +202,6 @@ def generate_numba_objects(simulation):
                 structures[class_.label].append(("child_ID", "i8"))
             else:
                 structures[class_.label].append(("parent_ID", "i8"))
-
 
     # Add particles to particle banks and add particle banks to the simulation
     for name in bank_names:
@@ -467,12 +468,14 @@ def set_structure(label, structures, accessor_targets, annotations):
 def set_object(object_, annotations, structures, records, data, class_=None):
     if class_ == None:
         class_ = object_.__class__
-    
+
     # Set the parent first if polymorphics
     if isinstance(object_, ObjectPolymorphic) and class_ not in polymorphic_bases:
         for parent_class in polymorphic_bases:
             if issubclass(class_, parent_class):
-                set_object(object_, annotations, structures, records, data, parent_class)
+                set_object(
+                    object_, annotations, structures, records, data, parent_class
+                )
 
     annotation = annotations[class_.label]
     structure = structures[class_.label]
@@ -520,7 +523,10 @@ def set_object(object_, annotations, structures, records, data, class_=None):
 
         # Non-singleton object
         elif isinstance(attribute, ObjectNonSingleton):
-            if not isinstance(attribute, ObjectPolymorphic) or annotation[attribute_name] in polymorphic_bases:
+            if (
+                not isinstance(attribute, ObjectPolymorphic)
+                or annotation[attribute_name] in polymorphic_bases
+            ):
                 record[f"{attribute_name}_ID"] = attribute.ID
             else:
                 record[f"{attribute_name}_ID"] = attribute.child_ID
@@ -541,7 +547,10 @@ def set_object(object_, annotations, structures, records, data, class_=None):
             record[f"N_{singular_name}"] = len(attribute_flatten)
             record[f"{singular_name}_IDs_offset"] = len(data)
 
-            if not issubclass(inner_type, ObjectPolymorphic) or inner_type in polymorphic_bases:
+            if (
+                not issubclass(inner_type, ObjectPolymorphic)
+                or inner_type in polymorphic_bases
+            ):
                 data.extend([x.ID for x in attribute_flatten])
             else:
                 data.extend([x.child_ID for x in attribute_flatten])

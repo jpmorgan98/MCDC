@@ -204,6 +204,7 @@ def preparation():
     import importlib
     import mcdc.mcdc_get as mcdc_get
     import mcdc.mcdc_set as mcdc_set
+
     importlib.reload(mcdc_get)
     importlib.reload(mcdc_set)
 

@@ -28,7 +28,7 @@ from mcdc.print_ import print_structure
 
 @njit
 def reduce(mcdc, data):
-    for tally in mcdc['tallies']:
+    for tally in mcdc["tallies"]:
         _reduce(tally, mcdc, data)
 
 
@@ -57,7 +57,7 @@ def _reduce(tally, mcdc, data):
 
 @njit
 def accumulate(mcdc, data):
-    for tally in mcdc['tallies']:
+    for tally in mcdc["tallies"]:
         _accumulate(tally, data)
 
 
@@ -85,7 +85,7 @@ def _accumulate(tally, data):
 
 @njit
 def finalize(mcdc, data):
-    for tally in mcdc['tallies']:
+    for tally in mcdc["tallies"]:
         _finalize(tally, mcdc, data)
 
 

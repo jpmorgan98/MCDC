@@ -127,7 +127,7 @@ def inspect_geometry(particle_container, mcdc, data):
                         event += EVENT_LATTICE_CROSSING
 
                 # Get universe
-                ix, iy, iz= mesh.uniform.get_indices(particle_container, lattice)
+                ix, iy, iz = mesh.uniform.get_indices(particle_container, lattice)
                 if ix == -1 or iy == -1 or iz == -1:
                     event = EVENT_LOST
                     continue
@@ -231,7 +231,7 @@ def locate_particle(particle_container, mcdc, data):
                 lattice = mcdc["lattices"][cell["fill_ID"]]
 
                 # Get universe
-                ix, iy, iz= mesh.uniform.get_indices(particle_container, lattice)
+                ix, iy, iz = mesh.uniform.get_indices(particle_container, lattice)
                 if ix == -1 or iy == -1 or iz == -1:
                     particle_is_lost = True
                     continue
