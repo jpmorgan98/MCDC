@@ -196,7 +196,8 @@ def preparation():
 
     import mcdc.code_factory.code_factory as code_factory
 
-    code_factory.make_literals(simulation)
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        code_factory.make_literals(simulation)
     mcdc_arr, data = code_factory.generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
 
