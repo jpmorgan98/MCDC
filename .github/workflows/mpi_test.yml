@@ -1,5 +1,11 @@
-steps:
-  - uses: actions/checkout@v4
-  - uses: mpi4py/setup-mpi@v1
-  - run: mpicc helloworld.c -o helloworld
-  - run: mpiexec -n 2 ./helloworld
+name: MPI test
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mpi4py/setup-mpi@v1
+      - run: mpicc helloworld.c -o helloworld
+      - run: mpiexec -n 2 ./helloworld
