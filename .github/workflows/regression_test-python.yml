@@ -1,0 +1,40 @@
+name: Regression Test - Python
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+
+      - name: Install MPI (MPICH)
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: mpich
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # If mpi4py is a dep of your package, this is enough:
+          pip install -e .
+          pip list
+          
+      - name: Sanity check mpi4py
+        run: |
+          python - << 'PY'
+          import mpi4py, sys
+          from mpi4py import MPI
+          print("mpi4py:", mpi4py.__version__)
+          print(MPI.Get_library_version().strip())
+          PY
+
+      - name: Regression Test - Python
+        run: |
+          cd test/regression
+          python run.py
