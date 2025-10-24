@@ -60,7 +60,7 @@ mcdc.TallyGlobal(
 )
 
 # Settings
-mcdc.settings.N_particle = 20
+mcdc.settings.N_particle = 100
 mcdc.settings.N_batch = 2
 mcdc.settings.set_time_census(np.logspace(-5, 1, 6))
 mcdc.settings.active_bank_buffer = 1000

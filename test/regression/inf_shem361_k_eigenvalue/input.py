@@ -52,7 +52,7 @@ mcdc.Source(
 mcdc.TallyGlobal(scores=["flux"], energy="all_groups")
 
 # Swttings
-mcdc.settings.N_particle = 100
+mcdc.settings.N_particle = 200
 mcdc.settings.source_bank_buffer_ratio = 2.0
 mcdc.settings.set_eigenmode(N_inactive=1, N_active=2)
 
