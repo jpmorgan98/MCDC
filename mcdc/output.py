@@ -272,7 +272,7 @@ def recombine_tallies():
         offset = i * frequency + 1
         time_grid[offset : offset + frequency] = new_grid[1:]
     for tally in simulation.tallies:
-        name = f"tallies/{tally.name}/grid/t"
+        name = f"tallies/{tally.name}/grid/time"
         replace_dataset(main_file, name, time_grid)
 
     # Combine the tallies
