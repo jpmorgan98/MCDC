@@ -173,9 +173,9 @@ def create_tally_dataset(file, mcdc, data):
             mesh_ID = mesh_base["child_ID"]
             if mesh_type == MESH_UNIFORM:
                 mesh = mcdc["uniform_meshes"][mesh_ID]
-                x = np.linspace(mesh["x0"], mesh["x0"] + mesh["dx"], mesh["Nx"] + 1)
-                y = np.linspace(mesh["y0"], mesh["y0"] + mesh["dy"], mesh["Ny"] + 1)
-                z = np.linspace(mesh["z0"], mesh["z0"] + mesh["dz"], mesh["Nz"] + 1)
+                x = np.linspace(mesh["x0"], mesh["x0"] + mesh["dx"] * mesh["Nx"], mesh["Nx"] + 1)
+                y = np.linspace(mesh["y0"], mesh["y0"] + mesh["dy"] * mesh["Ny"], mesh["Ny"] + 1)
+                z = np.linspace(mesh["z0"], mesh["z0"] + mesh["dz"] * mesh["Nz"], mesh["Nz"] + 1)
             elif mesh_type == MESH_STRUCTURED:
                 mesh = mcdc["structured_meshes"][mesh_ID]
                 x = mcdc_get.structured_mesh.x_all(mesh, data)
