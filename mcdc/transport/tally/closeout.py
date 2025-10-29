@@ -135,6 +135,28 @@ def _finalize(tally, mcdc, data):
 
 
 # ======================================================================================
+# Reset sum bins
+# ======================================================================================
+
+
+@njit
+def reset_sum_bins(mcdc, data):
+    for tally in mcdc["tallies"]:
+        _reset_sum_bins(tally, data)
+
+
+@njit
+def _reset_sum_bins(tally, data):
+    N_bin = tally["bin_length"]
+    offset_sum = tally["bin_sum_offset"]
+    offset_sum_square = tally["bin_sum_square_offset"]
+
+    for i in range(N_bin):
+        data[offset_sum + i] = 0.0
+        data[offset_sum_square + i] = 0.0
+
+
+# ======================================================================================
 # Eigenvalue
 # ======================================================================================
 

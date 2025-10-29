@@ -121,6 +121,7 @@ def fixed_source_simulation(mcdc_arr, data):
                 if mcdc["mpi_master"]:
                     with objmode():
                         output_module.generate_census_based_tally(mcdc, data)
+                tally_module.closeout.reset_sum_bins(mcdc, data)
 
             # Terminate census loop if all banks are empty
             if (
