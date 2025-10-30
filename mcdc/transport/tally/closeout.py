@@ -68,13 +68,21 @@ def _accumulate(tally, data):
     offset_sum = tally["bin_sum_offset"]
     offset_sum_square = tally["bin_sum_square_offset"]
 
+    # Note: Three separate loops are employed to avoid cache miss due to potentially
+    #       large N_bin
+
+    # Sum of score
     for i in range(N_bin):
-        # Accumulate score and square of score into sum and sum_sq
         score = data[offset_bin + i]
         data[offset_sum + i] += score
-        data[offset_sum_square + i] += score * score
 
-        # Reset score bin
+    # Sum of score squared
+    for i in range(N_bin):
+        score = data[offset_bin + i]
+        data[offset_sum_square + i] += score * score
+    
+    # Reset score bin
+    for i in range(N_bin):
         data[offset_bin + i] = 0.0
 
 
