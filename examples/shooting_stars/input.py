@@ -90,7 +90,7 @@ mesh = mcdc.MeshStructured(
 mcdc.TallyMesh(mesh=mesh, scores=["fission"])
 
 # Settings
-mcdc.settings.N_particle = 100
+mcdc.settings.N_particle = 1000
 mcdc.settings.N_batch = 2
 mcdc.settings.active_bank_buffer = 1000
 

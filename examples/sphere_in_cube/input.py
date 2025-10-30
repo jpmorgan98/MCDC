@@ -46,7 +46,7 @@ mcdc.Source(
 mcdc.TallyCell(name="Spherical fission detector", cell=sphere_cell, scores=["fission"])
 
 # Settings
-mcdc.settings.N_particle = 100
+mcdc.settings.N_particle = 1000
 mcdc.settings.N_batch = 2
 
 # Techniques

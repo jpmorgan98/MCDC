@@ -1,16 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 import h5py
 import matplotlib.animation as animation
-import sys
 
 # =============================================================================
 # Plot results
 # =============================================================================
 
 # Results
-with h5py.File(sys.argv[1], "r") as f:
+with h5py.File("output.h5", "r") as f:
     x = f["tallies/mesh_tally_0/grid/x"][:]
     x_mid = 0.5 * (x[:-1] + x[1:])
     y = f["tallies/mesh_tally_0/grid/y"][:]
@@ -58,10 +56,4 @@ def animate(i):
 
 K = len(t) - 1
 anim = animation.FuncAnimation(fig, animate, frames=K)
-anim.save(
-    "output.gif",
-    fps=K / 10,
-    writer="imagemagick",
-    savefig_kwargs={"bbox_inches": "tight", "pad_inches": 0},
-    dpi=300,
-)
+plt.show()

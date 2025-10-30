@@ -4,7 +4,7 @@ import numpy as np
 
 
 # Load result
-with h5py.File('output.h5', "r") as f:
+with h5py.File("output.h5", "r") as f:
     x = f["tallies/mesh_tally_0/grid/x"][:]
     z = f["tallies/mesh_tally_0/grid/z"][:]
     dx = [x[1:] - x[:-1]][-1]
@@ -20,15 +20,15 @@ with h5py.File('output.h5', "r") as f:
 X, Y = np.meshgrid(z_mid, x_mid)
 Z = phi
 plt.pcolormesh(X, Y, Z)
-plt.colorbar()
-plt.title('Mean')
 plt.gca().set_aspect("equal")
+plt.colorbar()
+plt.title("Mean")
 plt.show()
 
 X, Y = np.meshgrid(z_mid, x_mid)
 Z = phi_sd
 plt.pcolormesh(X, Y, Z)
-plt.colorbar()
-plt.title('Standard deviation')
 plt.gca().set_aspect("equal")
+plt.colorbar()
+plt.title("Standard Deviation")
 plt.show()
