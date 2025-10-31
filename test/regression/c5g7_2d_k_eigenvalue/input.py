@@ -25,6 +25,7 @@ def set_mat(mat):
         decay_rate=mat["decay"][:],
     )
 
+
 # Set the material
 mat_uo2 = set_mat(lib["uo2"])  # Fuel: UO2
 mat_mox43 = set_mat(lib["mox43"])  # Fuel: MOX 4.3%

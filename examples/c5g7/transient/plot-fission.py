@@ -85,7 +85,5 @@ for i in range(N):
     ax4.set_title("Fission-YZ")
 
     plt.suptitle("MC/DC result - Fission Rate")
-    plt.savefig(
-        f"fission/figure_{i:03}.png", bbox_inches="tight", pad_inches=0
-    )
+    plt.savefig(f"fission/figure_{i:03}.png", bbox_inches="tight", pad_inches=0)
     plt.close()

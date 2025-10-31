@@ -15,7 +15,7 @@ with h5py.File("output.h5", "r") as f:
 
     phi = f["tallies/mesh_tally_0/flux/mean"][:]
     phi_sd = f["tallies/mesh_tally_0/flux/sdev"][:]
-    
+
     phi_total = f["tallies/global_tally_0/density/mean"][:]
     phi_total_sd = f["tallies/global_tally_0/density/sdev"][:]
 
@@ -38,6 +38,8 @@ ax[0].fill_between(
 ax[0].grid()
 ax[0].set_box_aspect(1)
 (line,) = ax[0].plot([], [], "ok", fillstyle="none")
+
+
 #
 def animate(i):
     n = np.zeros_like(t_mid)
@@ -45,6 +47,8 @@ def animate(i):
     line.set_data(t_mid, n)
     cax.set_array(phi[i])
     cax.set_clim(phi[i].min(), phi[i].max())
+
+
 #
 K = len(t) - 1
 anim = animation.FuncAnimation(fig, animate, frames=K)

@@ -10,6 +10,7 @@ import mcdc
 # Load material data
 lib = h5py.File("../MGXS-C5G7-TD.h5", "r")
 
+
 # Setter
 def set_mat(mat):
     return mcdc.MaterialMG(
@@ -23,6 +24,7 @@ def set_mat(mat):
         speed=mat["speed"][:],
         decay_rate=mat["decay"][:],
     )
+
 
 # Materials
 mat_uo2 = set_mat(lib["uo2"])  # Fuel: UO2
@@ -284,9 +286,13 @@ y1 = mcdc.Surface.PlaneY(y=-pitch * 17 * 2)
 y2 = mcdc.Surface.PlaneY(y=-pitch * 17)
 y3 = mcdc.Surface.PlaneY(y=0.0, boundary_condition="reflective")
 
-z0 = mcdc.Surface.PlaneZ(z=-(core_height / 2 + reflector_thickness), boundary_condition="vacuum")
+z0 = mcdc.Surface.PlaneZ(
+    z=-(core_height / 2 + reflector_thickness), boundary_condition="vacuum"
+)
 z1 = mcdc.Surface.PlaneZ(z=-(core_height / 2))
-z2 = mcdc.Surface.PlaneZ(z=(core_height / 2 + reflector_thickness), boundary_condition="vacuum")
+z2 = mcdc.Surface.PlaneZ(
+    z=(core_height / 2 + reflector_thickness), boundary_condition="vacuum"
+)
 
 # Assembly cells
 center = np.array([pitch * 17 / 2, -pitch * 17 / 2, 0.0])
@@ -332,7 +338,7 @@ source = mcdc.Source(
     y=np.array([-pitch * 17 * 3 / 2] * 2) + np.array([-pitch / 2, +pitch / 2]),
     z=[-core_height / 2, core_height / 2],
     isotropic=True,
-    energy_group=0, # Highest energy
+    energy_group=0,  # Highest energy
     time=[0.0, 15.0],
 )
 

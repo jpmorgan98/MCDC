@@ -10,6 +10,7 @@ import mcdc
 # Load material data
 lib = h5py.File("../MGXS-C5G7-TD.h5", "r")
 
+
 # Setter
 def set_mat(mat):
     return mcdc.MaterialMG(
@@ -23,6 +24,7 @@ def set_mat(mat):
         speed=mat["speed"][:],
         decay_rate=mat["decay"][:],
     )
+
 
 # Materials
 mat_uo2 = set_mat(lib["uo2"])  # Fuel: UO2
@@ -275,7 +277,7 @@ mcdc.Source(
     y=[-pitch * 17 * 2, 0.0],
     z=[-core_height / 2, core_height / 2],
     isotropic=True,
-    energy_group=0, # Highest energy
+    energy_group=0,  # Highest energy
 )
 
 # =============================================================================

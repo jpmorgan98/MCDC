@@ -80,7 +80,7 @@ def _accumulate(tally, data):
     for i in range(N_bin):
         score = data[offset_bin + i]
         data[offset_sum_square + i] += score * score
-    
+
     # Reset score bin
     for i in range(N_bin):
         data[offset_bin + i] = 0.0
