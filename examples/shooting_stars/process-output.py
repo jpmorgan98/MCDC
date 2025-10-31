@@ -17,18 +17,22 @@ with h5py.File("output.h5", "r") as f:
 
 
 # Plot result
+fig, ax = plt.subplots(2, 1, figsize=(4, 9))
 X, Y = np.meshgrid(z_mid, x_mid)
 Z = phi
-plt.pcolormesh(X, Y, Z)
-plt.gca().set_aspect("equal")
-plt.colorbar()
-plt.title("Mean")
-plt.show()
+flux_plot = ax[0].pcolormesh(Y, X, Z)
+ax[0].set_aspect("equal")
+ax[0].set_ylabel(r'$x$ [cm]')
+ax[0].set_xlabel(r'$z$ [cm]')
+fig.colorbar(flux_plot, ax=ax[0], orientation='horizontal')
+ax[0].set_title("Flux")
+#
+Z = phi_sd / phi
+sdev_plot = ax[1].pcolormesh(Y, X, Z)
+ax[1].set_aspect("equal")
+ax[1].set_ylabel(r'$x$ [cm]')
+ax[1].set_xlabel(r'$z$ [cm]')
+fig.colorbar(sdev_plot, ax=ax[1], orientation='horizontal')
+ax[1].set_title("Standard Deviation [%]")
 
-X, Y = np.meshgrid(z_mid, x_mid)
-Z = phi_sd
-plt.pcolormesh(X, Y, Z)
-plt.gca().set_aspect("equal")
-plt.colorbar()
-plt.title("Standard Deviation")
 plt.show()
