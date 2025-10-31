@@ -185,13 +185,40 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
     # No score if particle does not cross the time bins
     t_min = mcdc_get.tally.time(0, tally_base, data)
     t_max = mcdc_get.tally.time_last(tally_base, data)
-    if t_final < t_min or t > t_max:
+    if (
+        t_final < t_min + COINCIDENCE_TOLERANCE_TIME
+        or t > t_max - COINCIDENCE_TOLERANCE_TIME
+    ):
         return
 
     # Get mesh bin indices
     i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
 
-    # TODO: No score if particle does not cross the mesh bins (considering directions)
+    # No score if particle does not cross the mesh bins
+    x_min = mesh_module.get_x(0, mesh, mcdc, data)
+    x_max = mesh_module.get_x(mesh["Nx"], mesh, mcdc, data)
+    if ux > 0.0:
+        if x_final < x_min + COINCIDENCE_TOLERANCE or x > x_max - COINCIDENCE_TOLERANCE:
+            return
+    else:
+        if x < x_min + COINCIDENCE_TOLERANCE or x_final > x_max - COINCIDENCE_TOLERANCE:
+            return
+    y_min = mesh_module.get_y(0, mesh, mcdc, data)
+    y_max = mesh_module.get_y(mesh["Ny"], mesh, mcdc, data)
+    if uy > 0.0:
+        if y_final < y_min + COINCIDENCE_TOLERANCE or y > y_max - COINCIDENCE_TOLERANCE:
+            return
+    else:
+        if y < y_min + COINCIDENCE_TOLERANCE or y_final > y_max - COINCIDENCE_TOLERANCE:
+            return
+    z_min = mesh_module.get_z(0, mesh, mcdc, data)
+    z_max = mesh_module.get_z(mesh["Nz"], mesh, mcdc, data)
+    if uz > 0.0:
+        if z_final < z_min + COINCIDENCE_TOLERANCE or z > z_max - COINCIDENCE_TOLERANCE:
+            return
+    else:
+        if z < z_min + COINCIDENCE_TOLERANCE or z_final > z_max - COINCIDENCE_TOLERANCE:
+            return
 
     # Tally base index
     idx_base = (
