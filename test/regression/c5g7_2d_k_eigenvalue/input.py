@@ -25,15 +25,15 @@ def set_mat(mat):
         decay_rate=mat["decay"][:],
     )
 
-
-mat_uo2 = set_mat(lib["uo2"])
-mat_mox43 = set_mat(lib["mox43"])
-mat_mox7 = set_mat(lib["mox7"])
-mat_mox87 = set_mat(lib["mox87"])
-mat_gt = set_mat(lib["gt"])
-mat_fc = set_mat(lib["fc"])
-mat_cr = set_mat(lib["cr"])
-mat_mod = set_mat(lib["mod"])
+# Set the material
+mat_uo2 = set_mat(lib["uo2"])  # Fuel: UO2
+mat_mox43 = set_mat(lib["mox43"])  # Fuel: MOX 4.3%
+mat_mox7 = set_mat(lib["mox7"])  # Fuel: MOX 7.0%
+mat_mox87 = set_mat(lib["mox87"])  # Fuel: MOX 8.7%
+mat_gt = set_mat(lib["gt"])  # Guide tube
+mat_fc = set_mat(lib["fc"])  # Fission chamber
+mat_cr = set_mat(lib["cr"])  # Control rod
+mat_mod = set_mat(lib["mod"])  # Moderator
 
 # =============================================================================
 # Pin cells
@@ -171,7 +171,6 @@ mcdc.simulation.set_root_universe(cells=[core])
 # =============================================================================
 # Set source
 # =============================================================================
-# Uniform in energy
 
 mcdc.Source(
     x=[0.0, pitch * 17 * 2],
