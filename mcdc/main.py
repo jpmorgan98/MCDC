@@ -17,9 +17,10 @@ def run():
 
     # Override settings with command-line arguments
     import mcdc.config as config
-
     if config.args.N_particle is not None:
         settings.N_particle = config.args.N_particle
+    if config.args.N_batch is not None:
+        settings.N_batch = config.args.N_batch
     if config.args.output is not None:
         settings.output_name = config.args.output
     if config.args.progress_bar is not None:
