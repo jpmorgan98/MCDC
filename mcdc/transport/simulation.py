@@ -362,6 +362,7 @@ def loop_source(seed, mcdc, data):
     work_size = mcdc["mpi_work_size"]
 
     for idx_work in range(work_size):
+        mcdc["idx_work"] = work_start + idx_work
         generate_source_particle(work_start, idx_work, seed, mcdc, data)
 
         # Run the source particle and its secondaries

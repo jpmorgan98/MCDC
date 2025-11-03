@@ -87,6 +87,7 @@ class Simulation(ObjectSingleton):
     bank_future: ParticleBank
 
     # Simulation parameters
+    idx_work: int
     idx_cycle: int
     idx_census: int
     idx_batch: int
@@ -172,6 +173,7 @@ class Simulation(ObjectSingleton):
         # ==============================================================================
 
         # Simulation indices
+        self.idx_work = 0
         self.idx_cycle = 0
         self.idx_census = 0
         self.idx_batch = 0
