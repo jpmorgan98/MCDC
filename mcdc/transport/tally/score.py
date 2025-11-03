@@ -17,11 +17,14 @@ from mcdc.constant import (
     INF,
     MESH_STRUCTURED,
     MESH_UNIFORM,
+    MULTIPLIER_ENERGY,
+    REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_FISSION,
     REACTION_TOTAL,
     SCORE_FLUX,
     SCORE_DENSITY,
     SCORE_COLLISION,
+    SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
 )
@@ -35,6 +38,12 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
     particle = particle_container[0]
     speed = physics.particle_speed(particle_container, mcdc, data)
 
+    multiplier = 1.0
+    for i_multiplier in range(tally['multipliers_length']):
+        multiplier_type = mcdc_get.tally.multipliers(i_multiplier, tally, data)
+        if multiplier_type == MULTIPLIER_ENERGY:
+            multiplier *= particle['E']
+
     for i_score in range(tally["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally, data)
         score = 0.0
@@ -46,6 +55,10 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             score = flux * physics.macro_xs(
                 REACTION_TOTAL, particle_container, mcdc, data
             )
+        elif score_type == SCORE_CAPTURE:
+            score = flux * physics.macro_xs(
+                REACTION_NEUTRON_CAPTURE, particle_container, mcdc, data
+            )
         elif score_type == SCORE_FISSION:
             score = flux * physics.macro_xs(
                 REACTION_NEUTRON_FISSION, particle_container, mcdc, data
@@ -54,7 +67,7 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
-        adapt.global_add(data, idx_base + i_score, score)
+        adapt.global_add(data, idx_base + i_score, score * multiplier)
 
 
 @njit

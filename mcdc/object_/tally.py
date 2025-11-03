@@ -22,10 +22,12 @@ import mcdc.object_.mesh as mesh_module
 
 from mcdc.constant import (
     INF,
+    MULTIPLIER_ENERGY,
     PI,
     SCORE_FLUX,
     SCORE_DENSITY,
     SCORE_COLLISION,
+    SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
     TALLY_GLOBAL,
@@ -50,6 +52,7 @@ class TallyBase(ObjectPolymorphic):
     #
     name: str
     scores: list[int]
+    multipliers: list[int]
     mu: NDArray[float64]
     azi: NDArray[float64]
     polar_reference: Annotated[NDArray[float64], (3,)]
@@ -72,6 +75,7 @@ class TallyBase(ObjectPolymorphic):
         type_,
         name,
         scores,
+        multipliers,
         mu,
         azi,
         polar_reference,
@@ -96,12 +100,22 @@ class TallyBase(ObjectPolymorphic):
                 self.scores.append(SCORE_DENSITY)
             elif score == "collision":
                 self.scores.append(SCORE_COLLISION)
+            elif score == "capture":
+                self.scores.append(SCORE_CAPTURE)
             elif score == "fission":
                 self.scores.append(SCORE_FISSION)
             elif score == "net-current":
                 self.scores.append(SCORE_NET_CURRENT)
             else:
                 print_error(f"Unknown tally score: {score}")
+        
+        # Set multipliers
+        self.multipliers = []
+        for multiplier in multipliers:
+            if multiplier == "energy":
+                self.multipliers.append(MULTIPLIER_ENERGY)
+            else:
+                print_error(f"Unknown tally multiplier: {multiplier}")
 
         # Phase-space filters
         self.mu = np.array([-1.0, 1.0])
@@ -218,6 +232,8 @@ def decode_score_type(type_, lower_case=False):
         return "Density" if not lower_case else "density"
     elif type_ == SCORE_COLLISION:
         return "Collision" if not lower_case else "collision"
+    elif type_ == SCORE_CAPTURE:
+        return "Capture" if not lower_case else "capture"
     elif type_ == SCORE_FISSION:
         return "Fission" if not lower_case else "fission"
     elif type_ == SCORE_NET_CURRENT:
@@ -237,6 +253,7 @@ class TallyGlobal(TallyBase):
         self,
         name: str = "",
         scores: list[str] = ["flux"],
+        multipliers: list[str] = [],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -244,7 +261,7 @@ class TallyGlobal(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_GLOBAL
-        super().__init__(type_, name, scores, mu, azi, polar_reference, energy, time)
+        super().__init__(type_, name, scores, multipliers, mu, azi, polar_reference, energy, time)
 
     def __repr__(self):
         text = super().__repr__()
@@ -269,6 +286,7 @@ class TallyCell(TallyBase):
         cell: Cell,
         name: str = "",
         scores: list[str] = ["flux"],
+        multipliers: list[str] = [],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -276,7 +294,7 @@ class TallyCell(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_CELL
-        super().__init__(type_, name, scores, mu, azi, polar_reference, energy, time)
+        super().__init__(type_, name, scores, multipliers, mu, azi, polar_reference, energy, time)
 
         # Attach cell and attach tally to the cell
         self.cell = cell
@@ -306,6 +324,7 @@ class TallySurface(TallyBase):
         surface: Surface,
         name: str = "",
         scores: list[str] = ["flux"],
+        multipliers: list[str] = [],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -313,7 +332,7 @@ class TallySurface(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
-        super().__init__(type_, name, scores, mu, azi, polar_reference, energy, time)
+        super().__init__(type_, name, scores, multipliers, mu, azi, polar_reference, energy, time)
 
         # Set surface and attach tally to the surface
         self.surface = surface
@@ -346,6 +365,7 @@ class TallyMesh(TallyBase):
         mesh: MeshBase,
         name: str = "",
         scores: list[str] = ["flux"],
+        multipliers: list[str] = [],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -355,7 +375,7 @@ class TallyMesh(TallyBase):
         type_ = TALLY_MESH
         spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
         super().__init__(
-            type_, name, scores, mu, azi, polar_reference, energy, time, spatial_shape
+            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time, spatial_shape
         )
 
         self.mesh = mesh

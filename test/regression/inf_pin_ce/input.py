@@ -60,6 +60,15 @@ mcdc.TallyGlobal(
     energy=np.loadtxt("energy_grid.txt"),
     time=np.insert(np.logspace(-8, 2, 50), 0, 0.0),
 )
+mcdc.TallyGlobal(
+    scores=["capture"],
+    energy=np.loadtxt("energy_grid.txt"),
+)
+mcdc.TallyGlobal(
+    scores=["capture"],
+    multipliers=["energy"],
+    energy=np.loadtxt("energy_grid.txt"),
+)
 
 # Settings
 mcdc.settings.N_particle = 100
