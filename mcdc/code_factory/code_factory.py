@@ -20,6 +20,7 @@ from mcdc.object_.base import (
     ObjectSingleton,
 )
 from mcdc.object_.particle import Particle, ParticleBank, ParticleData
+from mcdc.object_.tally import TallyBase
 from mcdc.print_ import print_error
 from mcdc.util import flatten
 
@@ -93,7 +94,7 @@ def generate_numba_objects(simulation):
     annotations = {}
     structures = {}
     records = {}
-    data = []
+    data = {'size': 0}
     accessor_targets = {}
 
     for mcdc_class in mcdc_classes:
@@ -373,7 +374,14 @@ def generate_numba_objects(simulation):
                             singular_field
                         ][i][sub_item[0]]
 
-    return mcdc_simulation_arr, np.array(data)
+    # ==================================================================================
+    # Set the flattened data
+    # ==================================================================================
+
+    data = np.zeros(data_size, dtype=float)
+    set_data(data, objects)
+
+    return mcdc_simulation_arr, data
 
 
 def set_structure(label, structures, accessor_targets, annotations):
@@ -520,9 +528,10 @@ def set_object(object_, annotations, structures, records, data, class_=None):
         # Numpy array
         if type(attribute) == np.ndarray:
             attribute_flatten = attribute.flatten()
-            record[f"{attribute_name}_offset"] = len(data)
+            record[f"{attribute_name}_offset"] = data['size']
             record[f"{attribute_name}_length"] = len(attribute_flatten)
-            data.extend(attribute_flatten)
+            data['size'] += len(attribute_flatten)
+            #data.extend(attribute_flatten)
 
         # Non-singleton object
         elif isinstance(attribute, ObjectNonSingleton):
@@ -548,8 +557,10 @@ def set_object(object_, annotations, structures, records, data, class_=None):
                 )
 
             record[f"N_{singular_name}"] = len(attribute_flatten)
-            record[f"{singular_name}_IDs_offset"] = len(data)
-
+            record[f"{singular_name}_IDs_offset"] = data['size']
+            data['size'] += len(attribute_flatten)
+            
+            '''
             if (
                 not issubclass(inner_type, ObjectPolymorphic)
                 or inner_type in polymorphic_bases
@@ -557,6 +568,7 @@ def set_object(object_, annotations, structures, records, data, class_=None):
                 data.extend([x.ID for x in attribute_flatten])
             else:
                 data.extend([x.child_ID for x in attribute_flatten])
+            '''
 
     # Complete for simulation object
     if class_.label == "simulation":
@@ -578,6 +590,17 @@ def set_object(object_, annotations, structures, records, data, class_=None):
             else:
                 record["ID"] = object_.child_ID
                 record["parent_ID"] = object_.ID
+
+    # Set tally bins
+    if isinstance(object_, TallyBase):
+        tally_size = np.prod(object_.bin_shape)
+        record[f"bin_offset"] = data['size']
+        record[f"bin_sum_offset"] = data['size'] + tally_size
+        record[f"bin_sum_square_offset"] = data['size'] + tally_size * 2
+        record[f"bin_length"] = tally_size
+        record[f"bin_sum_length"] = tally_size
+        record[f"bin_sum_square_length"] = tally_size
+        data['size'] += 3 * tally_size
 
     # Check structure-record compatibility
     missing = set([x[0] for x in structure]) - set(record.keys())

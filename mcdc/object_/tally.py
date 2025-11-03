@@ -145,13 +145,10 @@ class TallyBase(ObjectPolymorphic):
             shape = (N_mu, N_azi, N_energy, N_time) + spatial_shape + (N_score,)
 
         # Set bins and strides
-        self._set_bins_and_strides(shape)
+        self._set_bin_shape_and_strides(shape)
 
-    def _set_bins_and_strides(self, shape):
+    def _set_bin_shape_and_strides(self, shape):
         # Set bins
-        self.bin = np.zeros(shape)
-        self.bin_sum = np.zeros_like(self.bin)
-        self.bin_sum_square = np.zeros_like(self.bin)
         self.bin_shape = list(shape)
 
         # Set strides
@@ -178,7 +175,7 @@ class TallyBase(ObjectPolymorphic):
         else:
             shape = (N_mu, N_azi, N_energy, frequency) + spatial_shape + (N_score,)
 
-        self._set_bins_and_strides(shape)
+        self._set_bin_shape_and_strides(shape)
 
     def _phasespace_filter_text(self):
         text = ""
