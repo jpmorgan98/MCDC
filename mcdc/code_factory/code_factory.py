@@ -250,6 +250,22 @@ def generate_numba_objects(simulation):
     # Set the objects
     for object_ in objects:
         set_object(object_, annotations, structures, records, data)
+    set_object(simulation, annotations, structures, records, data)
+   
+    # Allocate the flattened data and re-set the objects
+    data['array'] = np.zeros(data['size'], dtype=float)
+    data['size'] = 0
+    records = {}
+    for mcdc_class in mcdc_classes:
+        if issubclass(mcdc_class, ObjectNonSingleton):
+            records[mcdc_class.label] = []
+        else:
+            records[mcdc_class.label] = {}
+    records["simulation"] = records.pop("simulation")
+
+    for object_ in objects:
+        set_object(object_, annotations, structures, records, data, set_data=True)
+    set_object(simulation, annotations, structures, records, data, set_data=True)
 
     # ==================================================================================
     # Finalize the simulation object structure and set record
@@ -309,9 +325,6 @@ def generate_numba_objects(simulation):
     records["simulation"]["source_program_pointer"] = 0
     records["simulation"]["precursor_program_pointer"] = 0
     records["simulation"]["source_seed"] = 0
-
-    # Set other record and data for simulation
-    set_object(simulation, annotations, structures, records, data)
 
     # Print the fields
     if MPI.COMM_WORLD.Get_rank() == 0:
@@ -374,16 +387,7 @@ def generate_numba_objects(simulation):
                             singular_field
                         ][i][sub_item[0]]
 
-    # ==================================================================================
-    # Set the flattened data
-    # ==================================================================================
-
-    data = np.zeros(data['size'], dtype=float)
-    for object_ in objects:
-        set_data(object_, annotations, structures, records, data)
-    set_data(simulation, annotations, structures, records, data)
-
-    return mcdc_simulation_arr, data
+    return mcdc_simulation_arr, data['array']
 
 
 def set_structure(label, structures, accessor_targets, annotations):
@@ -478,7 +482,7 @@ def set_structure(label, structures, accessor_targets, annotations):
             print_error(f"Unknown type hint for {label}/{field}: {hint}")
 
 
-def set_object(object_, annotations, structures, records, data, class_=None):
+def set_object(object_, annotations, structures, records, data, class_=None, set_data=False):
     if class_ == None:
         class_ = object_.__class__
 
@@ -487,7 +491,7 @@ def set_object(object_, annotations, structures, records, data, class_=None):
         for parent_class in polymorphic_bases:
             if issubclass(class_, parent_class):
                 set_object(
-                    object_, annotations, structures, records, data, parent_class
+                    object_, annotations, structures, records, data, parent_class, set_data
                 )
 
     annotation = annotations[class_.label]
@@ -532,8 +536,9 @@ def set_object(object_, annotations, structures, records, data, class_=None):
             attribute_flatten = attribute.flatten()
             record[f"{attribute_name}_offset"] = data['size']
             record[f"{attribute_name}_length"] = len(attribute_flatten)
+            if set_data:
+                data['array'][data['size']: data['size'] + len(attribute_flatten)] = attribute_flatten[:]
             data['size'] += len(attribute_flatten)
-            #data.extend(attribute_flatten)
 
         # Non-singleton object
         elif isinstance(attribute, ObjectNonSingleton):
@@ -560,17 +565,15 @@ def set_object(object_, annotations, structures, records, data, class_=None):
 
             record[f"N_{singular_name}"] = len(attribute_flatten)
             record[f"{singular_name}_IDs_offset"] = data['size']
-            data['size'] += len(attribute_flatten)
-            
-            '''
-            if (
-                not issubclass(inner_type, ObjectPolymorphic)
-                or inner_type in polymorphic_bases
-            ):
-                data.extend([x.ID for x in attribute_flatten])
-            else:
-                data.extend([x.child_ID for x in attribute_flatten])
-            '''
+            if set_data:
+                if (
+                    not issubclass(inner_type, ObjectPolymorphic)
+                    or inner_type in polymorphic_bases
+                ):
+                    data['array'][data['size']: data['size'] + len(attribute_flatten)] = [x.ID for x in attribute_flatten]
+                else:
+                    data['array'][data['size']: data['size'] + len(attribute_flatten)] = [x.child_ID for x in attribute_flatten]
+            data['size'] += len(attribute_flatten)            
 
     # Complete for simulation object
     if class_.label == "simulation":

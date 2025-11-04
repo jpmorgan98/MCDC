@@ -167,8 +167,8 @@ class TallyBase(ObjectPolymorphic):
         N_score = len(self.scores)
 
         spatial_shape = None
-        if len(self.bin.shape) > 5:
-            spatial_shape = self.bin.shape[4:-1]
+        if len(self.bin_shape) > 5:
+            spatial_shape = tuple(self.bin_shape[4:-1])
 
         if spatial_shape is None:
             shape = (N_mu, N_azi, N_energy, frequency, N_score)
