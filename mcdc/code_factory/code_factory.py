@@ -253,7 +253,8 @@ def generate_numba_objects(simulation):
     set_object(simulation, annotations, structures, records, data)
    
     # Allocate the flattened data and re-set the objects
-    data['array'] = np.zeros(data['size'], dtype=float)
+    data['array'] = np.zeros(data['size'], dtype=type_map[float])
+
     data['size'] = 0
     records = {}
     for mcdc_class in mcdc_classes:
@@ -597,7 +598,7 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
                 record["parent_ID"] = object_.ID
 
     # Set tally bins
-    if isinstance(object_, TallyBase):
+    if class_ == TallyBase:
         tally_size = np.prod(object_.bin_shape)
         record[f"bin_offset"] = data['size']
         record[f"bin_sum_offset"] = data['size'] + tally_size
@@ -618,135 +619,6 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
     elif isinstance(object_, ObjectNonSingleton):
         records[class_.label].append(record)
 
-
-def set_data(object_, annotations, structures, records, data, class_=None):
-    if class_ == None:
-        class_ = object_.__class__
-
-    # Set the parent first if polymorphics
-    if isinstance(object_, ObjectPolymorphic) and class_ not in polymorphic_bases:
-        for parent_class in polymorphic_bases:
-            if issubclass(class_, parent_class):
-                set_object(
-                    object_, annotations, structures, records, data, parent_class
-                )
-
-    annotation = annotations[class_.label]
-    structure = structures[class_.label]
-    record = {}
-
-    if class_.label == "simulation":
-        record = records["simulation"]
-
-    # Loop over the supported attributes
-    attribute_names = [
-        x for x in dir(object_) if (x[:2] != "__" and not callable(getattr(object_, x)))
-    ]
-    if "non_numba" in dir(object_):
-        attribute_names = list(set(attribute_names) - set(object_.non_numba))
-    for attribute_name in attribute_names:
-        # Skip if set already
-        if attribute_name in record.keys():
-            continue
-
-        # Skip if not in annotation
-        if attribute_name not in annotation.keys():
-            continue
-
-        attribute = getattr(object_, attribute_name)
-
-        # Convert list of supported types into Numpy array
-        if type(attribute) == list:
-            if get_args(annotation[attribute_name])[0] in type_map.keys():
-                attribute = np.array(attribute)
-
-        # Numpy array
-        if type(attribute) == np.ndarray:
-            attribute_flatten = attribute.flatten()
-            record[f"{attribute_name}_offset"] = data['size']
-            record[f"{attribute_name}_length"] = len(attribute_flatten)
-            data['size'] += len(attribute_flatten)
-            #data.extend(attribute_flatten)
-
-        # Non-singleton object
-        elif isinstance(attribute, ObjectNonSingleton):
-            if (
-                not isinstance(attribute, ObjectPolymorphic)
-                or annotation[attribute_name] in polymorphic_bases
-            ):
-                record[f"{attribute_name}_ID"] = attribute.ID
-            else:
-                record[f"{attribute_name}_ID"] = attribute.child_ID
-
-        # List of Non-singleton objects
-        elif type(attribute) == list:
-            inner_type = get_args(annotation[attribute_name])[0]
-
-            # Flatten the list
-            attribute_flatten = list(flatten(attribute))
-            singular_name = plural_to_singular(attribute_name)
-
-            if not issubclass(inner_type, ObjectNonSingleton):
-                print_error(
-                    f"[ERROR] Get a list of non-object for {attribute_name}: {attribute}"
-                )
-
-            record[f"N_{singular_name}"] = len(attribute_flatten)
-            record[f"{singular_name}_IDs_offset"] = data['size']
-            data['size'] += len(attribute_flatten)
-            
-            '''
-            if (
-                not issubclass(inner_type, ObjectPolymorphic)
-                or inner_type in polymorphic_bases
-            ):
-                data.extend([x.ID for x in attribute_flatten])
-            else:
-                data.extend([x.child_ID for x in attribute_flatten])
-            '''
-
-    # Complete for simulation object
-    if class_.label == "simulation":
-        return
-
-    # Set ID of non-singleton
-    if isinstance(object_, ObjectNonSingleton):
-        if not isinstance(object_, ObjectPolymorphic):
-            record["ID"] = object_.ID
-
-        # Set parent and child ID and type if polymorphic
-        else:
-            # Parent
-            if class_ in polymorphic_bases:
-                record["ID"] = object_.ID
-                record["child_ID"] = object_.child_ID
-                record["child_type"] = object_.type
-            # Child
-            else:
-                record["ID"] = object_.child_ID
-                record["parent_ID"] = object_.ID
-
-    # Set tally bins
-    if isinstance(object_, TallyBase):
-        tally_size = np.prod(object_.bin_shape)
-        record[f"bin_offset"] = data['size']
-        record[f"bin_sum_offset"] = data['size'] + tally_size
-        record[f"bin_sum_square_offset"] = data['size'] + tally_size * 2
-        record[f"bin_length"] = tally_size
-        record[f"bin_sum_length"] = tally_size
-        record[f"bin_sum_square_length"] = tally_size
-        data['size'] += 3 * tally_size
-
-    # Check structure-record compatibility
-    missing = set([x[0] for x in structure]) - set(record.keys())
-    if len(missing) > 0:
-        print_error(f"Missing structure keys in record for {class_.label}: {missing}")
-
-    # Register the record
-    if isinstance(object_, ObjectSingleton):
-        records[class_.label] = record
-    elif isinstance(object_, ObjectNonSingleton):
-        records[class_.label].append(record)
 
 # ======================================================================================
 # Alignment Logic
