@@ -25,14 +25,8 @@ def get_indices(particle_container, mesh, data):
 
     tolerance = COINCIDENCE_TOLERANCE
     ix = find_bin(x, mcdc_get.structured_mesh.x_all(mesh, data), tolerance, ux < 0.0)
-    if ix == -1:
-        return -1, -1, -1
     iy = find_bin(y, mcdc_get.structured_mesh.y_all(mesh, data), tolerance, uy < 0.0)
-    if iy == -1:
-        return -1, -1, -1
     iz = find_bin(z, mcdc_get.structured_mesh.z_all(mesh, data), tolerance, uz < 0.0)
-    if iz == -1:
-        return -1, -1, -1
 
     return ix, iy, iz
 
@@ -59,7 +53,6 @@ def get_crossing_distance(particle_arr, speed, mesh):
     Nz = mesh["Nz"]
 
     # Check if particle is outside the mesh grid and moving away
-    outside = False
     if (
         (x < mesh["x"][0] + COINCIDENCE_TOLERANCE and ux < 0.0)
         or (x > mesh["x"][Nx] - COINCIDENCE_TOLERANCE and ux > 0.0)

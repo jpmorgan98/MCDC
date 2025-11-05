@@ -93,8 +93,12 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     # No score if particle does not cross the time bins
     t_min = mcdc_get.tally.time(0, tally_base, data)
     t_max = mcdc_get.tally.time_last(tally_base, data)
-    if t_final < t_min or t > t_max:
+    if t_final < t_min + COINCIDENCE_TOLERANCE_TIME or t > t_max - COINCIDENCE_TOLERANCE_TIME:
         return
+
+    # Get the appropriate time index if needed
+    if t < t_min + COINCIDENCE_TOLERANCE_TIME:
+        i_time = 0
 
     # Tally base index
     idx_base = (
@@ -108,8 +112,10 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     # Sweep through the distance
     distance_swept = 0.0
     while distance_swept < distance - COINCIDENCE_TOLERANCE:
+        # The next time grid
         t_next = mcdc_get.tally.time(i_time + 1, tally_base, data)
 
+        # Get the distance to score in this segment
         if t_final < t_next - COINCIDENCE_TOLERANCE_TIME:
             distance_scored = distance - distance_swept
         else:
@@ -125,11 +131,14 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
         # Increment the time
         t += distance_scored * ut
 
-        # Increment index and check if out of bounds
+        # Increment index
         i_time += 1
-        if i_time == tally_base["time_length"]:
-            break
         idx_base += tally_base["stride_time"]
+
+        # Check if it is the last segment 
+        #   The rest of the distance is not scored
+        if i_time == tally_base["time_length"]:
+            return
 
 
 @njit
@@ -160,6 +169,8 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
     speed = physics.particle_speed(particle_container, mcdc, data)
     mu = get_normal_component(particle_container, speed, surface, data)
     flux = particle["w"] / abs(mu)
+
+    # Score
     make_scores(particle_container, flux, tally_base, idx_base, mcdc, data)
 
 
@@ -203,35 +214,52 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         or t > t_max - COINCIDENCE_TOLERANCE_TIME
     ):
         return
+    
+    # Get the appropriate time index if needed
+    if t < t_min:
+        i_time = 0
 
     # Get mesh bin indices
     i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
 
     # No score if particle does not cross the mesh bins
+    # Also get the appropriate index if needed
     x_min = mesh_module.get_x(0, mesh, mcdc, data)
     x_max = mesh_module.get_x(mesh["Nx"], mesh, mcdc, data)
     if ux > 0.0:
         if x_final < x_min + COINCIDENCE_TOLERANCE or x > x_max - COINCIDENCE_TOLERANCE:
             return
+        if x < x_min + COINCIDENCE_TOLERANCE:
+            i_x = 0
     else:
         if x < x_min + COINCIDENCE_TOLERANCE or x_final > x_max - COINCIDENCE_TOLERANCE:
             return
+        if x > x_max - COINCIDENCE_TOLERANCE:
+            i_x = mesh["Nx"]
     y_min = mesh_module.get_y(0, mesh, mcdc, data)
     y_max = mesh_module.get_y(mesh["Ny"], mesh, mcdc, data)
     if uy > 0.0:
         if y_final < y_min + COINCIDENCE_TOLERANCE or y > y_max - COINCIDENCE_TOLERANCE:
             return
+        if y < y_min + COINCIDENCE_TOLERANCE:
+            i_y = 0
     else:
         if y < y_min + COINCIDENCE_TOLERANCE or y_final > y_max - COINCIDENCE_TOLERANCE:
             return
+        if y > y_max - COINCIDENCE_TOLERANCE:
+            i_y = mesh["Ny"]
     z_min = mesh_module.get_z(0, mesh, mcdc, data)
     z_max = mesh_module.get_z(mesh["Nz"], mesh, mcdc, data)
     if uz > 0.0:
         if z_final < z_min + COINCIDENCE_TOLERANCE or z > z_max - COINCIDENCE_TOLERANCE:
             return
+        if z < z_min + COINCIDENCE_TOLERANCE:
+            i_z = 0
     else:
         if z < z_min + COINCIDENCE_TOLERANCE or z_final > z_max - COINCIDENCE_TOLERANCE:
             return
+        if z > z_max - COINCIDENCE_TOLERANCE:
+            i_z = mesh["Nz"]
 
     # Tally base index
     idx_base = (

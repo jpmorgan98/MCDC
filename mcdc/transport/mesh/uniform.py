@@ -2,7 +2,7 @@ import math
 
 from numba import njit
 
-from mcdc.constant import COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME, INF
+from mcdc.constant import COINCIDENCE_TOLERANCE, INF
 
 
 @njit
@@ -34,29 +34,44 @@ def get_indices(particle_container, mesh):
     y_last = y0 + Ny * dy
     z_last = z0 + Nz * dz
 
-    # Check if particle is outside the mesh grid
-    outside = False
+    # x-axis
     if (
-        # Outside the mesh condition
+        # Outside the mesh
         x < x0 - COINCIDENCE_TOLERANCE
         or x > x_last + COINCIDENCE_TOLERANCE
-        or y < y0 - COINCIDENCE_TOLERANCE
-        or y > y_last + COINCIDENCE_TOLERANCE
-        or z < z0 - COINCIDENCE_TOLERANCE
-        or z > z_last + COINCIDENCE_TOLERANCE
         # At the outermost-grid but moving away
         or (abs(x - x0) < COINCIDENCE_TOLERANCE and ux < 0.0)
         or (abs(x - x_last) < COINCIDENCE_TOLERANCE and ux > 0.0)
+    ):
+        ix = -1
+    else:
+        ix = _grid_index(x, ux, x0, dx, COINCIDENCE_TOLERANCE)
+
+    # y-axis
+    if (
+        # Outside the mesh
+        y < y0 - COINCIDENCE_TOLERANCE
+        or y > y_last + COINCIDENCE_TOLERANCE
+        # At the outermost-grid but moving away
         or (abs(y - y0) < COINCIDENCE_TOLERANCE and uy < 0.0)
         or (abs(y - y_last) < COINCIDENCE_TOLERANCE and uy > 0.0)
+    ):
+        iy = -1
+    else:
+        iy = _grid_index(y, uy, y0, dy, COINCIDENCE_TOLERANCE)
+
+    # z-axis
+    if (
+        # Outside the mesh
+        z < z0 - COINCIDENCE_TOLERANCE
+        or z > z_last + COINCIDENCE_TOLERANCE
+        # At the outermost-grid but moving away
         or (abs(z - z0) < COINCIDENCE_TOLERANCE and uz < 0.0)
         or (abs(z - z_last) < COINCIDENCE_TOLERANCE and uz > 0.0)
     ):
-        return -1, -1, -1
-
-    ix = _grid_index(x, ux, x0, dx, COINCIDENCE_TOLERANCE)
-    iy = _grid_index(y, uy, y0, dy, COINCIDENCE_TOLERANCE)
-    iz = _grid_index(z, uz, z0, dz, COINCIDENCE_TOLERANCE)
+        iz = -1
+    else:
+        iz = _grid_index(z, uz, z0, dz, COINCIDENCE_TOLERANCE)
 
     return ix, iy, iz
 
@@ -92,7 +107,6 @@ def get_crossing_distance(particle_container, speed, mesh):
     z_last = z0 + Nz * dz
 
     # Check if particle is outside the mesh grid and moving away
-    outside = False
     if (
         (x < x0 + COINCIDENCE_TOLERANCE and ux < 0.0)
         or (x > x_last - COINCIDENCE_TOLERANCE and ux > 0.0)
