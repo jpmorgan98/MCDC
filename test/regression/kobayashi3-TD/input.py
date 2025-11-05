@@ -58,19 +58,23 @@ mcdc.Source(
 )
 
 # ======================================================================================
-# Set tallies, settings, and run MC/DC
+# Set tallies, settings, techniques, and run MC/DC
 # ======================================================================================
 
 # Tallies
-mcdc.TallyCell(cell=source_cell, scores=["flux"])
-mcdc.TallyCell(cell=void_cell, scores=["flux"])
-mcdc.TallyCell(cell=shield_cell, scores=["flux"])
-mesh = mcdc.MeshUniform(x=(0.0, 2.0, 30), y=(0.0, 2.0, 50))
-mcdc.TallyMesh(mesh=mesh, scores=["flux"], time=np.linspace(0.0, 200.0, 21))
+time_grid = np.linspace(0.0, 200.0, 21)
+mcdc.TallyCell(cell=source_cell, scores=["flux"], time=time_grid)
+mcdc.TallyCell(cell=void_cell, scores=["flux"], time=time_grid)
+mcdc.TallyCell(cell=shield_cell, scores=["flux"], time=time_grid)
+mesh = mcdc.MeshUniform(x=(0.0, 1.0, 60), y=(0.0, 1.0, 100))
+mcdc.TallyMesh(mesh=mesh, scores=["flux"], time=time_grid)
+mcdc.TallyGlobal(scores=["density"], time=time_grid)
 
 # Settings
-mcdc.settings.N_particle = 80
-mcdc.settings.N_batch = 2
+mcdc.settings.N_particle = 30
+
+# Techniques
+mcdc.simulation.implicit_capture()
 
 # Run
 mcdc.run()
