@@ -2,8 +2,10 @@
 # Simulation building blocks
 # ======================================================================================
 
+# The simulation
 from mcdc.object_.simulation import simulation
 
+# The settings
 settings = simulation.settings
 
 # The objects
