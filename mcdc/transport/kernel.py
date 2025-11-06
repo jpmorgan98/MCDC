@@ -455,7 +455,6 @@ def copy_particle(P_new_arr, P_arr):
     P_new["surface_ID"] = P["surface_ID"]
     P_new["event"] = P["event"]
     P_new["rng_seed"] = P["rng_seed"]
-    P_new["iqmc"]["w"] = P["iqmc"]["w"]
 
 
 @njit

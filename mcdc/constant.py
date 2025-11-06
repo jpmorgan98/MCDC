@@ -69,7 +69,8 @@ BOOL_NOT = -3
 UNIVERSE_ROOT = 0
 
 # Events
-# The << operator represents a bitshift. Each event is assigned 1 << X, which is equal to 2 to the power of X.
+#   The << operator represents a bitshift.
+#   Each event is assigned 1 << X, which is equal to 2 to the power of X.
 EVENT_NONE = 1 << 0
 # Geometry events
 EVENT_SURFACE_CROSSING = 1 << 1
@@ -80,7 +81,6 @@ EVENT_COLLISION = 1 << 4
 # Miscellanies
 EVENT_TIME_CENSUS = 1 << 5
 EVENT_TIME_BOUNDARY = 1 << 6
-EVENT_IQMC_MESH = 1 << 7
 
 # Materials
 MATERIAL = 0

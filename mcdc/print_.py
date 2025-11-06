@@ -164,29 +164,11 @@ def print_progress(percent, mcdc):
         sys.stdout.flush()
 
 
-def print_progress_iqmc(mcdc):
-    # TODO: function was not working with numba when structured like the
-    # other print_progress functions
-    if master:
-        if mcdc["setting"]["progress_bar"]:
-            sys.stdout.write("\r")
-            itt = mcdc["technique"]["iqmc"]["iteration_count"]
-            res = mcdc["technique"]["iqmc"]["residual"]
-            print("\n*******************************")
-            print("Iteration  %2d" % (itt))
-            print("Residual %10.3E" % (res))
-            print("*******************************\n")
-            sys.stdout.flush()
-
-
 def print_header_eigenvalue(mcdc):
     if master:
         if mcdc["settings"]["use_gyration_radius"]:
             print("\n #     k        GyRad.  k (avg)            ")
             print(" ====  =======  ======  ===================")
-        elif mcdc["technique"]["iQMC"] and mcdc["technique"]["iqmc"]["mode"] == "fixed":
-            print("\n #     k        Residual         ")
-            print(" ==== ======= ===================")
         else:
             print("\n #     k        k (avg)            ")
             print(" ====  =======  ===================")
@@ -223,38 +205,6 @@ def print_progress_eigenvalue(mcdc, data):
                 print(
                     " %-4i  %.5f  %.5f +/- %.5f" % (idx_cycle + 1, k_eff, k_avg, k_sdv)
                 )
-
-
-def print_iqmc_eigenvalue_progress(mcdc):
-    if master:
-        if mcdc["setting"]["progress_bar"]:
-            sys.stdout.write("\r")
-            k_eff = mcdc["k_eff"]
-            itt = mcdc["technique"]["iqmc"]["iteration_count"]
-            res = mcdc["technique"]["iqmc"]["residual"]
-            print("\n %2d   %2.5f  %10.3E" % (itt, k_eff, res))
-            sys.stdout.flush()
-
-
-def print_iqmc_eigenvalue_exit_code(mcdc):
-    if master:
-        if mcdc["setting"]["progress_bar"]:
-            sys.stdout.write("\r")
-            maxit = mcdc["technique"]["iqmc"]["iterations_max"]
-            itt = mcdc["technique"]["iqmc"]["iteration_count"]
-            if itt >= maxit:
-                print("\n")
-                print("================================")
-                print("\n")
-                print(
-                    " Convergence to tolerance not achieved: Maximum number of iterations."
-                )
-            else:
-                print("\n")
-                print("================================")
-                print(" Successful convergence.")
-                print("\n")
-            sys.stdout.flush()
 
 
 def print_runtime(mcdc):
