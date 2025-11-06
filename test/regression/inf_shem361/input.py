@@ -54,7 +54,7 @@ mcdc.Source(
 mcdc.TallyGlobal(scores=["flux"], energy="all_groups")
 
 # Swttings
-mcdc.settings.N_particle = 40
+mcdc.settings.N_particle = 25
 mcdc.settings.N_batch = 2
 mcdc.settings.active_bank_buffer = 1000
 

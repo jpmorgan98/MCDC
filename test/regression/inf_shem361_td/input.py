@@ -9,7 +9,7 @@ import mcdc
 
 # Load material data
 with np.load("SHEM-361.npz") as data:
-    SigmaC = data["SigmaC"] * 1.5  # /cm
+    SigmaC = data["SigmaC"] * 2.5  # /cm
     SigmaS = data["SigmaS"]
     SigmaF = data["SigmaF"]
     nu_p = data["nu_p"]

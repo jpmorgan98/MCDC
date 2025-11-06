@@ -9,7 +9,7 @@ import mcdc
 
 # Load material data
 with np.load("SHEM-361.npz") as data:
-    SigmaC = data["SigmaC"] * 1.5  # /cm
+    SigmaC = data["SigmaC"] * 3.0  # /cm
     SigmaS = data["SigmaS"]
     SigmaF = data["SigmaF"]
     nu_p = data["nu_p"]
@@ -60,7 +60,7 @@ mcdc.TallyGlobal(
 )
 
 # Settings
-mcdc.settings.N_particle = 100
+mcdc.settings.N_particle = 40
 mcdc.settings.N_batch = 2
 mcdc.settings.set_time_census(np.logspace(-5, 1, 6))
 mcdc.settings.active_bank_buffer = 1000

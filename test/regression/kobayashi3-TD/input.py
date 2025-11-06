@@ -71,7 +71,7 @@ mcdc.TallyMesh(mesh=mesh, scores=["flux"], time=time_grid)
 mcdc.TallyGlobal(scores=["density"], time=time_grid)
 
 # Settings
-mcdc.settings.N_particle = 30
+mcdc.settings.N_particle = 25
 
 # Techniques
 mcdc.simulation.implicit_capture()

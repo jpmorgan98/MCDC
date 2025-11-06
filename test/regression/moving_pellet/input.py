@@ -10,8 +10,8 @@ import mcdc
 # Set materials
 fuel = mcdc.MaterialMG(
     capture=np.array([0.5]),
-    fission=np.array([0.5]),
-    nu_p=np.array([2.5]),
+    fission=np.array([0.25]),
+    nu_p=np.array([1.5]),
     speed=np.array([200000.0]),
 )
 air = mcdc.MaterialMG(
@@ -65,13 +65,13 @@ mcdc.Source(
 
 # Tallies
 mesh = mcdc.MeshStructured(
-    x=np.linspace(-5, 5, 201),
-    z=np.linspace(-10, 10, 201),
+    x=np.linspace(-5, 5, 101),
+    z=np.linspace(-10, 10, 101),
 )
 mcdc.TallyMesh(mesh=mesh, scores=["fission"], time=np.linspace(0, 9, 46))
 
 # Settings
-mcdc.settings.N_particle = 5
+mcdc.settings.N_particle = 50
 mcdc.settings.N_batch = 2
 mcdc.settings.active_bank_buffer = 1000
 

@@ -46,7 +46,7 @@ mesh = mcdc.MeshStructured(z=np.linspace(0.0, 8.0, 81))
 mcdc.TallyMesh(mesh=mesh, scores=["flux"])
 
 # Settings
-mcdc.settings.N_particle = 5000
+mcdc.settings.N_particle = 4000
 mcdc.settings.N_batch = 2
 
 # Run

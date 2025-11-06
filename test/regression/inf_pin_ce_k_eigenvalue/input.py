@@ -63,7 +63,7 @@ mcdc.TallyGlobal(
 )
 
 # Settings
-mcdc.settings.N_particle = 100
+mcdc.settings.N_particle = 25
 mcdc.settings.set_eigenmode(N_inactive=1, N_active=2)
 mcdc.settings.census_bank_buffer_ratio = 100.0
 
