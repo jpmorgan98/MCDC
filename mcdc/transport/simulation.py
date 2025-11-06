@@ -530,12 +530,6 @@ def step_particle(P_arr, prog, data):
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
         geometry.surface_crossing(P_arr, prog, data)
-        if P["event"] & EVENT_DOMAIN_CROSSING:
-            if mcdc["surfaces"][P["surface_ID"]]["boundary_condition"] == BC_NONE:
-                kernel.domain_crossing(P_arr, prog)
-
-    elif P["event"] & EVENT_DOMAIN_CROSSING:
-        kernel.domain_crossing(P_arr, prog)
 
     # Census time crossing
     if P["event"] & EVENT_TIME_CENSUS:

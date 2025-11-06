@@ -524,7 +524,6 @@ def move_to_event(P_arr, mcdc, data):
 
     # Distance to domain
     speed = physics.particle_speed(P_arr, mcdc, data)
-    d_domain = INF
 
     # Distance to time boundary
     d_time_boundary = speed * (settings["time_boundary"] - P["t"])
@@ -544,14 +543,6 @@ def move_to_event(P_arr, mcdc, data):
     # TODO: Make a function to better maintain the repeating operation
 
     distance = d_boundary
-
-    # Check distance to domain
-    if d_domain < distance - COINCIDENCE_TOLERANCE:
-        distance = d_domain
-        P["event"] = EVENT_DOMAIN_CROSSING
-        P["surface_ID"] = -1
-    elif geometry.check_coincidence(d_domain, distance):
-        P["event"] += EVENT_DOMAIN_CROSSING
 
     # Check distance to collision
     if d_collision < distance - COINCIDENCE_TOLERANCE:

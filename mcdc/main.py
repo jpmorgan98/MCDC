@@ -453,7 +453,10 @@ def visualize(
         plt.ylabel(second_key + " [cm]")
         plt.title(reference_key + " = %.2f cm" % reference + ", time = %.2f s" % t)
         if save_as is not None:
-            plt.savefig(save_as + ".png")
+            if len(time) > 1:
+                plt.savefig(f"{save_as}_{t:03}.png")
+            else:
+                plt.savefig(save_as + ".png")
             plt.clf()
         else:
             plt.show()
