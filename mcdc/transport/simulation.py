@@ -209,15 +209,29 @@ def eigenvalue_simulation(mcdc_arr, data):
 
 
 @njit
+def loop_source(seed, mcdc, data):
+    # Progress bar indicator
+    N_prog = 0
+
+    # Loop over particle sources
+    work_start = mcdc["mpi_work_start"]
+    work_size = mcdc["mpi_work_size"]
+
+    for idx_work in range(work_size):
+        mcdc["idx_work"] = work_start + idx_work
+        generate_source_particle(work_start, idx_work, seed, mcdc, data)
+
+        # Run the source particle and its secondaries
+        exhaust_active_bank(mcdc, data)
+
+        source_closeout(mcdc, idx_work, N_prog, data)
+
+
+@njit
 def generate_source_particle(work_start, idx_work, seed, prog, data):
+    """Get a source particle and put into one of the banks"""
     mcdc = adapt.mcdc_global(prog)
     settings = mcdc["settings"]
-
-    seed_work = rng.split_seed(work_start + idx_work, seed)
-
-    # =====================================================================
-    # Get a source particle and put into active bank
-    # =====================================================================
 
     particle_container = np.zeros(1, type_.particle_data)
     particle = particle_container[0]
@@ -225,6 +239,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     # Get from fixed-source?
     if kernel.get_bank_size(mcdc["bank_source"]) == 0:
         # Sample source
+        seed_work = rng.split_seed(work_start + idx_work, seed)
         source_particle(particle_container, seed_work, mcdc, data)
 
     # Get from source bank
@@ -260,12 +275,6 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
 
 
 @njit
-def prep_particle(particle_container, prog):
-    particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
-
-
-@njit
 def exhaust_active_bank(prog, data):
     mcdc = adapt.mcdc_global(prog)
     particle_container = np.zeros(1, type_.particle)
@@ -283,6 +292,12 @@ def exhaust_active_bank(prog, data):
 
 
 @njit
+def prep_particle(particle_container, prog):
+    particle = particle_container[0]
+    mcdc = adapt.mcdc_global(prog)
+
+
+@njit
 def source_closeout(prog, idx_work, N_prog, data):
     mcdc = adapt.mcdc_global(prog)
 
@@ -297,61 +312,6 @@ def source_closeout(prog, idx_work, N_prog, data):
         N_prog += 1
         with objmode():
             print_progress(percent, mcdc)
-
-
-@njit
-def source_dd_resolution(data_tally, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
-    kernel.dd_particle_send(mcdc)
-    terminated = False
-    max_work = 1
-    kernel.dd_recv(mcdc)
-    if mcdc["domain_decomp"]["work_done"]:
-        terminated = True
-
-    particle_container = np.zeros(1, type_.particle)
-    particle = particle_container[0]
-
-    while not terminated:
-        if kernel.get_bank_size(mcdc["bank_active"]) > 0:
-            # Loop until active bank is exhausted
-            while kernel.get_bank_size(mcdc["bank_active"]) > 0:
-
-                kernel.get_particle(particle_container, mcdc["bank_active"], mcdc)
-                if not kernel.particle_in_domain(particle_container, mcdc) and particle["alive"] == True:
-                    print(f"recieved particle not in domain")
-
-                # Apply weight window
-                if mcdc["technique"]["weight_window"]:
-                    kernel.weight_window(particle_container, mcdc)
-
-                # Particle loop
-                loop_particle(particle_container, data_tally, mcdc, data)
-
-                # Tally history closeout for one-batch fixed-source simulation
-                if (
-                    not mcdc["settings"]["eigenvalue_mode"]
-                    and mcdc["settings"]["N_batch"] == 1
-                ):
-                    kernel.tally_accumulate(data_tally, mcdc)
-
-        # Send all domain particle banks
-        kernel.dd_particle_send(mcdc)
-
-        kernel.dd_recv(mcdc)
-
-        # Progress printout
-        """
-        percent = 1 - work_remaining / max_work
-        if mcdc["setting"]["progress_bar"] and int(percent * 100.0) > N_prog:
-            N_prog += 1
-            with objmode():
-                print_progress(percent, mcdc)
-        """
-        if kernel.dd_check_halt(mcdc):
-            kernel.dd_check_out(mcdc)
-            terminated = True
 
 
 @njit
@@ -499,9 +459,9 @@ def gpu_loop_source(seed, data, mcdc):
         source_dd_resolution(data, mcdc)
 
 
-# =========================================================================
+# ======================================================================================
 # Particle loop
-# =========================================================================
+# ======================================================================================
 
 
 @njit
@@ -662,6 +622,125 @@ def move_to_event(particle_container, mcdc, data):
 
     # Move particle
     particle_module.move(particle_container, distance, mcdc, data)
+
+
+# ======================================================================================
+# Unsorted [TODO]
+# ======================================================================================
+
+
+def gpu_sources_spec():
+    def make_work(prog: nb.uintp) -> nb.boolean:
+        mcdc = adapt.mcdc_global(prog)
+
+        idx_work = adapt.global_add(mcdc["mpi_work_iter"], 0, 1)
+
+        if idx_work >= mcdc["mpi_work_size"]:
+            return False
+
+        generate_source_particle(
+            mcdc["mpi_work_start"], nb.uint64(idx_work), mcdc["source_seed"], prog
+        )
+        return True
+
+    def initialize(prog: nb.uintp):
+        pass
+
+    def finalize(prog: nb.uintp):
+        pass
+
+    base_fns = (initialize, finalize, make_work)
+
+    def step(prog: nb.uintp, P_input: adapt.particle_gpu):
+        mcdc = adapt.mcdc_global(prog)
+        data = adapt.mcdc_data(prog)
+        particle_container = np.zeros(1, type_.particle)
+        particle_container[0] = P_input
+        particle = particle_container[0]
+        if particle["fresh"]:
+            prep_particle(particle_container, prog)
+        particle["fresh"] = False
+        step_particle(particle_container, data, prog)
+        if particle["alive"]:
+            adapt.step_async(prog, P)
+
+    async_fns = [step]
+    return adapt.harm.RuntimeSpec("mcdc_source", adapt.state_spec, base_fns, async_fns)
+
+
+BLOCK_COUNT = config.args.gpu_block_count
+
+ASYNC_EXECUTION = config.args.gpu_strat == "async"
+
+
+@njit(cache=caching)
+def gpu_loop_source(seed, data, mcdc):
+
+    # Progress bar indicator
+    N_prog = 0
+
+    if mcdc["technique"]["domain_decomposition"]:
+        kernel.dd_check_in(mcdc)
+
+    # =====================================================================
+    # GPU Interop
+    # =====================================================================
+
+    # For async execution
+    iter_count = 655360000
+    # For event-based execution
+    batch_size = 1
+
+    full_work_size = mcdc["mpi_work_size"]
+    if ASYNC_EXECUTION:
+        phase_size = 1000000000
+    else:
+        phase_size = 1000000
+    phase_count = (full_work_size + phase_size - 1) // phase_size
+
+    for phase in range(phase_count):
+
+        mcdc["mpi_work_iter"][0] = phase_size * phase
+        mcdc["mpi_work_size"] = min(phase_size * (phase + 1), full_work_size)
+        mcdc["source_seed"] = seed
+
+        # Store the global state to the GPU
+        src_store_constant(mcdc["gpu_state_pointer"], mcdc)
+        src_store_data(mcdc["gpu_state_pointer"], data)
+
+        # Execute the program, and continue to do so until it is done
+        if ASYNC_EXECUTION:
+            src_exec_program(mcdc["source_program_pointer"], BLOCK_COUNT, iter_count)
+            while not src_complete(mcdc["source_program_pointer"]):
+                kernel.dd_particle_send(mcdc)
+                src_exec_program(
+                    mcdc["source_program_pointer"], BLOCK_COUNT, iter_count
+                )
+        else:
+            src_exec_program(mcdc["source_program_pointer"], BLOCK_COUNT, batch_size)
+            while not src_complete(mcdc["source_program_pointer"]):
+                kernel.dd_particle_send(mcdc)
+                src_exec_program(
+                    mcdc["source_program_pointer"], BLOCK_COUNT, batch_size
+                )
+
+        # Recover the original program state
+        src_load_constant(mcdc, mcdc["gpu_state_pointer"])
+        src_load_data(data, mcdc["gpu_state_pointer"])
+        src_clear_flags(mcdc["source_program_pointer"])
+
+    mcdc["mpi_work_size"] = full_work_size
+
+    kernel.set_bank_size(mcdc["bank_active"], 0)
+
+    # =====================================================================
+    # Closeout (Moved out of the typical particle loop)
+    # =====================================================================
+
+    source_closeout(mcdc, 1, 1, data)
+
+    if mcdc["technique"]["domain_decomposition"]:
+        source_dd_resolution(data, mcdc)
 
 
 def build_gpu_progs(input_deck, args):
