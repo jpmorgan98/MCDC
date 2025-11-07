@@ -219,21 +219,21 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     # Get a source particle and put into active bank
     # =====================================================================
 
-    P_arr = np.zeros(1, type_.particle_data)
-    P = P_arr[0]
+    particle_container = np.zeros(1, type_.particle_data)
+    particle = particle_container[0]
 
     # Get from fixed-source?
     if kernel.get_bank_size(mcdc["bank_source"]) == 0:
         # Sample source
-        source_particle(P_arr, seed_work, mcdc, data)
+        source_particle(particle_container, seed_work, mcdc, data)
 
     # Get from source bank
     else:
-        P_arr = mcdc["bank_source"]["particles"][idx_work : (idx_work + 1)]
-        P = P_arr[0]
+        particle_container = mcdc["bank_source"]["particles"][idx_work : (idx_work + 1)]
+        particle = particle_container[0]
 
     # Skip if beyond time boundary
-    if P["t"] > settings["time_boundary"]:
+    if particle["t"] > settings["time_boundary"]:
         return
 
     # Check if it is beyond current or next census times
@@ -242,44 +242,44 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     idx_census = mcdc["idx_census"]
 
     if idx_census < settings["N_census"] - 1:
-        if P["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
+        if particle["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
             hit_census = True
             hit_next_census = True
-        elif P["t"] > mcdc_get.settings.census_time(idx_census, settings, data):
+        elif particle["t"] > mcdc_get.settings.census_time(idx_census, settings, data):
             hit_census = True
 
     # Put into the right bank
     if not hit_census:
-        adapt.add_active(P_arr, prog)
+        adapt.add_active(particle_container, prog)
     elif not hit_next_census:
         # Particle will participate after the current census
-        adapt.add_census(P_arr, prog)
+        adapt.add_census(particle_container, prog)
     else:
         # Particle will participate in the future
-        adapt.add_future(P_arr, prog)
+        adapt.add_future(particle_container, prog)
 
 
 @njit
-def prep_particle(P_arr, prog):
-    P = P_arr[0]
+def prep_particle(particle_container, prog):
+    particle = particle_container[0]
     mcdc = adapt.mcdc_global(prog)
 
 
 @njit
 def exhaust_active_bank(prog, data):
     mcdc = adapt.mcdc_global(prog)
-    P_arr = np.zeros(1, type_.particle)
-    P = P_arr[0]
+    particle_container = np.zeros(1, type_.particle)
+    particle = particle_container[0]
 
     # Loop until active bank is exhausted
     while kernel.get_bank_size(mcdc["bank_active"]) > 0:
         # Get particle from active bank
-        kernel.get_particle(P_arr, mcdc["bank_active"], mcdc)
+        kernel.get_particle(particle_container, mcdc["bank_active"], mcdc)
 
-        prep_particle(P_arr, prog)
+        prep_particle(particle_container, prog)
 
         # Particle loop
-        loop_particle(P_arr, mcdc, data)
+        loop_particle(particle_container, mcdc, data)
 
 
 @njit
@@ -310,24 +310,24 @@ def source_dd_resolution(data_tally, prog, data):
     if mcdc["domain_decomp"]["work_done"]:
         terminated = True
 
-    P_arr = np.zeros(1, type_.particle)
-    P = P_arr[0]
+    particle_container = np.zeros(1, type_.particle)
+    particle = particle_container[0]
 
     while not terminated:
         if kernel.get_bank_size(mcdc["bank_active"]) > 0:
             # Loop until active bank is exhausted
             while kernel.get_bank_size(mcdc["bank_active"]) > 0:
 
-                kernel.get_particle(P_arr, mcdc["bank_active"], mcdc)
-                if not kernel.particle_in_domain(P_arr, mcdc) and P["alive"] == True:
+                kernel.get_particle(particle_container, mcdc["bank_active"], mcdc)
+                if not kernel.particle_in_domain(particle_container, mcdc) and particle["alive"] == True:
                     print(f"recieved particle not in domain")
 
                 # Apply weight window
                 if mcdc["technique"]["weight_window"]:
-                    kernel.weight_window(P_arr, mcdc)
+                    kernel.weight_window(particle_container, mcdc)
 
                 # Particle loop
-                loop_particle(P_arr, data_tally, mcdc, data)
+                loop_particle(particle_container, data_tally, mcdc, data)
 
                 # Tally history closeout for one-batch fixed-source simulation
                 if (
@@ -505,46 +505,46 @@ def gpu_loop_source(seed, data, mcdc):
 
 
 @njit
-def loop_particle(P_arr, prog, data):
-    P = P_arr[0]
+def loop_particle(particle_container, prog, data):
+    particle = particle_container[0]
     mcdc = adapt.mcdc_global(prog)
 
-    while P["alive"]:
-        step_particle(P_arr, prog, data)
+    while particle["alive"]:
+        step_particle(particle_container, prog, data)
 
 
 @njit
-def step_particle(P_arr, prog, data):
-    P = P_arr[0]
+def step_particle(particle_container, prog, data):
+    particle = particle_container[0]
     mcdc = adapt.mcdc_global(prog)
 
     # Determine and move to event
-    move_to_event(P_arr, mcdc, data)
+    move_to_event(particle_container, mcdc, data)
 
     # Execute events
-    if P["event"] == EVENT_LOST:
+    if particle["event"] == EVENT_LOST:
         return
 
     # Collision
-    if P["event"] & EVENT_COLLISION:
-        physics.collision(P_arr, prog, data)
+    if particle["event"] & EVENT_COLLISION:
+        physics.collision(particle_container, prog, data)
 
     # Surface and domain crossing
-    if P["event"] & EVENT_SURFACE_CROSSING:
-        geometry.surface_crossing(P_arr, prog, data)
+    if particle["event"] & EVENT_SURFACE_CROSSING:
+        geometry.surface_crossing(particle_container, prog, data)
 
     # Census time crossing
-    if P["event"] & EVENT_TIME_CENSUS:
-        adapt.add_census(P_arr, prog)
-        P["alive"] = False
+    if particle["event"] & EVENT_TIME_CENSUS:
+        adapt.add_census(particle_container, prog)
+        particle["alive"] = False
 
     # Time boundary crossing
-    if P["event"] & EVENT_TIME_BOUNDARY:
-        P["alive"] = False
+    if particle["event"] & EVENT_TIME_BOUNDARY:
+        particle["alive"] = False
 
     # Weight roulette
-    if P["alive"]:
-        technique.weight_roulette(P_arr, prog)
+    if particle["alive"]:
+        technique.weight_roulette(particle_container, prog)
 
 
 @njit
