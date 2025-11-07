@@ -108,7 +108,7 @@ class TallyBase(ObjectPolymorphic):
                 self.scores.append(SCORE_NET_CURRENT)
             else:
                 print_error(f"Unknown tally score: {score}")
-        
+
         # Set multipliers
         self.multipliers = []
         for multiplier in multipliers:
@@ -261,7 +261,9 @@ class TallyGlobal(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_GLOBAL
-        super().__init__(type_, name, scores, multipliers, mu, azi, polar_reference, energy, time)
+        super().__init__(
+            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time
+        )
 
     def __repr__(self):
         text = super().__repr__()
@@ -294,7 +296,9 @@ class TallyCell(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_CELL
-        super().__init__(type_, name, scores, multipliers, mu, azi, polar_reference, energy, time)
+        super().__init__(
+            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time
+        )
 
         # Attach cell and attach tally to the cell
         self.cell = cell
@@ -332,7 +336,9 @@ class TallySurface(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
-        super().__init__(type_, name, scores, multipliers, mu, azi, polar_reference, energy, time)
+        super().__init__(
+            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time
+        )
 
         # Set surface and attach tally to the surface
         self.surface = surface
@@ -375,7 +381,16 @@ class TallyMesh(TallyBase):
         type_ = TALLY_MESH
         spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
         super().__init__(
-            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time, spatial_shape
+            type_,
+            name,
+            scores,
+            multipliers,
+            mu,
+            azi,
+            polar_reference,
+            energy,
+            time,
+            spatial_shape,
         )
 
         self.mesh = mesh

@@ -639,17 +639,23 @@ def move_to_event(particle_container, mcdc, data):
         for i in range(cell["N_tally"]):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
             tally = mcdc["cell_tallies"][tally_ID]
-            tally_module.score.tracklength_tally(particle_container, distance, tally, mcdc, data)
+            tally_module.score.tracklength_tally(
+                particle_container, distance, tally, mcdc, data
+            )
 
         # Global tallies
         for i in range(mcdc["N_global_tally"]):
             tally = mcdc["global_tallies"][i]
-            tally_module.score.tracklength_tally(particle_container, distance, tally, mcdc, data)
+            tally_module.score.tracklength_tally(
+                particle_container, distance, tally, mcdc, data
+            )
 
         # Mesh tallies
         for i in range(mcdc["N_mesh_tally"]):
             tally = mcdc["mesh_tallies"][i]
-            tally_module.score.mesh_tally(particle_container, distance, tally, mcdc, data)
+            tally_module.score.mesh_tally(
+                particle_container, distance, tally, mcdc, data
+            )
 
     if settings["eigenvalue_mode"]:
         tally_module.score.eigenvalue_tally(particle_container, distance, mcdc, data)

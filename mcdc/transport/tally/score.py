@@ -39,10 +39,10 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
     speed = physics.particle_speed(particle_container, mcdc, data)
 
     multiplier = 1.0
-    for i_multiplier in range(tally['multipliers_length']):
+    for i_multiplier in range(tally["multipliers_length"]):
         multiplier_type = mcdc_get.tally.multipliers(i_multiplier, tally, data)
         if multiplier_type == MULTIPLIER_ENERGY:
-            multiplier *= particle['E']
+            multiplier *= particle["E"]
 
     for i_score in range(tally["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally, data)
@@ -93,7 +93,10 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     # No score if particle does not cross the time bins
     t_min = mcdc_get.tally.time(0, tally_base, data)
     t_max = mcdc_get.tally.time_last(tally_base, data)
-    if t_final < t_min + COINCIDENCE_TOLERANCE_TIME or t > t_max - COINCIDENCE_TOLERANCE_TIME:
+    if (
+        t_final < t_min + COINCIDENCE_TOLERANCE_TIME
+        or t > t_max - COINCIDENCE_TOLERANCE_TIME
+    ):
         return
 
     # Get the appropriate time index if needed
@@ -135,7 +138,7 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
         i_time += 1
         idx_base += tally_base["stride_time"]
 
-        # Check if it is the last segment 
+        # Check if it is the last segment
         #   The rest of the distance is not scored
         if i_time == tally_base["time_length"]:
             return
@@ -214,7 +217,7 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
         or t > t_max - COINCIDENCE_TOLERANCE_TIME
     ):
         return
-    
+
     # Get the appropriate time index if needed
     if t < t_min:
         i_time = 0

@@ -76,7 +76,9 @@ def population_control(mcdc):
 
         # Split the particle
         for i in range(N_split):
-            particle_module.copy_as_child(P_rec_arr, bank_census["particles"][idx : idx + 1])
+            particle_module.copy_as_child(
+                P_rec_arr, bank_census["particles"][idx : idx + 1]
+            )
             # Set weight
             P_rec["w"] = w_survive
             adapt.add_source(P_rec_arr, mcdc)
