@@ -228,8 +228,10 @@ def preparation():
     # Adapt kernels
     import numba as nb
     import mcdc.config as config
-    import mcdc.transport.particle_bank as particle_bank_module # TODO: why is this needed here?
     import mcdc.transport.mpi as mpi
+    
+    # TODO: Find out why the following is needed to avoid circular import
+    import mcdc.transport.particle_bank as particle_bank_module
 
     settings.target_gpu = True if config.target == "gpu" else False
 
