@@ -1,14 +1,11 @@
 import mcdc.mcdc_get as mcdc_get
 
-import h5py, math
 import numpy as np
 
 from mpi4py import MPI
 from numba import (
-    literal_unroll,
     njit,
     objmode,
-    uint64,
 )
 
 ####
@@ -19,15 +16,14 @@ import mcdc.transport.geometry as geometry
 import mcdc.transport.technique as technique
 
 import mcdc.code_factory.adapt as adapt
-import mcdc.transport.mesh as mesh_
 
 import mcdc.transport.tally as tally_module
 import mcdc.transport.rng as rng
 import mcdc.object_.numba_types as type_
 
-from mcdc.code_factory.adapt import toggle, for_cpu, for_gpu
+from mcdc.code_factory.adapt import for_cpu, for_gpu
 from mcdc.constant import *
-from mcdc.print_ import print_error, print_structure
+from mcdc.print_ import print_error
 
 import cffi
 
@@ -449,119 +445,3 @@ def split_as_data(P_new_rec_arr, P_rec_arr):
     copy_recordlike(P_new_rec_arr, P_rec_arr)
     P_new_rec["rng_seed"] = rng.split_seed(P_rec["rng_seed"], rng.SEED_SPLIT_PARTICLE)
     rng.lcg(P_rec_arr)
-
-
-# ======================================================================================
-# Move to event
-# ======================================================================================
-
-
-@njit
-def move_to_event(P_arr, mcdc, data):
-    settings = mcdc["settings"]
-
-    # ==================================================================================
-    # Preparation (as needed)
-    # ==================================================================================
-    P = P_arr[0]
-
-    # Multigroup preparation
-    #   In MG mode, particle speed is material-dependent.
-    if settings["multigroup_mode"]:
-        # If material is not identified yet, locate the particle
-        if P["material_ID"] == -1:
-            if not geometry.locate_particle(P_arr, mcdc, data):
-                # Particle is lost
-                P["event"] = EVENT_LOST
-                return
-
-    # ==================================================================================
-    # Geometry inspection
-    # ==================================================================================
-    #   - Set particle top cell and material IDs (if not lost)
-    #   - Set surface ID (if surface hit)
-    #   - Set particle boundary event (surface or lattice crossing, or lost)
-    #   - Return distance to boundary (surface or lattice)
-
-    d_boundary = geometry.inspect_geometry(P_arr, mcdc, data)
-
-    # Particle is lost?
-    if P["event"] == EVENT_LOST:
-        return
-
-    # ==================================================================================
-    # Get distances to other events
-    # ==================================================================================
-
-    # Distance to domain
-    speed = physics.particle_speed(P_arr, mcdc, data)
-
-    # Distance to time boundary
-    d_time_boundary = speed * (settings["time_boundary"] - P["t"])
-
-    # Distance to census time
-    idx = mcdc["idx_census"]
-    d_time_census = speed * (
-        mcdc_get.settings.census_time(idx, settings, data) - P["t"]
-    )
-
-    # Distance to next collision
-    d_collision = physics.collision_distance(P_arr, mcdc, data)
-
-    # =========================================================================
-    # Determine event(s)
-    # =========================================================================
-    # TODO: Make a function to better maintain the repeating operation
-
-    distance = d_boundary
-
-    # Check distance to collision
-    if d_collision < distance - COINCIDENCE_TOLERANCE:
-        distance = d_collision
-        P["event"] = EVENT_COLLISION
-        P["surface_ID"] = -1
-    elif geometry.check_coincidence(d_collision, distance):
-        P["event"] += EVENT_COLLISION
-
-    # Check distance to time census
-    if d_time_census < distance - COINCIDENCE_TOLERANCE:
-        distance = d_time_census
-        P["event"] = EVENT_TIME_CENSUS
-        P["surface_ID"] = -1
-    elif geometry.check_coincidence(d_time_census, distance):
-        P["event"] += EVENT_TIME_CENSUS
-
-    # Check distance to time boundary (exclusive event)
-    if d_time_boundary < distance + COINCIDENCE_TOLERANCE:
-        distance = d_time_boundary
-        P["event"] = EVENT_TIME_BOUNDARY
-        P["surface_ID"] = -1
-
-    # =========================================================================
-    # Move particle
-    # =========================================================================
-
-    # Score tracklength tallies
-    if mcdc["cycle_active"]:
-        # Cell tallies
-        cell = mcdc["cells"][P["cell_ID"]]
-        for i in range(cell["N_tally"]):
-            tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally = mcdc["cell_tallies"][tally_ID]
-            tally_module.score.tracklength_tally(P_arr, distance, tally, mcdc, data)
-
-        # Global tallies
-        for i in range(mcdc["N_global_tally"]):
-            tally = mcdc["global_tallies"][i]
-            tally_module.score.tracklength_tally(P_arr, distance, tally, mcdc, data)
-
-        # Mesh tallies
-        for i in range(mcdc["N_mesh_tally"]):
-            tally = mcdc["mesh_tallies"][i]
-            tally_module.score.mesh_tally(P_arr, distance, tally, mcdc, data)
-
-    if settings["eigenvalue_mode"]:
-        tally_module.score.eigenvalue_tally(P_arr, distance, mcdc, data)
-
-    # Move particle
-    move_particle(P_arr, distance, mcdc, data)

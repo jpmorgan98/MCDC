@@ -518,7 +518,7 @@ def step_particle(P_arr, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     # Determine and move to event
-    kernel.move_to_event(P_arr, mcdc, data)
+    move_to_event(P_arr, mcdc, data)
 
     # Execute events
     if P["event"] == EVENT_LOST:
@@ -544,6 +544,117 @@ def step_particle(P_arr, prog, data):
     # Weight roulette
     if P["alive"]:
         technique.weight_roulette(P_arr, prog)
+
+
+@njit
+def move_to_event(particle_container, mcdc, data):
+    settings = mcdc["settings"]
+
+    # ==================================================================================
+    # Preparation (as needed)
+    # ==================================================================================
+    particle = particle_container[0]
+
+    # Multigroup preparation
+    #   In MG mode, particle speed is material-dependent.
+    if settings["multigroup_mode"]:
+        # If material is not identified yet, locate the particle
+        if particle["material_ID"] == -1:
+            if not geometry.locate_particle(particle_container, mcdc, data):
+                # Particle is lost
+                particle["event"] = EVENT_LOST
+                return
+
+    # ==================================================================================
+    # Geometry inspection
+    # ==================================================================================
+    #   - Set particle top cell and material IDs (if not lost)
+    #   - Set surface ID (if surface hit)
+    #   - Set particle boundary event (surface or lattice crossing, or lost)
+    #   - Return distance to boundary (surface or lattice)
+
+    d_boundary = geometry.inspect_geometry(particle_container, mcdc, data)
+
+    # Particle is lost?
+    if particle["event"] == EVENT_LOST:
+        return
+
+    # ==================================================================================
+    # Get distances to other events
+    # ==================================================================================
+
+    # Distance to domain
+    speed = physics.particle_speed(particle_container, mcdc, data)
+
+    # Distance to time boundary
+    d_time_boundary = speed * (settings["time_boundary"] - particle["t"])
+
+    # Distance to census time
+    idx = mcdc["idx_census"]
+    d_time_census = speed * (
+        mcdc_get.settings.census_time(idx, settings, data) - particle["t"]
+    )
+
+    # Distance to next collision
+    d_collision = physics.collision_distance(particle_container, mcdc, data)
+
+    # ==================================================================================
+    # Determine event(s)
+    # ==================================================================================
+    # TODO: Make a function to better maintain the repeating operation
+
+    distance = d_boundary
+
+    # Check distance to collision
+    if d_collision < distance - COINCIDENCE_TOLERANCE:
+        distance = d_collision
+        particle["event"] = EVENT_COLLISION
+        particle["surface_ID"] = -1
+    elif geometry.check_coincidence(d_collision, distance):
+        particle["event"] += EVENT_COLLISION
+
+    # Check distance to time census
+    if d_time_census < distance - COINCIDENCE_TOLERANCE:
+        distance = d_time_census
+        particle["event"] = EVENT_TIME_CENSUS
+        particle["surface_ID"] = -1
+    elif geometry.check_coincidence(d_time_census, distance):
+        particle["event"] += EVENT_TIME_CENSUS
+
+    # Check distance to time boundary (exclusive event)
+    if d_time_boundary < distance + COINCIDENCE_TOLERANCE:
+        distance = d_time_boundary
+        particle["event"] = EVENT_TIME_BOUNDARY
+        particle["surface_ID"] = -1
+
+    # ==================================================================================
+    # Move particle
+    # ==================================================================================
+
+    # Score tracklength tallies
+    if mcdc["cycle_active"]:
+        # Cell tallies
+        cell = mcdc["cells"][particle["cell_ID"]]
+        for i in range(cell["N_tally"]):
+            tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+            tally = mcdc["cell_tallies"][tally_ID]
+            tally_module.score.tracklength_tally(particle_container, distance, tally, mcdc, data)
+
+        # Global tallies
+        for i in range(mcdc["N_global_tally"]):
+            tally = mcdc["global_tallies"][i]
+            tally_module.score.tracklength_tally(particle_container, distance, tally, mcdc, data)
+
+        # Mesh tallies
+        for i in range(mcdc["N_mesh_tally"]):
+            tally = mcdc["mesh_tallies"][i]
+            tally_module.score.mesh_tally(particle_container, distance, tally, mcdc, data)
+
+    if settings["eigenvalue_mode"]:
+        tally_module.score.eigenvalue_tally(particle_container, distance, mcdc, data)
+
+    # Move particle
+    kernel.move_particle(particle_container, distance, mcdc, data)
 
 
 def build_gpu_progs(input_deck, args):
