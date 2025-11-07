@@ -13,6 +13,7 @@ from numba import (
 
 ####
 
+import mcdc.transport.mpi as mpi
 import mcdc.transport.physics as physics
 import mcdc.transport.geometry as geometry
 import mcdc.transport.technique as technique
@@ -297,7 +298,7 @@ def bank_rebalance(mcdc):
     if N == 0:
         return
 
-    distribute_work(N, mcdc)
+    mpi.distribute_work(N, mcdc)
 
     # Rebalance not needed if there is only one rank
     if mcdc["mpi_size"] <= 1:
@@ -370,35 +371,6 @@ def bank_rebalance(mcdc):
     set_bank_size(mcdc["bank_source"], size)
     for i in range(size):
         mcdc["bank_source"]["particles"][i] = buff[i]
-
-
-@njit
-def distribute_work(N, mcdc):
-    size = mcdc["mpi_size"]
-    rank = mcdc["mpi_rank"]
-
-    # Total # of work
-    work_size_total = N
-
-    # Evenly distribute work
-    work_size = math.floor(N / size)
-
-    # Starting index (based on even distribution)
-    work_start = work_size * rank
-
-    # Count reminder
-    rem = N % size
-
-    # Assign reminder and update starting index
-    if rank < rem:
-        work_size += 1
-        work_start += rank
-    else:
-        work_start += rem
-
-    mcdc["mpi_work_start"] = work_start
-    mcdc["mpi_work_size"] = work_size
-    mcdc["mpi_work_size_total"] = work_size_total
 
 
 # =============================================================================

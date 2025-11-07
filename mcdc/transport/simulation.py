@@ -6,12 +6,13 @@ from numba import njit, objmode, uint64
 ####
 
 import mcdc.mcdc_get as mcdc_get
-import mcdc.config as config
 import mcdc.code_factory.adapt as adapt
+import mcdc.config as config
 import mcdc.object_.numba_types as type_
+import mcdc.output as output_module
 import mcdc.transport.geometry as geometry
 import mcdc.transport.kernel as kernel
-import mcdc.output as output_module
+import mcdc.transport.mpi as mpi
 import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
@@ -87,7 +88,7 @@ def fixed_source_simulation(mcdc_arr, data):
         seed_batch = rng.split_seed(uint64(idx_batch), settings["rng_seed"])
 
         # Distribute work
-        kernel.distribute_work(N_particle, mcdc)
+        mpi.distribute_work(N_particle, mcdc)
 
         # Print multi-batch header
         if N_batch > 1:
@@ -168,7 +169,7 @@ def eigenvalue_simulation(mcdc_arr, data):
     N_particle = settings["N_particle"]
 
     # Distribute work
-    kernel.distribute_work(N_particle, mcdc)
+    mpi.distribute_work(N_particle, mcdc)
 
     # Loop over power iteration cycles
     for idx_cycle in range(N_cycle):

@@ -228,7 +228,8 @@ def preparation():
     # Adapt kernels
     import numba as nb
     import mcdc.config as config
-    import mcdc.transport.kernel as kernel
+    import mcdc.transport.kernel as kernel # TODO: why is this needed here
+    import mcdc.transport.mpi as mpi
 
     settings.target_gpu = True if config.target == "gpu" else False
 
@@ -265,7 +266,7 @@ def preparation():
                     N_particle = f["particles_size"][()]
 
                     # Redistribute work
-                    kernel.distribute_work(N_particle, mcdc)
+                    mpi.distribute_work(N_particle, mcdc)
                     N_local = mcdc["mpi_work_size"]
                     start = mcdc["mpi_work_start"]
                     end = start + N_local
