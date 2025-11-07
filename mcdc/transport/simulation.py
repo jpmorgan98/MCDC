@@ -5,15 +5,15 @@ from numba import njit, objmode, uint64
 
 ####
 
-import mcdc.mcdc_get as mcdc_get
 import mcdc.code_factory.adapt as adapt
 import mcdc.config as config
+import mcdc.mcdc_get as mcdc_get
 import mcdc.object_.numba_types as type_
 import mcdc.output as output_module
 import mcdc.transport.geometry as geometry
-import mcdc.transport.kernel as kernel
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
+import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
@@ -106,15 +106,15 @@ def fixed_source_simulation(mcdc_arr, data):
                 tally_module.filter.set_census_based_time_grid(mcdc, data)
 
             # Check and accordingly promote future particles to censused particles
-            if kernel.get_bank_size(mcdc["bank_future"]) > 0:
-                kernel.check_future_bank(mcdc, data)
+            if particle_bank_module.get_bank_size(mcdc["bank_future"]) > 0:
+                particle_bank_module.check_future_bank(mcdc, data)
 
             # Loop over source particles
             seed_source = rng.split_seed(uint64(seed_census), rng.SEED_SPLIT_SOURCE)
             loop_source(uint64(seed_source), mcdc, data)
 
             # Manage particle banks: population control and work rebalance
-            kernel.manage_particle_banks(mcdc)
+            particle_bank_module.manage_particle_banks(mcdc)
 
             # Time census-based tally closeout
             if use_census_based_tally:
@@ -128,19 +128,19 @@ def fixed_source_simulation(mcdc_arr, data):
             # Terminate census loop if all banks are empty
             if (
                 idx_census > 0
-                and kernel.get_bank_size(mcdc["bank_source"]) == 0
-                and kernel.get_bank_size(mcdc["bank_census"]) == 0
-                and kernel.get_bank_size(mcdc["bank_future"]) == 0
+                and particle_bank_module.get_bank_size(mcdc["bank_source"]) == 0
+                and particle_bank_module.get_bank_size(mcdc["bank_census"]) == 0
+                and particle_bank_module.get_bank_size(mcdc["bank_future"]) == 0
             ):
                 break
 
         # Multi-batch closeout
         if N_batch > 1:
             # Reset banks
-            kernel.set_bank_size(mcdc["bank_active"], 0)
-            kernel.set_bank_size(mcdc["bank_census"], 0)
-            kernel.set_bank_size(mcdc["bank_source"], 0)
-            kernel.set_bank_size(mcdc["bank_future"], 0)
+            particle_bank_module.set_bank_size(mcdc["bank_active"], 0)
+            particle_bank_module.set_bank_size(mcdc["bank_census"], 0)
+            particle_bank_module.set_bank_size(mcdc["bank_source"], 0)
+            particle_bank_module.set_bank_size(mcdc["bank_future"], 0)
 
             if not use_census_based_tally:
                 # Tally history closeout
@@ -187,7 +187,7 @@ def eigenvalue_simulation(mcdc_arr, data):
             tally_module.closeout.accumulate(mcdc, data)
 
         # Manage particle banks: population control and work rebalance
-        kernel.manage_particle_banks(mcdc)
+        particle_bank_module.manage_particle_banks(mcdc)
 
         # Print progress
         with objmode():
@@ -237,7 +237,7 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     particle = particle_container[0]
 
     # Get from fixed-source?
-    if kernel.get_bank_size(mcdc["bank_source"]) == 0:
+    if particle_bank_module.get_bank_size(mcdc["bank_source"]) == 0:
         # Sample source
         seed_work = rng.split_seed(work_start + idx_work, seed)
         source_particle(particle_container, seed_work, mcdc, data)
@@ -281,9 +281,9 @@ def exhaust_active_bank(prog, data):
     particle = particle_container[0]
 
     # Loop until active bank is exhausted
-    while kernel.get_bank_size(mcdc["bank_active"]) > 0:
+    while particle_bank_module.get_bank_size(mcdc["bank_active"]) > 0:
         # Get particle from active bank
-        kernel.get_particle(particle_container, mcdc["bank_active"], mcdc)
+        particle_bank_module.get_particle(particle_container, mcdc["bank_active"], mcdc)
 
         prep_particle(particle_container, prog)
 
@@ -680,7 +680,7 @@ def gpu_loop_source(seed, data, mcdc):
     N_prog = 0
 
     if mcdc["technique"]["domain_decomposition"]:
-        kernel.dd_check_in(mcdc)
+        particle_bank_module.dd_check_in(mcdc)
 
     # =====================================================================
     # GPU Interop
@@ -712,14 +712,14 @@ def gpu_loop_source(seed, data, mcdc):
         if ASYNC_EXECUTION:
             src_exec_program(mcdc["source_program_pointer"], BLOCK_COUNT, iter_count)
             while not src_complete(mcdc["source_program_pointer"]):
-                kernel.dd_particle_send(mcdc)
+                particle_bank_module.dd_particle_send(mcdc)
                 src_exec_program(
                     mcdc["source_program_pointer"], BLOCK_COUNT, iter_count
                 )
         else:
             src_exec_program(mcdc["source_program_pointer"], BLOCK_COUNT, batch_size)
             while not src_complete(mcdc["source_program_pointer"]):
-                kernel.dd_particle_send(mcdc)
+                particle_bank_module.dd_particle_send(mcdc)
                 src_exec_program(
                     mcdc["source_program_pointer"], BLOCK_COUNT, batch_size
                 )
@@ -731,7 +731,7 @@ def gpu_loop_source(seed, data, mcdc):
 
     mcdc["mpi_work_size"] = full_work_size
 
-    kernel.set_bank_size(mcdc["bank_active"], 0)
+    particle_bank_module.set_bank_size(mcdc["bank_active"], 0)
 
     # =====================================================================
     # Closeout (Moved out of the typical particle loop)

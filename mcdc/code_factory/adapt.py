@@ -5,7 +5,7 @@ from numba.extending import intrinsic
 import numba
 import mcdc.config as config
 import mcdc.object_.numba_types as type_
-import mcdc.transport.kernel as kernel
+import mcdc.transport.particle_bank as particle_bank_module
 
 
 if importlib.util.find_spec("harmonize") is None:
@@ -587,14 +587,14 @@ def thread(prog):
 
 
 @for_cpu()
-def add_active(P_arr, prog):
-    kernel.add_particle(P_arr, prog["bank_active"])
+def add_active(particle, prog):
+    particle_bank_module.add_particle(particle, prog["bank_active"])
 
 
 @for_gpu()
-def add_active(P_rec_arr, prog):
-    P_arr = local_array(1, type_.particle)
-    kernel.recordlike_to_particle(P_arr, P_rec_arr)
+def add_active(P_reclike, prog):
+    P = local_array(1, type_.particle)
+    particle_bank_module.recordlike_to_particle(P, P_reclike)
     if SIMPLE_ASYNC:
         step_async(prog, P_arr[0])
     else:
@@ -602,36 +602,36 @@ def add_active(P_rec_arr, prog):
 
 
 @for_cpu()
-def add_source(P_arr, prog):
-    kernel.add_particle(P_arr, prog["bank_source"])
+def add_source(particle, prog):
+    particle_bank_module.add_particle(particle, prog["bank_source"])
 
 
 @for_gpu()
 def add_source(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(P_arr, mcdc["bank_source"])
+    particle_bank_module.add_particle(particle, mcdc["bank_source"])
 
 
 @for_cpu()
-def add_census(P_arr, prog):
-    kernel.add_particle(P_arr, prog["bank_census"])
+def add_census(particle, prog):
+    particle_bank_module.add_particle(particle, prog["bank_census"])
 
 
 @for_gpu()
 def add_census(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(P_arr, mcdc["bank_census"])
+    particle_bank_module.add_particle(particle, mcdc["bank_census"])
 
 
 @for_cpu()
-def add_future(P_arr, prog):
-    kernel.add_particle(P_arr, prog["bank_future"])
+def add_future(particle, prog):
+    particle_bank_module.add_particle(particle, prog["bank_future"])
 
 
 @for_gpu()
 def add_future(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(P_arr, mcdc["bank_future"])
+    particle_bank_module.add_particle(particle, mcdc["bank_future"])
 
 
 @for_cpu()

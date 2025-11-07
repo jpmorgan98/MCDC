@@ -6,10 +6,10 @@ from numba import njit
 ####
 
 import mcdc.code_factory.adapt as adapt
-import mcdc.transport.kernel as kernel
-import mcdc.transport.rng as rng
-import mcdc.transport.particle as particle_module
 import mcdc.object_.numba_types as type_
+import mcdc.transport.particle as particle_module
+import mcdc.transport.particle_bank as particle_bank_module
+import mcdc.transport.rng as rng
 
 
 # ======================================================================================
@@ -43,7 +43,7 @@ def population_control(mcdc):
     bank_source = mcdc["bank_source"]
 
     # Scan the bank
-    idx_start, N_local, N = kernel.bank_scanning(bank_census, mcdc)
+    idx_start, N_local, N = particle_bank_module.bank_scanning(bank_census, mcdc)
     idx_end = idx_start + N_local
 
     # Abort if census bank is empty
@@ -60,7 +60,7 @@ def population_control(mcdc):
     P_rec = P_rec_arr[0]
 
     # Perform split-roulette to all particles in local bank
-    kernel.set_bank_size(bank_source, 0)
+    particle_bank_module.set_bank_size(bank_source, 0)
     for idx in range(N_local):
         # Weight of the surviving particles
         w = bank_census["particles"][idx]["w"]

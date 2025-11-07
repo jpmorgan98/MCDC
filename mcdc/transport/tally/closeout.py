@@ -7,7 +7,7 @@ from mpi4py import MPI
 ####
 
 import mcdc.mcdc_set as mcdc_set
-import mcdc.transport.kernel as kernel
+import mcdc.transport.particle_bank as particle_bank_module
 
 from mcdc.constant import (
     GYRATION_RADIUS_ALL,
@@ -235,7 +235,7 @@ def eigenvalue_cycle(mcdc, data):
 
     if mcdc["settings"]["use_gyration_radius"]:
         # Center of mass
-        N_local = kernel.get_bank_size(mcdc["bank_census"])
+        N_local = particle_bank_module.get_bank_size(mcdc["bank_census"])
         total_local = np.zeros(4, np.float64)  # [x,y,z,W]
         total = np.zeros(4, np.float64)
         for i in range(N_local):
