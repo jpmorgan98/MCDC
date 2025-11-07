@@ -81,7 +81,7 @@ def lcg_(seed):
 
 
 @njit
-def lcg(state_arr):
-    state = state_arr[0]
+def lcg(state_container):
+    state = state_container[0]
     state["rng_seed"] = lcg_(state["rng_seed"])
     return state["rng_seed"] / RNG_MOD

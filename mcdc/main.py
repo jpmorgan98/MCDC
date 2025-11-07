@@ -228,7 +228,7 @@ def preparation():
     # Adapt kernels
     import numba as nb
     import mcdc.config as config
-    import mcdc.transport.kernel as kernel # TODO: why is this needed here
+    import mcdc.transport.kernel as kernel # TODO: why is this needed here?
     import mcdc.transport.mpi as mpi
 
     settings.target_gpu = True if config.target == "gpu" else False

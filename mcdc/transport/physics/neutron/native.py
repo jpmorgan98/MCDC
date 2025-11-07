@@ -8,11 +8,10 @@ from numba import njit
 import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.object_.numba_types as type_
-import mcdc.transport.kernel as kernel
+import mcdc.transport.particle as particle_module
 import mcdc.transport.rng as rng
 
 from mcdc.constant import (
-    DISTRIBUTION_MULTIPDF,
     E_THERMAL_THRESHOLD,
     PI,
     PI_HALF,
@@ -421,7 +420,7 @@ def fission(reaction_base, particle_container, nuclide, prog, data):
     # Create the secondaries
     for n in range(N):
         # Set default attributes
-        kernel.split_as_data(particle_container_new, particle_container)
+        particle_module.copy_as_child(particle_container_new, particle_container)
 
         # Set weight
         particle_new["w"] = weight_product

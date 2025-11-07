@@ -10,15 +10,13 @@ from numba import (
 
 ####
 
+import mcdc.transport.particle as particle_module
+
 import mcdc.transport.mpi as mpi
-import mcdc.transport.physics as physics
-import mcdc.transport.geometry as geometry
 import mcdc.transport.technique as technique
 
 import mcdc.code_factory.adapt as adapt
 
-import mcdc.transport.tally as tally_module
-import mcdc.transport.rng as rng
 import mcdc.object_.numba_types as type_
 
 from mcdc.code_factory.adapt import for_cpu, for_gpu
@@ -88,7 +86,7 @@ def add_particle(P_arr, bank):
         full_bank_print(bank)
 
     # Set particle
-    copy_recordlike(bank["particles"][idx : idx + 1], P_arr)
+    particle_module.copy(bank["particles"][idx : idx + 1], P_arr)
 
 
 @njit
@@ -146,7 +144,7 @@ def check_future_bank(mcdc, data):
     for i in range(N):
         # Get the next future particle index
         idx = i - get_bank_size(bank_census)
-        copy_recordlike(P_arr, bank_future["particles"][idx : idx + 1])
+        particle_module.copy(P_arr, bank_future["particles"][idx : idx + 1])
 
         # Promote the future particle to census bank
         if P["t"] < next_census_time:
@@ -155,7 +153,7 @@ def check_future_bank(mcdc, data):
 
             # Consolidate the emptied space in the future bank
             j = get_bank_size(bank_future)
-            copy_recordlike(
+            particle_module.copy(
                 bank_future["particles"][idx : idx + 1],
                 bank_future["particles"][j : j + 1],
             )
@@ -269,22 +267,6 @@ def total_weight(bank):
 
 
 @njit
-def allreduce(value):
-    total = np.zeros(1, np.float64)
-    with objmode():
-        MPI.COMM_WORLD.Allreduce(np.array([value], np.float64), total, MPI.SUM)
-    return total[0]
-
-
-@njit
-def allreduce_array(array):
-    buff = np.zeros_like(array)
-    with objmode():
-        MPI.COMM_WORLD.Allreduce(np.array(array), buff, op=MPI.SUM)
-    array[:] = buff
-
-
-@njit
 def bank_rebalance(mcdc):
     # Scan the bank
     idx_start, N_local, N = bank_scanning(mcdc["bank_source"], mcdc)
@@ -367,81 +349,3 @@ def bank_rebalance(mcdc):
     set_bank_size(mcdc["bank_source"], size)
     for i in range(size):
         mcdc["bank_source"]["particles"][i] = buff[i]
-
-
-# =============================================================================
-# Particle operations
-# =============================================================================
-
-
-@njit
-def move_particle(P_arr, distance, mcdc, data):
-    P = P_arr[0]
-    P["x"] += P["ux"] * distance
-    P["y"] += P["uy"] * distance
-    P["z"] += P["uz"] * distance
-    P["t"] += distance / physics.particle_speed(P_arr, mcdc, data)
-
-
-@njit
-def copy_recordlike(P_new_arr, P_rec_arr):
-    P_new = P_new_arr[0]
-    P_rec = P_rec_arr[0]
-    P_new["x"] = P_rec["x"]
-    P_new["y"] = P_rec["y"]
-    P_new["z"] = P_rec["z"]
-    P_new["t"] = P_rec["t"]
-    P_new["ux"] = P_rec["ux"]
-    P_new["uy"] = P_rec["uy"]
-    P_new["uz"] = P_rec["uz"]
-    P_new["g"] = P_rec["g"]
-    P_new["E"] = P_rec["E"]
-    P_new["w"] = P_rec["w"]
-    P_new["particle_type"] = P_rec["particle_type"]
-    P_new["rng_seed"] = P_rec["rng_seed"]
-
-
-@njit
-def copy_particle(P_new_arr, P_arr):
-    P_new = P_new_arr[0]
-    P = P_arr[0]
-    P_new = P_new_arr[0]
-    P_new["x"] = P["x"]
-    P_new["y"] = P["y"]
-    P_new["z"] = P["z"]
-    P_new["t"] = P["t"]
-    P_new["ux"] = P["ux"]
-    P_new["uy"] = P["uy"]
-    P_new["uz"] = P["uz"]
-    P_new["g"] = P["g"]
-    P_new["w"] = P["w"]
-    P_new["type"] = P["type"]
-    P_new["alive"] = P["alive"]
-    P_new["fresh"] = P["fresh"]
-    P_new["material_ID"] = P["material_ID"]
-    P_new["cell_ID"] = P["cell_ID"]
-    P_new["surface_ID"] = P["surface_ID"]
-    P_new["event"] = P["event"]
-    P_new["rng_seed"] = P["rng_seed"]
-
-
-@njit
-def recordlike_to_particle(P_new_arr, P_rec_arr):
-    P_new = P_new_arr[0]
-    P_rec = P_rec_arr[0]
-    copy_recordlike(P_new_arr, P_rec_arr)
-    P_new["fresh"] = True
-    P_new["alive"] = True
-    P_new["material_ID"] = -1
-    P_new["cell_ID"] = -1
-    P_new["surface_ID"] = -1
-    P_new["event"] = -1
-
-
-@njit
-def split_as_data(P_new_rec_arr, P_rec_arr):
-    P_rec = P_rec_arr[0]
-    P_new_rec = P_new_rec_arr[0]
-    copy_recordlike(P_new_rec_arr, P_rec_arr)
-    P_new_rec["rng_seed"] = rng.split_seed(P_rec["rng_seed"], rng.SEED_SPLIT_PARTICLE)
-    rng.lcg(P_rec_arr)

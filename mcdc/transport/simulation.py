@@ -13,6 +13,7 @@ import mcdc.output as output_module
 import mcdc.transport.geometry as geometry
 import mcdc.transport.kernel as kernel
 import mcdc.transport.mpi as mpi
+import mcdc.transport.particle as particle_module
 import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
@@ -654,7 +655,7 @@ def move_to_event(particle_container, mcdc, data):
         tally_module.score.eigenvalue_tally(particle_container, distance, mcdc, data)
 
     # Move particle
-    kernel.move_particle(particle_container, distance, mcdc, data)
+    particle_module.move(particle_container, distance, mcdc, data)
 
 
 def build_gpu_progs(input_deck, args):
