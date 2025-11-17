@@ -13,8 +13,8 @@ from util import print_error
 # ======================================================================================
 
 # Directories
-ace_dir = "/usr/workspace/variansyah1/nuclear_data/ace/Lib81/Lib81"
-output_dir = "/usr/workspace/variansyah1/nuclear_data/mcdc"
+ace_dir = "/Users/ilhamvariansyah/nuclear_data/ace/Lib81"
+output_dir = "/Users/ilhamvariansyah/nuclear_data/mcdc"
 
 # ======================================================================================
 # Generate MC/DC nuclear data files from ACE files
@@ -37,7 +37,8 @@ for ace_name in os.listdir(ace_dir):
     mcdc_name = f"{nuclide_name}-{S}-{T}.h5"
 
     # Create MC/DC file
-    print(f'Create {mcdc_name} from {ace_name}')
+    print("\n"+"="*80+"\n")
+    print(f'Create {mcdc_name} from {ace_name}\n')
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
 
     # ==================================================================================
@@ -94,6 +95,7 @@ for ace_name in os.listdir(ace_dir):
     capture_MTs = []
     inelastic_MTs = []
     redundant_MTs = [1, 3, 4, 10, 19, 20, 21, 38]
+    fission_components = [19, 20, 21, 38]
 
     # Add MTs to capture and inelastic groups
     for i in range(N_reaction):
@@ -110,6 +112,14 @@ for ace_name in os.listdir(ace_dir):
             inelastic_MTs.append(MT)
         else:
             print_error(f"Negative multiplicity for MT={MT}")
+
+    # Report MT
+    print(f"  Reaction group MTs")
+    print(f"    - Elastic MTs: {elastic_MTs}")
+    print(f"    - Capture MTs: {capture_MTs}")
+    if fissionable:
+        print(f"    - Fission MTs: {fission_MTs}")
+    print(f"    - Inelastic MTs: {inelastic_MTs}")
 
     # ==================================================================================
     # Cross-sections
@@ -152,6 +162,19 @@ for ace_name in os.listdir(ace_dir):
         xs.attrs["energy_offset"] = energy_offsets(idx) - 1
         xs.attrs["unit"] = "barns"
 
+    # Fissionable, but provided by components
+    if fissionable and not rx_block.has_MT(18):
+        xs_fission = np.zeros_like(xs_energy)
+
+        for MT in fission_components:
+            idx = rx_block.index(MT)
+            xs_fission[energy_offsets(idx) - 1:] += cross_sections(idx)[:]
+
+        xs = fission_group.create_dataset("MT-018/xs", data=xs_fission)
+        xs.attrs["energy_offset"] = 0
+        xs.attrs["unit"] = "barns"
+        
+
     # ==================================================================================
     # Reference frames and inelastic multiplicities
     # ==================================================================================
@@ -188,6 +211,29 @@ for ace_name in os.listdir(ace_dir):
         if MT in inelastic_MTs:
             nu = nu_block.multiplicity(idx)
             inelastic_group.create_dataset(f"MT-{MT:03}/multiplicity", data=nu)
+    
+    # Fissionable, but provided by components
+    if fissionable and not rx_block.has_MT(18):
+        xs_fission = np.zeros_like(xs_energy)
+
+        reference_frames = []
+        for MT in fission_components:
+            idx = rx_block.index(MT)
+
+            # Reference frame
+            reference_frame = nu_block.reference_frame(idx)
+            reference_frames.append(reference_frame)
+
+        if len(set(reference_frames)) != 1:
+            print_error("Fission component reference frames are identical")
+
+        if reference_frames[0] == ACEtk.ReferenceFrame.Laboratory:
+            reference_frame = 'LAB'
+        elif reference_frames[0] == ACEtk.ReferenceFrame.CentreOfMass:
+            reference_frame = 'COM'
+        else:
+            print_error(f"Unknown reaction reference frame type for MT={MT}")
+        fission_group.create_dataset(f"MT-018/reference_frame", data=reference_frame)
 
     # ==================================================================================
     # Fission multiplicities and delayed neutron precursor fractions and decay rates
@@ -285,11 +331,19 @@ for ace_name in os.listdir(ace_dir):
         angle_group.create_dataset('value', data=cosine)
         angle_group.create_dataset('pdf', data=pdf)
 
-    # Fission: Isotropic
+    # Fission: Isotropic (mostly)
     if fissionable:
-        idx = rx_block.index(18)
-        if not angle_block.is_fully_isotropic(idx):
-            print_error('Anisotropic fission neutron')
+        if rx_block.has_MT(18):
+            idx = rx_block.index(18)
+            if not angle_block.is_fully_isotropic(idx):
+                print_error('Anisotropic fission neutron')
+        else:
+            isotropic = []
+            for MT in fission_components:
+                idx = rx_block.index(MT)
+                isotropic.append(angle_block.is_fully_isotropic(idx))
+            if not all(isotropic):
+                print_error('Anisotropic fission neutron')
 
     # Inelastic
     for MT in inelastic_MTs:
@@ -298,10 +352,16 @@ for ace_name in os.listdir(ace_dir):
 
         if angle_block.is_fully_isotropic(idx):
             angle_group.attrs['type'] = 'isotropic'
+
+        elif isinstance(
+            angle_block.angular_distribution_data(idx),
+            ACEtk.continuous.DistributionGivenElsewhere
+        ):
+            angle_group.attrs['type'] = 'energy-correlated'
+
         else:
             angle_group.attrs['type'] = 'multi-table'
             data = angle_block.angular_distribution_data(idx)
-            print(data)
 
             # Check distribution support: all tabulated
             NE = data.number_incident_energies
