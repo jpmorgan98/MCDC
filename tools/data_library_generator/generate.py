@@ -8,17 +8,10 @@ import os
 import util
 from util import print_error, print_note
 
-# ======================================================================================
-# Setup
-# ======================================================================================
 
 # Directories
-ace_dir = "/Users/ilhamvariansyah/nuclear_data/ace/Lib81"
-output_dir = "/Users/ilhamvariansyah/nuclear_data/mcdc"
-
-# ======================================================================================
-# Generate MC/DC nuclear data files from ACE files
-# ======================================================================================
+output_dir = os.getenv("MCDC_LIB")
+ace_dir = os.getenv("MCDC_ACELIB")
 
 # Create output directory if needed
 os.makedirs(output_dir, exist_ok=True)
