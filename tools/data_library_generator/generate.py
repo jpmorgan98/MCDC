@@ -331,7 +331,7 @@ for ace_name in os.listdir(ace_dir):
         angle_group.create_dataset('value', data=cosine)
         angle_group.create_dataset('pdf', data=pdf)
 
-    # Fission: Isotropic (mostly)
+    # Fission: Isotropic (should be!?)
     if fissionable:
         anisotropic = False
 
@@ -340,7 +340,6 @@ for ace_name in os.listdir(ace_dir):
             idx = rx_block.index(18)
             if not angle_block.is_fully_isotropic(idx):
                 anisotropic = True
-                print_note('Anisotropic fission neutron')
         else:
             isotropic = []
             for MT in fission_components:
@@ -348,12 +347,8 @@ for ace_name in os.listdir(ace_dir):
                 isotropic.append(angle_block.is_fully_isotropic(idx))
             if not all(isotropic):
                 print_error('Anisotropic fission neutron')
-                # TODO
 
         if anisotropic:
-            angle_group = fission_group.create_group('MT-018/emission_cosine')
-            angle_group.attrs['type'] = 'multi-table'
-
             idx = rx_block.index(18)
             data = angle_block.angular_distribution_data(idx)
 
@@ -364,34 +359,14 @@ for ace_name in os.listdir(ace_dir):
                 if (
                     data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
                 ):
-                    print_error("Fission angular distribution is not all-tabulated")
+                    print_error("Anisotropic fission angular distribution is not all-tabulated")
 
-            # Incident energy
-            energy = np.array(data.incident_energies) * 1E6 # MeV to eV
-            energy = angle_group.create_dataset('energy', data=energy)
-            energy.attrs['unit'] = 'eV'
-
-            # Disstributions
-            interpolation = np.zeros(NE, dtype=int)
-            offset = np.zeros(NE, dtype=int)
-            cosine = []
-            pdf = []
             for i, distribution in enumerate(data.distributions):
-                interpolation[i] = distribution.interpolation
-                offset[i] = len(cosine)
-                cosine.extend(distribution.cosines)
-                pdf.extend(distribution.pdf)
+                pdf = distribution.pdf[:]
+                if len(pdf) != 2 or pdf[0] != 0.5 or pdf[1] != 0.5:
+                    print_error("Anisotropic fission neutron")
 
-                print(data.incident_energies[:])
-                print(distribution.cosines[:])
-                print(distribution.pdf[:])
-                input()
-            cosine = np.array(cosine)
-            pdf = np.array(pdf)
-            angle_group.create_dataset('interpolation', data=interpolation)
-            angle_group.create_dataset('offset', data=offset)
-            angle_group.create_dataset('value', data=cosine)
-            angle_group.create_dataset('pdf', data=pdf)
+            print_note("Tabulated isotropic fission neutron distribution")
 
     # Inelastic
     for MT in inelastic_MTs:
