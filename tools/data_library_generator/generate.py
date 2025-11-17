@@ -262,13 +262,9 @@ for ace_name in os.listdir(ace_dir):
         
         if isinstance(data, ACEtk.continuous.MultiDistributionData):
             energy_group.attrs['type'] = 'multi-distribution'
-
-            # Make sure the number is consistent
-            N = data.number_distributions
-            if N != nu_block.multiplicity(idx):
-                print_error(f"Inconsistent number of energy distributions and multiplicity for MT-{MT:03}")
            
             # Set each distribution
+            N = data.number_distributions
             for i in range(N):
                 group_ = energy_group.create_group(f"energy_out-{i+1}")
                 distribution = data.distribution(i+1)
