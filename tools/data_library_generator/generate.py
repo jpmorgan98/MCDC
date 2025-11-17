@@ -127,9 +127,9 @@ for ace_name in os.listdir(ace_dir):
     energy_offsets = xs_block.energy_index
 
     # Energy grid
-    xs_energy = np.array(xs_energy) * 1e6  # MeV to eV
-    xs_energy = reactions.create_dataset("xs_energy_grid", data=xs_energy)
-    xs_energy.attrs["unit"] = "eV"
+    xs_energy = np.array(xs_energy)
+    dataset = reactions.create_dataset("xs_energy_grid", data=xs_energy)
+    dataset.attrs["unit"] = "MeV"
 
     # Elastic
     xs = elastic_group.create_dataset("MT-002/xs", data=xs_elastic)
