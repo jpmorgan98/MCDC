@@ -21,6 +21,8 @@ from mcdc.constant import *
 from mcdc.print_ import print_error, print_msg
 from mcdc.src.algorithm import binary_search, binary_search_with_length
 
+import cffi
+ffi = cffi.FFI()
 
 @njit
 def round(float_val):
@@ -655,13 +657,13 @@ def source_particle_dd(seed, mcdc):
     # Position
     if source["box"]:
         x = sample_uniform(
-            max(source["box_x"][0], d_x[0]), min(source["box_x"][1], d_x[1]), P
+            max(source["box_x"][0], d_x[0]), min(source["box_x"][1], d_x[1]), P_arr
         )
         y = sample_uniform(
-            max(source["box_y"][0], d_y[0]), min(source["box_y"][1], d_y[1]), P
+            max(source["box_y"][0], d_y[0]), min(source["box_y"][1], d_y[1]), P_arr
         )
         z = sample_uniform(
-            max(source["box_z"][0], d_z[0]), min(source["box_z"][1], d_z[1]), P
+            max(source["box_z"][0], d_z[0]), min(source["box_z"][1], d_z[1]), P_arr
         )
 
     else:
@@ -974,12 +976,26 @@ def add_bank_size(bank, value):
 @for_cpu()
 def full_bank_print(bank):
     with objmode():
-        print_error("Particle %s bank is full." % bank["tag"])
+        print_error("Particle %s bank is full at count %d." % (bank["tag"],bank["size"]))
 
 
 @for_gpu()
 def full_bank_print(bank):
     pass
+
+
+@njit
+def add_full_particle(P_arr, bank):
+    P = P_arr[0]
+
+    idx = add_bank_size(bank, 1)
+
+    # Check if bank is full
+    if idx >= bank["particles"].shape[0]:
+        full_bank_print(bank)
+
+    # Set particle
+    copy_particle(bank["particles"][idx : idx + 1], P_arr)
 
 
 @njit
@@ -1463,6 +1479,8 @@ def bank_IC(P_arr, prog):
         # Accumulate fission
         SigmaF = material["fission"][g]
         # mcdc["technique"]["IC_fission_score"][0] += v * SigmaF
+
+        # HAZARD
         adapt.global_add(mcdc["technique"]["IC_fission_score"], 0, round(v * SigmaF))
 
     # =========================================================================
@@ -1484,6 +1502,7 @@ def bank_IC(P_arr, prog):
         total += nu_d[j] / decay[j]
     wp = flux * total * SigmaF / mcdc["k_eff"]
 
+    # HAZARD (with loop above)
     # Material has no precursor
     if total == 0.0:
         return
@@ -2209,57 +2228,79 @@ def score_cs_tally(P_arr, distance, tally, data_tally, mcdc):
 
 
 @njit
-def cs_clip(p, q, t0, t1):
+def cs_clip(p, q, t):
     if p < 0:
-        t = q / p
-        if t > t1:
-            return False, t0, t1
-        if t > t0:
-            t0 = t
+        tc = q / p
+        if tc > t[1]:
+            return False
+        if tc > t[0]:
+            t[0] = tc
     elif p > 0:
-        t = q / p
-        if t < t0:
-            return False, t0, t1
-        if t < t1:
-            t1 = t
+        tc = q / p
+        if tc < t[0]:
+            return False
+        if tc < t[1]:
+            t[1] = tc
     elif q < 0:
-        return False, t0, t1
-    return True, t0, t1
+        return False
+    return True
 
 
 @njit
-def cs_tracklength_in_box(start, end, x_min, x_max, y_min, y_max):
+def cs_tracklength_in_box(base_start, base_end, x_min, x_max, y_min, y_max):
+
+    start = adapt.local_array(2, type_.float64)
+    end   = adapt.local_array(2, type_.float64)
+    start [0] = base_start[0]
+    start [1] = base_start[1]
+    end   [0] = base_end[0]
+    end   [1] = base_end[1]
+
     # Uses Liang-Barsky algorithm for finding tracklength in box
-    t0, t1 = 0.0, 1.0
+    t = adapt.local_array(2, type_.float64)
+    t[0] = 0.0
+    t[1] = 1.0
     dx = end[0] - start[0]
     dy = end[1] - start[1]
 
     # Perform clipping for each boundary
-    result, t0, t1 = cs_clip(-dx, start[0] - x_min, t0, t1)
+    #result = cs_clip(-dx, start[0] - x_min, t)
+    #if not result:
+    #    return 0.0
+    result = cs_clip(dx, x_max - start[1], t)
     if not result:
         return 0.0
-    result, t0, t1 = cs_clip(dx, x_max - start[0], t0, t1)
+    result = cs_clip(-dy, start[1] - y_min, t)
     if not result:
         return 0.0
-    result, t0, t1 = cs_clip(-dy, start[1] - y_min, t0, t1)
-    if not result:
-        return 0.0
-    result, t0, t1 = cs_clip(dy, y_max - start[1], t0, t1)
+    result = cs_clip(dy, y_max - start[1], t)
     if not result:
         return 0.0
 
-    # Update start and end points based on clipping results
-    if t1 < 1:
-        end[0] = start[0] + t1 * dx
-        end[1] = start[1] + t1 * dy
-    if t0 > 0:
-        start[0] = start[0] + t0 * dx
-        start[1] = start[1] + t0 * dx
+    ## Update start and end points based on clipping results
+    #if t[1] < 1:
+    #    end[0] = start[0] + t[1] * dx
+    #    end[1] = start[1] + t[1] * dy
+    #if t[0] > 0:
+    #    start[0] = start[0] + t[0] * dx
+    #    start[1] = start[1] + t[0] * dx
 
-    # Return the norm
-    X = end[0] - start[0]
-    Y = end[1] - start[1]
-    return math.sqrt(X**2 + Y**2)
+    #if t[0] > 0:
+    #    start[0] = start[0] + t[0] * dx
+    #    start[1] = start[1] + t[0] * dx
+
+    #start[0] = start[0] + t[0]
+    #end[0] = start[0]
+
+
+    ## Return the norm
+    #X = end[0] - start[0]
+    #Y = end[1] - start[1]
+    #return math.sqrt(X**2 + Y**2)
+    if t[0] == 0:
+        return 1
+    else :
+        return 0
 
 
 @njit
@@ -2578,6 +2619,7 @@ def eigenvalue_tally(P_arr, distance, mcdc):
                 if not nuclide["fissionable"]:
                     continue
                 for j in range(J):
+                    # HAZARD
                     nu_d = get_nu_group(NU_FISSION_DELAYED, nuclide, E, j)
                     decay = nuclide["ce_decay"][j]
                     total += nu_d / decay
@@ -2858,11 +2900,13 @@ def move_to_event(P_arr, data_tally, mcdc):
             score_cell_tally(P_arr, distance, tally, data_tally, mcdc)
 
         # CS tallies
+        # HAZARD
         for tally in mcdc["cs_tallies"]:
             score_cs_tally(P_arr, distance, tally, data_tally, mcdc)
 
     if mcdc["setting"]["mode_eigenvalue"]:
         eigenvalue_tally(P_arr, distance, mcdc)
+
 
     # Move particle
     move_particle(P_arr, distance, mcdc)
@@ -3402,7 +3446,7 @@ def sample_phasespace_fission_nuclide(P_arr, nuclide, P_new_arr, mcdc):
     if mcdc["setting"]["mode_MG"]:
         fission_MG(P_arr, nuclide, P_new_arr)
     else:
-        fission_CE(P_arr, nuclide, P_new_arr)
+        fission_CE(P_arr, nuclide, P_new_arr, mcdc)
 
 
 @njit
@@ -3451,7 +3495,7 @@ def fission_MG(P_arr, nuclide, P_new_arr):
 
 
 @njit
-def fission_CE(P_arr, nuclide, P_new_arr):
+def fission_CE(P_arr, nuclide, P_new_arr, mcdc):
     P_new = P_new_arr[0]
     P = P_arr[0]
     # Get constants
@@ -3462,6 +3506,8 @@ def fission_CE(P_arr, nuclide, P_new_arr):
     nu_d = adapt.local_array(J, type_.float64)
     for j in range(J):
         nu_d[j] = get_nu_group(NU_FISSION_DELAYED, nuclide, E, j)
+
+
 
     # Delayed?
     prompt = True
@@ -3886,6 +3932,7 @@ def sample_Eout(P_new_arr, E_grid, NE, chi):
     idx = binary_search_with_length(xi, chi, NE)
 
     # Linear interpolation
+    # HAZARD?
     E1 = E_grid[idx]
     E2 = E_grid[idx + 1]
     chi1 = chi[idx]

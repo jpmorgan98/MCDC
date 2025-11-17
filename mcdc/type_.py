@@ -120,6 +120,10 @@ def align(field_list):
     offset = 0
     pad_id = 0
     for field in field_list:
+
+        if isinstance(field[1],list):
+            raise ValueError("Given type of subfield is a list, but should be a dtype.")
+
         if len(field) > 3:
             print_error(
                 "Unexpected struct field specification. Specifications \
@@ -235,8 +239,9 @@ def make_type_particle(input_deck):
     # iQMC vector of weights
     if iQMC:
         G = input_deck.materials[0].G
-    iqmc_struct = [("w", float64, (G,))]
+    iqmc_struct = into_dtype([("w", float64, (G,))])
     struct += [("iqmc", iqmc_struct)]
+    print("STRUCT IS ",struct)
 
     # Save type
     particle = into_dtype(struct)
@@ -273,7 +278,7 @@ def make_type_particle_record(input_deck):
     # iQMC vector of weights
     if iQMC:
         G = input_deck.materials[0].G
-    iqmc_struct = [("w", float64, (G,))]
+    iqmc_struct = into_dtype([("w", float64, (G,))])
     struct += [("iqmc", iqmc_struct)]
 
     # Save type
@@ -299,6 +304,14 @@ precursor = into_dtype(
 # Particle bank
 # ==============================================================================
 
+def full_particle_bank(max_size):
+    return into_dtype(
+        [
+            ("particles", particle, (max_size,)),
+            ("size", int64, (1,)),
+            ("tag", str_),
+        ]
+    )
 
 def particle_bank(max_size):
     return into_dtype(
@@ -778,7 +791,7 @@ def make_type_mesh_tally(input_deck):
         Nmax_x, Nmax_y, Nmax_z = dd_meshtally(input_deck)
 
     # Set the filter
-    filter_ = [
+    filter_ = into_dtype([
         ("x", float64, (Nmax_x,)),
         ("y", float64, (Nmax_y,)),
         ("z", float64, (Nmax_z,)),
@@ -793,11 +806,11 @@ def make_type_mesh_tally(input_deck):
         ("Nmu", int64),
         ("N_azi", int64),
         ("Ng", int64),
-    ]
+    ])
     struct += [("filter", filter_)]
 
     # Tally strides
-    stride = [
+    stride = into_dtype([
         ("tally", int64),
         ("sensitivity", int64),
         ("mu", int64),
@@ -807,7 +820,7 @@ def make_type_mesh_tally(input_deck):
         ("x", int64),
         ("y", int64),
         ("z", int64),
-    ]
+    ])
     struct += [("stride", stride)]
 
     # Total number of bins
@@ -840,24 +853,24 @@ def make_type_surface_tally(input_deck):
         Nmax_score = max(Nmax_score, len(card.scores))
 
     # Set the filter
-    filter_ = [
+    filter_ = into_dtype([
         ("surface_ID", int64),
         ("t", float64, (Nmax_t,)),
         ("mu", float64, (Nmax_mu,)),
         ("azi", float64, (Nmax_azi,)),
         ("g", float64, (Nmax_g,)),
-    ]
+    ])
     struct = [("filter", filter_)]
 
     # Tally strides
-    stride = [
+    stride = into_dtype([
         ("tally", int64),
         ("sensitivity", int64),
         ("mu", int64),
         ("azi", int64),
         ("g", int64),
         ("t", int64),
-    ]
+    ])
     struct += [("stride", stride)]
 
     # Total number of bins
@@ -889,7 +902,7 @@ def make_type_cell_tally(input_deck):
         Nmax_score = max(Nmax_score, len(card.scores))
 
     # Set the filter
-    filter_ = [
+    filter_ = into_dtype([
         ("cell_ID", int64),
         ("t", float64, (Nmax_t,)),
         ("mu", float64, (Nmax_mu,)),
@@ -897,18 +910,18 @@ def make_type_cell_tally(input_deck):
         ("g", float64, (Nmax_g,)),
         ("Nt", int64),
         ("Ng", int64),
-    ]
+    ])
     struct = [("filter", filter_)]
 
     # Tally strides
-    stride = [
+    stride = into_dtype([
         ("tally", int64),
         ("sensitivity", int64),
         ("mu", int64),
         ("azi", int64),
         ("g", int64),
         ("t", int64),
-    ]
+    ])
     struct += [("stride", stride)]
 
     # Total number of bins
@@ -951,7 +964,7 @@ def make_type_cs_tally(input_deck):
     #     Nmax_x, Nmax_y, Nmax_z = dd_meshtally(input_deck)
 
     # Set the filter
-    filter_ = [
+    filter_ = into_dtype([
         ("N_cs_bins", int),
         ("cs_bin_size", float64, (2,)),
         (
@@ -971,12 +984,12 @@ def make_type_cs_tally(input_deck):
         ("mu", float64, (Nmax_mu,)),
         ("azi", float64, (Nmax_azi,)),
         ("g", float64, (Nmax_g,)),
-    ]
+    ])
 
     struct += [("filter", filter_)]
 
     # Tally strides
-    stride = [
+    stride = into_dtype([
         ("tally", int64),
         ("sensitivity", int64),
         ("mu", int64),
@@ -987,7 +1000,7 @@ def make_type_cs_tally(input_deck):
         ("y", int64),
         ("z", int64),
         # ("N_cs_bins", int64),   # TODO: get rid of this line?
-    ]
+    ])
     struct += [("stride", stride)]
 
     # Total number of bins (will be used for the reconstruction)

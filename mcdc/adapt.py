@@ -5,6 +5,7 @@ from numba.extending import intrinsic
 import numba
 import mcdc.type_ as type_
 import mcdc.kernel as kernel
+import mcdc.config as config
 
 
 if importlib.util.find_spec("harmonize") is None:
@@ -74,6 +75,15 @@ def cast_voidptr_to_uintp(typingctx, src):
 
         return sig, codegen
 
+@njit()
+def uintp_to_voidptr(value):
+    val = numba.uintp(value)
+    return cast_uintp_to_voidptr(val)
+
+@njit()
+def voidptr_to_uintp(value):
+    return cast_voidptr_to_uintp(value)
+
 
 def leak(arg):
     pass
@@ -93,6 +103,8 @@ def leak_overload(arg):
         leak_inner(arg)
 
     return impl
+
+
 
 
 # =============================================================================
@@ -401,6 +413,10 @@ def nopython_mode(is_on):
 # GPU Type / Extern Functions Forward Declarations
 # =============================================================================
 
+@numba.njit()
+def alloc_managed_bytes_placeholder(size):
+    return uintp_to_voidptr(0)
+
 
 SIMPLE_ASYNC = True
 
@@ -417,9 +433,13 @@ prep_gpu = None
 step_async = None
 halt_early = None
 find_cell_async = None
+tally_width = None
+tally_length = None
+tally_size   = None
+alloc_managed_bytes = alloc_managed_bytes_placeholder
+tally_shape_literal  = None
 
-
-def gpu_forward_declare(args):
+def gpu_forward_declare(args,tally_shape):
 
     if args.gpu_rocm_path != None:
         harm.config.set_rocm_path(args.gpu_rocm_path)
@@ -433,10 +453,18 @@ def gpu_forward_declare(args):
     global group_gpu, thread_gpu
     global particle_gpu, particle_record_gpu
     global step_async, find_cell_async, halt_early
+    global tally_width, tally_length, tally_size
+
+    tally_size   = tally_shape[0] * tally_shape[1] * 8
+
+    global tally_shape_literal
+    tally_shape_literal = tally_shape
 
     none_type = numba.from_dtype(np.dtype([]))
     mcdc_global_type = numba.from_dtype(type_.global_)
-    mcdc_data_type = numba.from_dtype(type_.tally)
+
+    tally_dims = len(tally_shape)
+    mcdc_data_type = numba.types.Array(numba.float64,tally_dims,'C')
     state_spec = (
         {
             "global": mcdc_global_type,
@@ -462,6 +490,29 @@ def gpu_forward_declare(args):
     step_async, find_cell_async = adapt.harm.RuntimeSpec.async_dispatch(step, find_cell)
     interface = adapt.harm.RuntimeSpec.program_interface()
     halt_early = interface["halt_early"]
+
+    global alloc_managed_bytes
+    alloc_managed_bytes = harm.alloc_managed_bytes
+
+
+
+
+# =============================================================================
+# Global GPU/CPU Arry Variable Constructors
+# =============================================================================
+
+@numba.njit()
+def create_tally_array(width,length):
+    print("ARRAY DIMS ",(width,length))
+    if config.target == "gpu":
+        data_tally_ptr = alloc_managed_bytes(tally_size)
+        data_tally_uint = voidptr_to_uintp(data_tally_ptr)
+        print("ARRAY IS AT: ",data_tally_uint)
+        data_tally = numba.carray(data_tally_ptr,(width,length),type_.float64)
+        return data_tally, data_tally_uint
+    else:
+        data_tally = np.zeros((width,length), dtype=type_.float64)
+        return data_tally, 0
 
 
 # =============================================================================
@@ -514,62 +565,61 @@ def thread(prog):
 
 
 @for_cpu()
-def add_active(particle, prog):
-    kernel.add_particle(particle, prog["bank_active"])
-
+def add_active(P_arr, prog):
+    kernel.add_particle(P_arr, prog["bank_active"])
 
 @for_gpu()
-def add_active(P_reclike, prog):
-    P = local_array(1, type_.particle)
-    kernel.recordlike_to_particle(P, P_reclike)
+def add_active(P_rec_arr, prog):
+    P_arr = local_array(1, type_.particle)
+    kernel.recordlike_to_particle(P_arr, P_rec_arr)
     if SIMPLE_ASYNC:
-        step_async(prog, P[0])
+        step_async(prog, P_arr[0])
     else:
-        find_cell_async(prog, P[0])
+        find_cell_async(prog, P_arr[0])
 
 
 @for_cpu()
-def add_source(particle, prog):
-    kernel.add_particle(particle, prog["bank_source"])
+def add_source(P_arr, prog):
+    kernel.add_particle(P_arr, prog["bank_source"])
 
 
 @for_gpu()
-def add_source(particle, prog):
+def add_source(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(particle, mcdc["bank_source"])
+    kernel.add_particle(P_arr, mcdc["bank_source"])
 
 
 @for_cpu()
-def add_census(particle, prog):
-    kernel.add_particle(particle, prog["bank_census"])
+def add_census(P_arr, prog):
+    kernel.add_particle(P_arr, prog["bank_census"])
 
 
 @for_gpu()
-def add_census(particle, prog):
+def add_census(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(particle, mcdc["bank_census"])
+    kernel.add_particle(P_arr, mcdc["bank_census"])
 
 
 @for_cpu()
-def add_future(particle, prog):
-    kernel.add_particle(particle, prog["bank_future"])
+def add_future(P_arr, prog):
+    kernel.add_particle(P_arr, prog["bank_future"])
 
 
 @for_gpu()
-def add_future(particle, prog):
+def add_future(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(particle, mcdc["bank_future"])
+    kernel.add_particle(P_arr, mcdc["bank_future"])
 
 
 @for_cpu()
-def add_IC(particle, prog):
-    kernel.add_particle(particle, prog["technique"]["IC_bank_neutron_local"])
+def add_IC(P_arr, prog):
+    kernel.add_particle(P_arr, prog["technique"]["IC_bank_neutron_local"])
 
 
 @for_gpu()
-def add_IC(particle, prog):
+def add_IC(P_arr, prog):
     mcdc = mcdc_global(prog)
-    kernel.add_particle(particle, mcdc["technique"]["IC_bank_neutron_local"])
+    kernel.add_particle(P_arr, mcdc["technique"]["IC_bank_neutron_local"])
 
 
 @for_cpu()

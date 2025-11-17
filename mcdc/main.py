@@ -46,6 +46,7 @@ input_deck = mcdc_.input_deck
 
 
 def run():
+    print("begin_run")
     # Override input deck with command-line argument, if given
     if config.args.N_particle is not None:
         input_deck.setting["N_particle"] = config.args.N_particle
@@ -82,6 +83,7 @@ def run():
     elif mcdc["setting"]["mode_eigenvalue"]:
         loop_eigenvalue(data_tally, mcdc_arr)
     else:
+        print_msg("Starting fixed source")
         loop_fixed_source(data_tally, mcdc_arr)
     mcdc["runtime_simulation"] = MPI.Wtime() - simulation_start
 
@@ -98,6 +100,9 @@ def run():
     # Stop timer
     MPI.COMM_WORLD.Barrier()
     mcdc["runtime_total"] = MPI.Wtime() - total_start
+
+    #for i in range(mcdc["bank_log"]["size"][0]):
+    #    print(mcdc["bank_log"]["particles"][i])
 
     # Closout
     closeout(mcdc)
@@ -200,7 +205,7 @@ def calculate_cs_sparse_solution(data, mcdc, A, b):
 
 
 def cs_reconstruct(data, mcdc):
-    tally_bin = data[TALLY]
+    tally_bin = data
     tally = mcdc["cs_tallies"][0]
     stride = tally["stride"]
     bin_idx = stride["tally"]
@@ -1137,7 +1142,9 @@ def prepare():
         tally_bin_N_copies = 3
     else:
         tally_bin_N_copies = 5
-    data_tally = np.zeros((tally_bin_N_copies, tally_bin_size), dtype=type_.float64)
+
+    tally_shape = (tally_bin_N_copies, tally_bin_size)
+    print(f"TALLY SHAPE: {tally_shape}")
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc
@@ -1152,7 +1159,7 @@ def prepare():
             print_error(
                 "No module named 'harmonize' - GPU functionality not available. "
             )
-        adapt.gpu_forward_declare(config.args)
+        adapt.gpu_forward_declare(config.args,tally_shape)
 
     adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
     adapt.set_toggle("domain_decomp", input_deck.technique["domain_decomposition"])
@@ -1161,6 +1168,13 @@ def prepare():
     if config.target == "gpu":
         build_gpu_progs(input_deck, config.args)
     adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
+
+
+    # =========================================================================
+    # Allocate Tally Storage
+    # =========================================================================
+
+    data_tally, data_tally_uint = adapt.create_tally_array(tally_shape[0],tally_shape[1])
 
     # =========================================================================
     # Setting
@@ -1563,7 +1577,7 @@ def prepare():
                     "w"
                 ]
 
-    loop.setup_gpu(mcdc)
+    loop.setup_gpu(mcdc,data_tally)
 
     # =========================================================================
     # Finalize data: wrapping into a tuple
