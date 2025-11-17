@@ -292,7 +292,7 @@ for ace_name in os.listdir(ace_dir):
     if angle_block.number_projectile_production_reactions != energy_block.number_reactions:
         print_error('Non-equal reaction number in angular and energy distribution blocks')
    
-    # Elastic: scattering cosine
+    # Elastic scattering cosine: isotropic, or tabulated
     angle_group = elastic_group.create_group('MT-002/scattering_cosine')
     if angle_block.is_fully_isotropic(0):
         angle_group.attrs['type'] = 'isotropic'
@@ -331,7 +331,7 @@ for ace_name in os.listdir(ace_dir):
         angle_group.create_dataset('value', data=cosine)
         angle_group.create_dataset('pdf', data=pdf)
 
-    # Fission: Isotropic (should be!?)
+    # Fission angular emission: Isotropic
     if fissionable:
         anisotropic = False
 
@@ -368,7 +368,7 @@ for ace_name in os.listdir(ace_dir):
 
             print_note("Tabulated isotropic fission neutron distribution")
 
-    # Inelastic
+    # Inelastic emission cosine: isotropic, tabulated, or energy-correlated
     for MT in inelastic_MTs:
         idx = rx_block.index(MT)
         angle_group = inelastic_group.create_group(f'MT-{MT:03}/emission_cosine')
