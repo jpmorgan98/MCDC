@@ -298,6 +298,16 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         h5_group.create_dataset('inner_pdf', data=inner_pdf)
         h5_group.create_dataset('cosine', data=cosine)
 
+    elif isinstance(data, ACEtk.continuous.NBodyPhaseSpaceDistribution):
+        h5_group.attrs['type'] = 'N-Body'
+
+        if data.interpolation != 2:
+            print_error("Non-linearly-interpolable N-body energy distribution")
+        
+        dataset = h5_group.create_dataset('value', data=data.values)
+        dataset.attrs['unit'] = 'eV'
+        h5_group.create_dataset('pdf', data=data.pdf)
+
     else:
         print_error(f"Unsupported energy distribution: {data}")
 
