@@ -1,3 +1,4 @@
+import ACEtk
 import h5py
 import numpy as np
 
@@ -101,6 +102,52 @@ def load_fission_multiplicity(data, h5_group: h5py.Group):
         print(f"[ERROR] Unsupported multiplicity type: {data.type}")
         exit()
 
+def load_cosine_distribution(data, h5_group: h5py.Group):
+    if isinstance(
+        data,
+        ACEtk.continuous.FullyIsotropicDistribution
+    ):
+        h5_group.attrs['type'] = 'isotropic'
+
+    elif isinstance(
+        data,
+        ACEtk.continuous.DistributionGivenElsewhere
+    ):
+        h5_group.attrs['type'] = 'energy-correlated'
+
+    else:
+        h5_group.attrs['type'] = 'tabulated'
+
+        # Check distribution support: all tabulated
+        NE = data.number_incident_energies
+        for i in range(NE):
+            idx = i + 1
+            if (
+                data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
+            ):
+                print_error("Angular distribution is not all-tabulated")
+
+        # Incident energy
+        energy = np.array(data.incident_energies) * 1E6 # MeV to eV
+        energy = h5_group.create_dataset('energy', data=energy)
+        energy.attrs['unit'] = 'eV'
+
+        # Tabulated disstributions
+        interpolation = np.zeros(NE, dtype=int)
+        offset = np.zeros(NE, dtype=int)
+        cosine = []
+        pdf = []
+        for i, distribution in enumerate(data.distributions):
+            interpolation[i] = distribution.interpolation
+            offset[i] = len(cosine)
+            cosine.extend(distribution.cosines)
+            pdf.extend(distribution.pdf)
+        cosine = np.array(cosine)
+        pdf = np.array(pdf)
+        h5_group.create_dataset('interpolation', data=interpolation)
+        h5_group.create_dataset('offset', data=offset)
+        h5_group.create_dataset('value', data=cosine)
+        h5_group.create_dataset('pdf', data=pdf)
 
 # ======================================================================================
 # Constants

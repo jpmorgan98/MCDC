@@ -18,6 +18,8 @@ os.makedirs(output_dir, exist_ok=True)
 print(f'\nACE directory: {ace_dir}')
 print(f'Output directory: {output_dir}\n')
 
+distribution_count = {}
+
 # Loop over all files
 for ace_name in os.listdir(ace_dir):
     # Load ACE tables
@@ -76,17 +78,17 @@ for ace_name in os.listdir(ace_dir):
         print_error('Non-equal reaction number in reaction and multiplicity blocks')
 
     # The groups
-    elastic_group = reactions.create_group("elastic")
+    elastic_group = reactions.create_group("elastic_scattering")
     capture_group = reactions.create_group("capture")
+    inelastic_group = reactions.create_group("inelastic_scattering")
     if fissionable:
         fission_group = reactions.create_group("fission")
-    inelastic_group = reactions.create_group("inelastic")
 
     # Group MTs
     elastic_MTs = [2]
-    fission_MTs = [18]
     capture_MTs = []
     inelastic_MTs = []
+    fission_MTs = [18]
     redundant_MTs = [1, 3, 4, 10, 19, 20, 21, 38]
     fission_components = [19, 20, 21, 38]
 
@@ -106,13 +108,13 @@ for ace_name in os.listdir(ace_dir):
         else:
             print_error(f"Negative multiplicity for MT={MT}")
 
-    # Report MT
+    # Report MT groups
     print(f"  Reaction group MTs")
-    print(f"    - Elastic MTs: {elastic_MTs}")
+    print(f"    - Elastic scattering MTs: {elastic_MTs}")
     print(f"    - Capture MTs: {capture_MTs}")
+    print(f"    - Inelastic scattering MTs: {inelastic_MTs}")
     if fissionable:
         print(f"    - Fission MTs: {fission_MTs}")
-    print(f"    - Inelastic MTs: {inelastic_MTs}")
 
     # ==================================================================================
     # Cross-sections
@@ -136,7 +138,7 @@ for ace_name in os.listdir(ace_dir):
     xs.attrs["energy_offset"] = 0
     xs.attrs["unit"] = "barns"
 
-    # Capture, fission, and inelastic
+    # Capture, inelastic, and fission
     for i in range(N_reaction):
         idx = i + 1
         MT = rx_block.MT(idx)
@@ -146,10 +148,10 @@ for ace_name in os.listdir(ace_dir):
 
         if MT in capture_MTs:
             group = capture_group
-        elif fissionable and MT in fission_MTs:
-            group = fission_group
         elif MT in inelastic_MTs:
             group = inelastic_group
+        elif fissionable and MT in fission_MTs:
+            group = fission_group
 
         xs = group.create_dataset(f"MT-{MT:03}/xs", data=cross_sections(idx))
         xs.attrs["energy_offset"] = energy_offsets(idx) - 1
@@ -175,7 +177,7 @@ for ace_name in os.listdir(ace_dir):
     # Elastic
     elastic_group.create_dataset("MT-002/reference_frame", data="LAB")
 
-    # Capture, fission, and inelastic
+    # Capture, inelastic, and fission
     for i in range(N_reaction):
         idx = i + 1
         MT = rx_block.MT(idx)
@@ -185,10 +187,10 @@ for ace_name in os.listdir(ace_dir):
 
         if MT in capture_MTs:
             group = capture_group
-        elif fissionable and MT in fission_MTs:
-            group = fission_group
         elif MT in inelastic_MTs:
             group = inelastic_group
+        elif fissionable and MT in fission_MTs:
+            group = fission_group
 
         # Reference frame
         reference_frame = nu_block.reference_frame(idx)
@@ -227,6 +229,41 @@ for ace_name in os.listdir(ace_dir):
         else:
             print_error(f"Unknown reaction reference frame type for MT={MT}")
         fission_group.create_dataset(f"MT-018/reference_frame", data=reference_frame)
+
+    # ==================================================================================
+    # Scattering angular distributions
+    # ==================================================================================
+
+    angle_block = ace_table.angular_distribution_block
+    energy_correlated_MTs = []
+   
+    # Elastic scattering
+    angle_group = elastic_group.create_group('MT-002/scattering_cosine')
+    data = angle_block.angular_distribution_data(0)
+    util.load_cosine_distribution(data, angle_group)
+
+    # Inelastic scattering
+    for MT in inelastic_MTs:
+        idx = rx_block.index(MT)
+        angle_group = inelastic_group.create_group(f'MT-{MT:03}/scattering_cosine')
+        data = angle_block.angular_distribution_data(idx)
+        util.load_cosine_distribution(data, angle_group)
+
+    # ==================================================================================
+    # Inelastic scattering energy distributions
+    # ==================================================================================
+
+    energy_block = ace_table.energy_distribution_block
+    if angle_block.number_projectile_production_reactions != energy_block.number_reactions:
+        print_error('Non-equal reaction number in angular and energy distribution blocks')
+
+    for MT in inelastic_MTs:
+        idx = rx_block.index(MT)
+        data = energy_block.energy_distribution_data(idx)
+        if data.__class__ in distribution_count.keys():
+            distribution_count[data.__class__] += 1
+        else:
+            distribution_count[data.__class__] = 1
 
     # ==================================================================================
     # Fission multiplicities and delayed neutron precursor fractions and decay rates
@@ -276,55 +313,10 @@ for ace_name in os.listdir(ace_dir):
             decay_rates.attrs['unit'] = "/s"
 
     # ==================================================================================
-    # Angular distributions
+    # Fission neuron angular and energy distributions
     # ==================================================================================
-
-    angle_block = ace_table.angular_distribution_block
-    energy_block = ace_table.energy_distribution_block
     
-    if angle_block.number_projectile_production_reactions != energy_block.number_reactions:
-        print_error('Non-equal reaction number in angular and energy distribution blocks')
-   
-    # Elastic scattering cosine: isotropic, or tabulated
-    angle_group = elastic_group.create_group('MT-002/scattering_cosine')
-    if angle_block.is_fully_isotropic(0):
-        angle_group.attrs['type'] = 'isotropic'
-    else:
-        angle_group.attrs['type'] = 'multi-table'
-        data = angle_block.angular_distribution_data(0)
-
-        # Check distribution support: all tabulated
-        NE = data.number_incident_energies
-        for i in range(NE):
-            idx = i + 1
-            if (
-                data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
-            ):
-                print_error("Elastic scattering angular distribution is not all-tabulated")
-
-        # Incident energy
-        energy = np.array(data.incident_energies) * 1E6 # MeV to eV
-        energy = angle_group.create_dataset('energy', data=energy)
-        energy.attrs['unit'] = 'eV'
-
-        # Disstributions
-        interpolation = np.zeros(NE, dtype=int)
-        offset = np.zeros(NE, dtype=int)
-        cosine = []
-        pdf = []
-        for i, distribution in enumerate(data.distributions):
-            interpolation[i] = distribution.interpolation
-            offset[i] = len(cosine)
-            cosine.extend(distribution.cosines)
-            pdf.extend(distribution.pdf)
-        cosine = np.array(cosine)
-        pdf = np.array(pdf)
-        angle_group.create_dataset('interpolation', data=interpolation)
-        angle_group.create_dataset('offset', data=offset)
-        angle_group.create_dataset('value', data=cosine)
-        angle_group.create_dataset('pdf', data=pdf)
-
-    # Fission angular emission: Isotropic
+    # Fission angular emission: Isotropic (and energy correlated?)
     if fissionable:
         anisotropic = False
 
@@ -343,77 +335,33 @@ for ace_name in os.listdir(ace_dir):
 
         if anisotropic:
             idx = rx_block.index(18)
-            data = angle_block.angular_distribution_data(idx)
 
-            # Check distribution support: all tabulated
-            NE = data.number_incident_energies
-            for i in range(NE):
-                idx = i + 1
-                if (
-                    data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
-                ):
-                    print_error("Anisotropic fission angular distribution is not all-tabulated")
+            # Energy-correlated?
+            if isinstance(
+                angle_block.angular_distribution_data(idx),
+                ACEtk.continuous.DistributionGivenElsewhere
+            ):
+                angle_group.attrs['type'] = 'energy-correlated'
+                energy_correlated_MTs.append(18)
 
-            for i, distribution in enumerate(data.distributions):
-                pdf = distribution.pdf[:]
-                if len(pdf) != 2 or pdf[0] != 0.5 or pdf[1] != 0.5:
-                    print_error("Anisotropic fission neutron")
+            else:
+                # Check distribution support: all tabulated
+                data = angle_block.angular_distribution_data(idx)
+                NE = data.number_incident_energies
+                for i in range(NE):
+                    idx = i + 1
+                    if (
+                        data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
+                    ):
+                        print_error("Anisotropic fission angular distribution is not all-tabulated")
 
-            print_note("Tabulated isotropic fission neutron distribution")
+                for i, distribution in enumerate(data.distributions):
+                    pdf = distribution.pdf[:]
+                    if len(pdf) != 2 or pdf[0] != 0.5 or pdf[1] != 0.5:
+                        print_error("Anisotropic fission neutron")
 
-    # Inelastic emission cosine: isotropic, tabulated, or energy-correlated
-    for MT in inelastic_MTs:
-        idx = rx_block.index(MT)
-        angle_group = inelastic_group.create_group(f'MT-{MT:03}/emission_cosine')
+                print_note("Tabulated isotropic fission neutron distribution")
 
-        if angle_block.is_fully_isotropic(idx):
-            angle_group.attrs['type'] = 'isotropic'
-
-        elif isinstance(
-            angle_block.angular_distribution_data(idx),
-            ACEtk.continuous.DistributionGivenElsewhere
-        ):
-            angle_group.attrs['type'] = 'energy-correlated'
-
-        else:
-            angle_group.attrs['type'] = 'multi-table'
-            data = angle_block.angular_distribution_data(idx)
-
-            # Check distribution support: all tabulated
-            NE = data.number_incident_energies
-            for i in range(NE):
-                idx = i + 1
-                if (
-                    data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
-                ):
-                    print_error("Inelastic reaction angular distribution is not all-tabulated")
-
-            # Incident energy
-            energy = np.array(data.incident_energies) * 1E6 # MeV to eV
-            energy = angle_group.create_dataset('energy', data=energy)
-            energy.attrs['unit'] = 'eV'
-
-            # Disstributions
-            interpolation = np.zeros(NE, dtype=int)
-            offset = np.zeros(NE, dtype=int)
-            cosine = []
-            pdf = []
-            for i, distribution in enumerate(data.distributions):
-                interpolation[i] = distribution.interpolation
-                offset[i] = len(cosine)
-                cosine.extend(distribution.cosines)
-                pdf.extend(distribution.pdf)
-            cosine = np.array(cosine)
-            pdf = np.array(pdf)
-            angle_group.create_dataset('interpolation', data=interpolation)
-            angle_group.create_dataset('offset', data=offset)
-            angle_group.create_dataset('value', data=cosine)
-            angle_group.create_dataset('pdf', data=pdf)
-
-    # ==================================================================================
-    # Energy distributions
-    # ==================================================================================
-    
     '''
     # Prompt neutron
     block = ace_table.energy_distribution_block
@@ -462,6 +410,7 @@ for ace_name in os.listdir(ace_dir):
         decay_rates.attrs['unit'] = "/s"
     '''
 
+    
     # ==================================================================================
     # Finalize
     # ==================================================================================
@@ -469,3 +418,6 @@ for ace_name in os.listdir(ace_dir):
     file.close()
 
 print("")
+
+for key in distribution_count.keys():
+    print(key, distribution_count[key])
