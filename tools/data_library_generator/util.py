@@ -150,6 +150,8 @@ def load_cosine_distribution(data, h5_group: h5py.Group):
         h5_group.create_dataset('value', data=cosine)
         h5_group.create_dataset('pdf', data=pdf)
 
+        if not all(interpolation == 2):
+            print_error("Angular distribution is not linearly-iterpolable")
 
 def load_energy_distribution(data, h5_group: h5py.Group):
     if isinstance(data, ACEtk.continuous.LevelScatteringDistribution):
