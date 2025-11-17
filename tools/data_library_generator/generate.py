@@ -13,8 +13,8 @@ from util import print_error
 # ======================================================================================
 
 # Directories
-ace_dir = "/Users/ilhamvariansyah/nuclear_data/ace/Lib81"
-output_dir = "/Users/ilhamvariansyah/nuclear_data/mcdc"
+ace_dir = "/usr/workspace/variansyah1/nuclear_data/ace/Lib81/Lib81"
+output_dir = "/usr/workspace/variansyah1/nuclear_data/mcdc"
 
 # ======================================================================================
 # Generate MC/DC nuclear data files from ACE files
@@ -27,8 +27,11 @@ print(f'Output directory: {output_dir}\n')
 
 # Loop over all files
 for ace_name in os.listdir(ace_dir):
+    # Load ACE tables
+    ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
+
     # Decode ACE name to MC/DC name
-    Z, A, S, T = util.decode_ace_name(ace_name)
+    Z, A, S, T = util.decode_ace_name(ace_table.header.zaid)
     symbol = util.Z_TO_SYMBOL[Z]
     nuclide_name = f"{symbol}{A}"
     mcdc_name = f"{nuclide_name}-{S}-{T}.h5"
@@ -36,9 +39,6 @@ for ace_name in os.listdir(ace_dir):
     # Create MC/DC file
     print(f'Create {mcdc_name} from {ace_name}')
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
-
-    # Load ACE tables
-    ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
 
     # ==================================================================================
     # Basic properties
@@ -296,11 +296,12 @@ for ace_name in os.listdir(ace_dir):
         idx = rx_block.index(MT)
         angle_group = inelastic_group.create_group(f'MT-{MT:03}/emission_cosine')
 
-        if angle_block.is_fully_isotropic(0):
+        if angle_block.is_fully_isotropic(idx):
             angle_group.attrs['type'] = 'isotropic'
         else:
             angle_group.attrs['type'] = 'multi-table'
-            data = angle_block.angular_distribution_data(0)
+            data = angle_block.angular_distribution_data(idx)
+            print(data)
 
             # Check distribution support: all tabulated
             NE = data.number_incident_energies
