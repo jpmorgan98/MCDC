@@ -18,8 +18,6 @@ os.makedirs(output_dir, exist_ok=True)
 print(f'\nACE directory: {ace_dir}')
 print(f'Output directory: {output_dir}\n')
 
-distribution_count = {}
-
 # Loop over all files
 for ace_name in os.listdir(ace_dir):
     # Load ACE tables
@@ -259,11 +257,25 @@ for ace_name in os.listdir(ace_dir):
 
     for MT in inelastic_MTs:
         idx = rx_block.index(MT)
+        energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out')
         data = energy_block.energy_distribution_data(idx)
-        if data.__class__ in distribution_count.keys():
-            distribution_count[data.__class__] += 1
+        
+        if isinstance(data, ACEtk.continuous.MultiDistributionData):
+            energy_group.attrs['type'] = 'multi-distribution'
+
+            # Make sure the number is consistent
+            N = data.number_distributions
+            if N != nu_block.multiplicity(idx):
+                print_error(f"Inconsistent number of energy distributions and multiplicity for MT-{MT:03}")
+           
+            # Set each distribution
+            for i in range(N):
+                group_ = energy_group.create_group(f"energy_out-{i+1}")
+                distribution = data.distribution(i+1)
+                util.load_energy_distribution(distribution, group_)
+
         else:
-            distribution_count[data.__class__] = 1
+            util.load_energy_distribution(data, energy_group)
 
     # ==================================================================================
     # Fission multiplicities and delayed neutron precursor fractions and decay rates
@@ -418,6 +430,3 @@ for ace_name in os.listdir(ace_dir):
     file.close()
 
 print("")
-
-for key in distribution_count.keys():
-    print(key, distribution_count[key])

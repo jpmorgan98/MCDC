@@ -92,15 +92,18 @@ def load_fission_multiplicity(data, h5_group: h5py.Group):
         if not data.interpolation_data.is_linear_linear:
             print(f"[ERROR] Non linear-linear tabulated multiplicity is not supported")
             exit()
-        
+       
+        energy = np.array(data.energies) * 1E6 # MeV to eV
+
         h5_group.attrs['type'] = 'table'
         h5_group.create_dataset("value", data=data.multiplicities)
-        h5_group.create_dataset("energy", data=data.energies)
+        h5_group.create_dataset("energy", data=energy)
 
     ## Yield - Unsupported
     else:
         print(f"[ERROR] Unsupported multiplicity type: {data.type}")
         exit()
+
 
 def load_cosine_distribution(data, h5_group: h5py.Group):
     if isinstance(
@@ -148,6 +151,129 @@ def load_cosine_distribution(data, h5_group: h5py.Group):
         h5_group.create_dataset('offset', data=offset)
         h5_group.create_dataset('value', data=cosine)
         h5_group.create_dataset('pdf', data=pdf)
+
+
+def load_energy_distribution(data, h5_group: h5py.Group):
+    if isinstance(data, ACEtk.continuous.LevelScatteringDistribution):
+        h5_group.attrs['type'] = 'level-scattering'
+
+        C1 = np.array(data.C1) * 1E6 # MeV to eV
+        C1 = h5_group.create_dataset("C1", data=C1)
+        C1.attrs['unit'] = 'eV'
+
+        h5_group.create_dataset("C2", data=data.C2)
+
+    elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
+        h5_group.attrs['type'] = 'evaporation'
+
+        # MeV to eV
+        energy = np.array(data.energies) * 1E6 
+        temperature = np.array(data.temperatures) * 1E6 
+        restriction_energy = np.array(data.restriction_energy) * 1E6 
+
+        dataset = h5_group.create_dataset('energy', data=energy)
+        dataset.attrs['unit'] = 'eV'
+        dataset = h5_group.create_dataset('temperature', data=temperature)
+        dataset.attrs['unit'] = 'eV'
+        dataset = h5_group.create_dataset('restriction_energy', data=restriction_energy)
+        dataset.attrs['unit'] = 'eV'
+
+    elif isinstance(data, ACEtk.continuous.KalbachMannDistributionData):
+        h5_group.attrs['type'] = 'kalbach-mann'
+
+        if not data.interpolation_data.is_linear_linear:
+            print_error("Non-linearly-interpolated kalbach-mann is not supported")
+        
+        energy = np.array(data.incident_energies[:]) * 1E6 # MeV to eV
+        for i in range(data.number_incident_energies):
+            distribution = data.distribution(i + 1)
+            distribution.pdf
+
+        # Check distribution support: all kalbach-mann
+        NE = data.number_incident_energies
+
+        # Incident energy
+        energy = np.array(data.incident_energies) * 1E6 # MeV to eV
+        energy = h5_group.create_dataset('energy', data=energy)
+        energy.attrs['unit'] = 'eV'
+
+        # Tabulated disstributions
+        offset = np.zeros(NE, dtype=int)
+        precompound_factor = []
+        angular_slope = []
+        energy_out = []
+        pdf = []
+        for i, distribution in enumerate(data.distributions):
+            offset[i] = len(pdf)
+            precompound_factor.extend(distribution.precompound_fraction_values)
+            angular_slope.extend(distribution.angular_distribution_slope_values)
+            energy_out.extend(distribution.outgoing_energies)
+            pdf.extend(distribution.pdf)
+
+        precompound_factor = np.array(precompound_factor)
+        angular_slope = np.array(angular_slope)
+        energy_out = np.array(energy_out) * 1E6 # MeV to eV
+        pdf = np.array(pdf)
+
+        h5_group.create_dataset('offset', data=offset)
+        h5_group.create_dataset('precompound_factor', data=precompound_factor)
+        h5_group.create_dataset('angular_slope', data=angular_slope)
+        h5_group.create_dataset('energy_out', data=energy_out)
+        h5_group.create_dataset('pdf', data=pdf)
+
+    elif isinstance(data, ACEtk.continuous.EnergyAngleDistributionData):
+        h5_group.attrs['type'] = 'energy-angle-tabulated'
+
+        if not data.interpolation_data.is_linear_linear:
+            print_error("Non-linearly-interpolated correlated-energy-angle is not supported")
+        
+        energy = np.array(data.incident_energies[:]) * 1E6 # MeV to eV
+        for i in range(data.number_incident_energies):
+            distribution = data.distribution(i + 1)
+            distribution.pdf
+
+        # Check distribution support: all kalbach-mann
+        NE = data.number_incident_energies
+
+        # Incident energy
+        energy = np.array(data.incident_energies) * 1E6 # MeV to eV
+        energy = h5_group.create_dataset('energy', data=energy)
+        energy.attrs['unit'] = 'eV'
+
+        # Tabulated distributions
+        offset = np.zeros(NE, dtype=int)
+        pdf = []
+        energy_out = []
+        inner_offset = []
+        inner_pdf = []
+        cosine = []
+        for i, distribution in enumerate(data.distributions):
+            offset[i] = len(pdf)
+            pdf.extend(distribution.pdf)
+            energy_out.extend(distribution.outgoing_energies)
+
+            for j, inner_distribution in enumerate(distribution.distributions):
+                inner_offset.append(len(inner_pdf))
+                cosine.extend(inner_distribution.cosines)
+                inner_pdf.extend(inner_distribution.pdf)
+
+        pdf = np.array(pdf)
+        energy_out = np.array(energy_out) * 1E6 # MeV to eV
+        
+        inner_offset = np.array(inner_offset)
+        inner_pdf = np.array(inner_pdf)
+        cosine = np.array(cosine)
+
+        h5_group.create_dataset('offset', data=offset)
+        h5_group.create_dataset('pdf', data=pdf)
+        h5_group.create_dataset('energy_out', data=energy_out)
+        h5_group.create_dataset('inner_offset', data=inner_offset)
+        h5_group.create_dataset('inner_pdf', data=inner_pdf)
+        h5_group.create_dataset('cosine', data=cosine)
+
+    else:
+        print_error(f"Unsupported energy distribution: {data}")
+
 
 # ======================================================================================
 # Constants
