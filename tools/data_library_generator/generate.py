@@ -314,27 +314,29 @@ for ace_name in pbar:
         
         if isinstance(data, ACEtk.continuous.MultiDistributionData):
             N = data.number_distributions
-            probabilities = np.zeros(N)
 
             for i in range(N):
                 probability = data.probability(i + 1)
                 if (
                     not probability.number_interpolation_regions == 1
-                    or not len(probability.probabilities[:]) == 2
-                    or not probability.probabilities[0] == probability.probabilities[1]
+                    or any(np.array(probability.interpolants) != 1)
                 ):
-                    print_error("Non-constant multi-distribution probabilities")
+                    print_error("Unsupported multi-energy-distribution probabilities")
 
-                probabilities[i] = probability.probabilities[0]
                 energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out-{i+1}')
                 distribution = data.distribution(i+1)
                 util.load_energy_distribution(distribution, energy_group)
+
+                dataset = energy_group.create_dataset("probability_energy", data=probability.energies)
+                dataset = energy_group.create_dataset("probability", data=probability.probabilities[:-1])
+                dataset.attrs['unit'] = "MeV"
         else:
-            probabilities = np.array([1.0])
             energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out-1')
             util.load_energy_distribution(data, energy_group)
 
-        inelastic_group.create_dataset(f'MT-{MT:03}/probabilities', data=probabilities)
+            dataset = energy_group.create_dataset("probability_energy", data=np.array([0.0, 30.0]))
+            dataset = energy_group.create_dataset("probability", data=np.array([1.0]))
+            dataset.attrs['unit'] = "MeV"
 
     # Fissionable zone below
     if not fissionable:
