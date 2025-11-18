@@ -316,20 +316,31 @@ for ace_name in pbar:
             N = data.number_distributions
 
             for i in range(N):
-                probability = data.probability(i + 1)
-                if (
-                    not probability.number_interpolation_regions == 1
-                    or any(np.array(probability.interpolants) != 1)
-                ):
-                    print_error("Unsupported multi-energy-distribution probabilities")
-
                 energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out-{i+1}')
                 distribution = data.distribution(i+1)
                 util.load_energy_distribution(distribution, energy_group)
 
-                dataset = energy_group.create_dataset("probability_energy", data=probability.energies)
-                dataset = energy_group.create_dataset("probability", data=probability.probabilities[:-1])
-                dataset.attrs['unit'] = "MeV"
+                probability = data.probability(i + 1)
+
+                # Constant probability
+                if (probability.number_interpolation_regions == 0):
+                    dataset = energy_group.create_dataset("probability_energy", data=np.array([0.0, 30.0]))
+                    dataset = energy_group.create_dataset("probability", data=max(probability.probabilities))
+                    dataset.attrs['unit'] = "MeV"
+                
+                # Histogram probability
+                elif (
+                    probability.number_interpolation_regions == 1
+                    and all(np.array(probability.interpolants)) == 1
+                ):
+                    dataset = energy_group.create_dataset("probability_energy", data=probability.energies)
+                    dataset = energy_group.create_dataset("probability", data=probability.probabilities[:-1])
+                    dataset.attrs['unit'] = "MeV"
+
+                # Unsupported
+                else:
+                    print_error("Unsupported multi-energy-distribution probabilities")
+
         else:
             energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out-1')
             util.load_energy_distribution(data, energy_group)
