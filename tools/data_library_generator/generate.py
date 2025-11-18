@@ -27,13 +27,33 @@ os.makedirs(output_dir, exist_ok=True)
 print(f'\nACE directory: {ace_dir}')
 print(f'Output directory: {output_dir}\n')
 
+# Select the files
+if rewrite:
+    target_files = os.listdir(ace_dir)
+else:
+    target_files = []
+    for file_name in os.listdir(ace_dir):
+        # File header
+        with open(f"{ace_dir}/{file_name}", 'r') as f:
+            header = ACEtk.Header.from_string(f.readline())
+
+        # Decode ACE name to MC/DC name
+        Z, A, S, T = util.decode_ace_name(header.zaid)
+        symbol = util.Z_TO_SYMBOL[Z]
+        nuclide_name = f"{symbol}{A}"
+        mcdc_name = f"{nuclide_name}-{S}-{T}.h5"
+        
+        if not os.path.exists(f"{output_dir}/{mcdc_name}"):
+            target_files.append(file_name)
+
 # Loop over all files
-for ace_name in tqdm(os.listdir(ace_dir), disable=verbose):
-    # Load ACE tables
-    ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
+for ace_name in tqdm(target_files, disable=verbose):
+    # File header
+    with open(f"{ace_dir}/{ace_name}", 'r') as f:
+        header = ACEtk.Header.from_string(f.readline())
 
     # Decode ACE name to MC/DC name
-    Z, A, S, T = util.decode_ace_name(ace_table.header.zaid)
+    Z, A, S, T = util.decode_ace_name(header.zaid)
     symbol = util.Z_TO_SYMBOL[Z]
     nuclide_name = f"{symbol}{A}"
     mcdc_name = f"{nuclide_name}-{S}-{T}.h5"
@@ -51,12 +71,15 @@ for ace_name in tqdm(os.listdir(ace_dir), disable=verbose):
     # Basic properties
     # ==================================================================================
 
+    # Load ACE tables
+    ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
+
     # ACE data source description
-    file.create_dataset("data_source/title", data=ace_table.header.title)
-    file.create_dataset("data_source/version", data=ace_table.header.version)
-    file.create_dataset("data_source/date", data=ace_table.header.date)
-    if "comments" in dir(ace_table.header):
-        file.create_dataset("data_source/comments", data=ace_table.header.comments)
+    file.create_dataset("data_source/title", data=header.title)
+    file.create_dataset("data_source/version", data=header.version)
+    file.create_dataset("data_source/date", data=header.date)
+    if "comments" in dir(header):
+        file.create_dataset("data_source/comments", data=header.comments)
 
     # Name and excitation level
     file.create_dataset("nuclide_name", data=nuclide_name)
