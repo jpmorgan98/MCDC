@@ -145,7 +145,6 @@ def load_cosine_distribution(data, h5_group: h5py.Group):
             pdf.extend(distribution.pdf)
         cosine = np.array(cosine)
         pdf = np.array(pdf)
-        h5_group.create_dataset('interpolation', data=interpolation)
         h5_group.create_dataset('offset', data=offset)
         h5_group.create_dataset('value', data=cosine)
         h5_group.create_dataset('pdf', data=pdf)
