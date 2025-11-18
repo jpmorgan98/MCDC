@@ -47,7 +47,8 @@ else:
             target_files.append(file_name)
 
 # Loop over all files
-for ace_name in tqdm(target_files, disable=verbose):
+pbar = tqdm(target_files, disable=verbose)
+for ace_name in pbar:
     # File header
     with open(f"{ace_dir}/{ace_name}", 'r') as f:
         header = ACEtk.Header.from_string(f.readline())
@@ -65,6 +66,7 @@ for ace_name in tqdm(target_files, disable=verbose):
     if verbose:
         print("\n"+"="*80+"\n")
         print(f'Create {mcdc_name} from {ace_name}\n')
+    pbar.set_postfix_str(mcdc_name)
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
 
     # ==================================================================================
