@@ -82,11 +82,12 @@ for ace_name in pbar:
     ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
 
     # ACE data source description
-    file.create_dataset("data_source/title", data=header.title)
-    file.create_dataset("data_source/version", data=header.version)
-    file.create_dataset("data_source/date", data=header.date)
+    header = ace_table.header
+    file.attrs['source_title'] = header.title
+    file.attrs['source_version'] = header.version
+    file.attrs['source_date'] = header.date
     if "comments" in dir(header):
-        file.create_dataset("data_source/comments", data=header.comments)
+        file.attrs['source_comments'] = header.comments
 
     # Name and excitation level
     file.create_dataset("nuclide_name", data=nuclide_name)
@@ -120,25 +121,24 @@ for ace_name in pbar:
 
     # The groups
     elastic_group = reactions.create_group("elastic_scattering")
-    capture_group = reactions.create_group("capture")
-    inelastic_group = reactions.create_group("inelastic_scattering")
-    if fissionable:
-        fission_group = reactions.create_group("fission")
+    capture_group = reactions.create_group("captures")
+    inelastic_group = reactions.create_group("inelastic_scatterings")
+    fission_group = reactions.create_group("fission")
 
-    # Group MTs
-    elastic_MTs = [2]
+    # MT groups
+    elastic_MT = 2
     capture_MTs = []
     inelastic_MTs = []
-    fission_MTs = [18]
-    redundant_MTs = [1, 3, 4, 10, 19, 20, 21, 38]
+    fission_MT = 18
     fission_components = [19, 20, 21, 38]
+    redundant_MTs = [1, 3, 4, 10] + fission_components
 
     # Add MTs to capture and inelastic groups
     for i in range(N_reaction):
         idx = i + 1
         MT = rx_block.MT(idx)
 
-        if MT in redundant_MTs + elastic_MTs + fission_MTs or MT > 117:
+        if MT in redundant_MTs + [elastic_MT , fission_MT] or MT > 117:
             continue
 
         nu = nu_block.multiplicity(idx)
@@ -152,11 +152,17 @@ for ace_name in pbar:
     # Report MT groups
     if verbose:
         print(f"  Reaction group MTs")
-        print(f"    - Elastic scattering MTs: {elastic_MTs}")
+        print(f"    - Elastic scattering MT: {elastic_MT}")
         print(f"    - Capture MTs: {capture_MTs}")
         print(f"    - Inelastic scattering MTs: {inelastic_MTs}")
         if fissionable:
-            print(f"    - Fission MTs: {fission_MTs}")
+            print(f"    - Fission MT: {fission_MT}")
+
+    # Delete empty groups
+    if not fissionable:
+        del file['neutron_reactions/fission']
+    if len(inelastic_MTs) == 0:
+        del file['neutron_reactions/inelastic_scatterings']
 
     # ==================================================================================
     # Cross-sections
@@ -176,63 +182,78 @@ for ace_name in pbar:
     dataset.attrs["unit"] = "MeV"
 
     # Elastic
-    xs = elastic_group.create_dataset("MT-002/xs", data=xs_elastic)
+    xs = elastic_group.create_dataset("xs", data=xs_elastic)
     xs.attrs["energy_offset"] = 0
     xs.attrs["unit"] = "barns"
 
-    # Capture, inelastic, and fission
+    # Capture and inelastic
     for i in range(N_reaction):
         idx = i + 1
         MT = rx_block.MT(idx)
 
-        if MT in redundant_MTs or MT > 117:
+        if MT in redundant_MTs + [elastic_MT , fission_MT] or MT > 117:
             continue
 
         if MT in capture_MTs:
             group = capture_group
         elif MT in inelastic_MTs:
             group = inelastic_group
-        elif fissionable and MT in fission_MTs:
-            group = fission_group
 
         xs = group.create_dataset(f"MT-{MT:03}/xs", data=cross_sections(idx))
         xs.attrs["energy_offset"] = energy_offsets(idx) - 1
         xs.attrs["unit"] = "barns"
 
-    # Fissionable, but provided by components
-    if fissionable and not rx_block.has_MT(18):
+    # Fission
+    if fissionable:
+        total_fission_given = rx_block.has_MT(fission_MT)
+
+        # Should be either
+        if rx_block.has_MT(fission_MT):
+            for MT in fission_components:
+                if rx_block.has_MT(MT):
+                    print_error('Both total fission and its components are given')
+
         xs_fission = np.zeros_like(xs_energy)
 
-        for MT in fission_components:
-            idx = rx_block.index(MT)
-            xs_fission[energy_offsets(idx) - 1:] += cross_sections(idx)[:]
+        # Total XS is given?
+        if total_fission_given:
+            idx = rx_block.index(fission_MT)
+            xs_fission[energy_offsets(idx) - 1:] = cross_sections(idx)[:]
 
-        xs = fission_group.create_dataset("MT-018/xs", data=xs_fission)
+        # Accumulate from components if total is not given
+        else:
+            actual_fission_components = []
+            for MT in fission_components:
+                if rx_block.has_MT(MT):
+                    actual_fission_components.append(MT)
+                    idx = rx_block.index(MT)
+
+                    xs_component = np.array(cross_sections(idx)[:])
+                    xs = fission_group.create_dataset(f"MT-{MT:03}/xs", data=xs_component)
+                    xs.attrs["energy_offset"] = energy_offsets(idx) - 1
+                    xs.attrs["unit"] = "barns"
+
+                    xs_fission[energy_offsets(idx) - 1:] += xs_component
+
+        xs = fission_group.create_dataset("xs", data=xs_fission)
         xs.attrs["energy_offset"] = 0
         xs.attrs["unit"] = "barns"
-        
 
     # ==================================================================================
-    # Reference frames and inelastic multiplicities
+    # Capture and inelastic reference frames and inelastic multiplicities
     # ==================================================================================
 
-    # Elastic
-    elastic_group.create_dataset("MT-002/reference_frame", data="LAB")
-
-    # Capture, inelastic, and fission
     for i in range(N_reaction):
         idx = i + 1
         MT = rx_block.MT(idx)
 
-        if MT in redundant_MTs or MT > 117:
+        if MT in redundant_MTs + [elastic_MT , fission_MT] or MT > 117:
             continue
 
         if MT in capture_MTs:
             group = capture_group
         elif MT in inelastic_MTs:
             group = inelastic_group
-        elif fissionable and MT in fission_MTs:
-            group = fission_group
 
         # Reference frame
         reference_frame = nu_block.reference_frame(idx)
@@ -249,38 +270,26 @@ for ace_name in pbar:
             nu = nu_block.multiplicity(idx)
             inelastic_group.create_dataset(f"MT-{MT:03}/multiplicity", data=nu)
     
-    # Fissionable, but provided by components
-    if fissionable and not rx_block.has_MT(18):
-        xs_fission = np.zeros_like(xs_energy)
-
-        reference_frames = []
-        for MT in fission_components:
-            idx = rx_block.index(MT)
-
-            # Reference frame
-            reference_frame = nu_block.reference_frame(idx)
-            reference_frames.append(reference_frame)
-
-        if len(set(reference_frames)) != 1:
-            print_error("Fission component reference frames are identical")
-
-        if reference_frames[0] == ACEtk.ReferenceFrame.Laboratory:
-            reference_frame = 'LAB'
-        elif reference_frames[0] == ACEtk.ReferenceFrame.CentreOfMass:
-            reference_frame = 'COM'
+    # Make sure that fission is in LAB frame
+    if fissionable:
+        if total_fission_given:
+            idx = rx_block.index(fission_MT)
+            if nu_block.reference_frame(idx) != ACEtk.ReferenceFrame.Laboratory:
+                print_error(f"Fission reference frame is not LAB")
         else:
-            print_error(f"Unknown reaction reference frame type for MT={MT}")
-        fission_group.create_dataset(f"MT-018/reference_frame", data=reference_frame)
+            for MT in actual_fission_components:
+                idx = rx_block.index(MT)
+                if nu_block.reference_frame(idx) != ACEtk.ReferenceFrame.Laboratory:
+                    print_error(f"Fission reference frame is not LAB")
 
     # ==================================================================================
     # Scattering angular distributions
     # ==================================================================================
 
     angle_block = ace_table.angular_distribution_block
-    energy_correlated_MTs = []
    
     # Elastic scattering
-    angle_group = elastic_group.create_group('MT-002/scattering_cosine')
+    angle_group = elastic_group.create_group('scattering_cosine')
     data = angle_block.angular_distribution_data(0)
     util.load_cosine_distribution(data, angle_group)
 
@@ -301,168 +310,130 @@ for ace_name in pbar:
 
     for MT in inelastic_MTs:
         idx = rx_block.index(MT)
-        energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out')
         data = energy_block.energy_distribution_data(idx)
         
         if isinstance(data, ACEtk.continuous.MultiDistributionData):
-            energy_group.attrs['type'] = 'multi-distribution'
-           
-            # Set each distribution
             N = data.number_distributions
-            for i in range(N):
-                group_ = energy_group.create_group(f"energy_out-{i+1}")
-                distribution = data.distribution(i+1)
-                util.load_energy_distribution(distribution, group_)
+            probabilities = np.zeros(N)
 
+            for i in range(N):
+                probability = data.probability(i + 1)
+                if (
+                    not probability.number_interpolation_regions == 1
+                    or not len(probability.probabilities[:]) == 2
+                    or not probability.probabilities[0] == probability.probabilities[1]
+                ):
+                    print_error("Non-constant multi-distribution probabilities")
+
+                probabilities[i] = probability.probabilities[0]
+                energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out-{i+1}')
+                distribution = data.distribution(i+1)
+                util.load_energy_distribution(distribution, energy_group)
         else:
+            probabilities = np.array([1.0])
+            energy_group = inelastic_group.create_group(f'MT-{MT:03}/energy_out-1')
             util.load_energy_distribution(data, energy_group)
+
+        inelastic_group.create_dataset(f'MT-{MT:03}/probabilities', data=probabilities)
+
+    # Fissionable zone below
+    if not fissionable:
+        continue
 
     # ==================================================================================
     # Fission multiplicities and delayed neutron precursor fractions and decay rates
     # ==================================================================================
     
-    if fissionable:
-        fission_reaction = fission_group['MT-018']
-        prompt_block = ace_table.fission_multiplicity_block
-        delayed_block = ace_table.delayed_fission_multiplicity_block
-        dnp_block = ace_table.delayed_neutron_precursor_block
+    prompt_block = ace_table.fission_multiplicity_block
+    delayed_block = ace_table.delayed_fission_multiplicity_block
+    dnp_block = ace_table.delayed_neutron_precursor_block
 
-        # Prompt multiplicity
-        data = prompt_block.multiplicity
-        h5_group = fission_reaction.create_group("prompt_multiplicity")
+    # Prompt multiplicity
+    data = prompt_block.multiplicity
+    h5_group = fission_group.create_group("prompt_multiplicity")
+    util.load_fission_multiplicity(data, h5_group)
+
+    # Delayed multiplicity
+    if delayed_block is not None:
+        data = delayed_block.multiplicity
+        h5_group = fission_group.create_group("delayed_multiplicity")
         util.load_fission_multiplicity(data, h5_group)
 
-        # Delayed multiplicity
-        if delayed_block is not None:
-            data = delayed_block.multiplicity
-            h5_group = fission_reaction.create_group("delayed_multiplicity")
-            util.load_fission_multiplicity(data, h5_group)
-
-        # Delayed neutron precursor fractions and decay rates
-        if dnp_block is not None:
-            N_DNP = dnp_block.number_delayed_precursors
-            fractions = np.zeros(N_DNP)
-            decay_rates = np.zeros(N_DNP)
-
-            for i in range(N_DNP):
-                idx = 1 + 1
-                data = dnp_block.precursor_group_data(idx)
-                
-                if (
-                    not data.number_interpolation_regions == 0 
-                    or not len(data.probabilities[:]) == 2
-                    or not data.probabilities[0] == data.probabilities[1]
-                ):
-                    print_error("Non-constant delayed neutron precursor fraction")
-                    exit()
-
-                fractions[i] = data.probabilities[0]
-                decay_rates[i] = data.decay_constant
-
-            precursors = fission_reaction.create_group("delayed_neutron_precursors")
-            precursors.create_dataset('fractions', data=fractions)
-            decay_rates = precursors.create_dataset('decay_rates', data=decay_rates)
-            decay_rates.attrs['unit'] = "/s"
-
-    # ==================================================================================
-    # Fission neuron angular and energy distributions
-    # ==================================================================================
-    
-    # Fission angular emission: Isotropic (and energy correlated?)
-    if fissionable:
-        anisotropic = False
-
-        # Report if anisotropic
-        if rx_block.has_MT(18):
-            idx = rx_block.index(18)
-            if not angle_block.is_fully_isotropic(idx):
-                anisotropic = True
-        else:
-            isotropic = []
-            for MT in fission_components:
-                idx = rx_block.index(MT)
-                isotropic.append(angle_block.is_fully_isotropic(idx))
-            if not all(isotropic):
-                print_error('Anisotropic fission neutron')
-
-        if anisotropic:
-            idx = rx_block.index(18)
-
-            # Energy-correlated?
-            if isinstance(
-                angle_block.angular_distribution_data(idx),
-                ACEtk.continuous.DistributionGivenElsewhere
-            ):
-                angle_group.attrs['type'] = 'energy-correlated'
-                energy_correlated_MTs.append(18)
-
-            else:
-                # Check distribution support: all tabulated
-                data = angle_block.angular_distribution_data(idx)
-                NE = data.number_incident_energies
-                for i in range(NE):
-                    idx = i + 1
-                    if (
-                        data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
-                    ):
-                        print_error("Anisotropic fission angular distribution is not all-tabulated")
-
-                for i, distribution in enumerate(data.distributions):
-                    pdf = distribution.pdf[:]
-                    if len(pdf) != 2 or pdf[0] != 0.5 or pdf[1] != 0.5:
-                        print_error("Anisotropic fission neutron")
-
-                if verbose:
-                    print_note("Tabulated isotropic fission neutron distribution")
-
-    '''
-    # Prompt neutron
-    block = ace_table.energy_distribution_block
-    N_reaction = block.number_reactions
-    for i in range(N_reaction):
-        idx = i + 1
-        if MT_map(idx) == 18:
-            distribution = block.energy_distribution_data(idx)
-            break
-        print(idx, MT_map(idx), distribution.type)
-    exit()
-
-    # Delayed neutrons
-    block = ace_table.delayed_neutron_energy_distribution_block
-    if block is not None:
-        N_DNP = block.number_reactions
-        for i in range(N_DNP):
-            idx = i + 1
-            distribution = block.energy_distribution_data(idx)
-            if distribution.type != ACEtk.EnergyDistributionType.TabulatedEnergy:
-                print("[ERROR] Non tabulated delayed neutron energy PDF")
-                exit()
-            print(distribution.incident_energies[:])
-
+    # Delayed neutron precursor fractions and decay rates
+    if dnp_block is not None:
+        N_DNP = dnp_block.number_delayed_precursors
+        fractions = np.zeros(N_DNP)
+        decay_rates = np.zeros(N_DNP)
 
         for i in range(N_DNP):
             idx = 1 + 1
-            data = (
-                ace_table.delayed_neutron_precursor_block.precursor_group_data(idx)
-            )
+            data = dnp_block.precursor_group_data(idx)
             
             if (
                 not data.number_interpolation_regions == 0 
                 or not len(data.probabilities[:]) == 2
                 or not data.probabilities[0] == data.probabilities[1]
             ):
-                print("[ERROR] Non-constant delayed neutron precursor fraction")
-                exit()
+                print_error("Non-constant delayed neutron precursor fraction")
 
             fractions[i] = data.probabilities[0]
             decay_rates[i] = data.decay_constant
 
-        precursors = fission.create_group("delayed_neutron_precursors")
+        precursors = fission_group.create_group("delayed_neutron_precursors")
         precursors.create_dataset('fractions', data=fractions)
         decay_rates = precursors.create_dataset('decay_rates', data=decay_rates)
         decay_rates.attrs['unit'] = "/s"
-    '''
 
+    # ==================================================================================
+    # Fission angular and energy distributions
+    # ==================================================================================
+
+    # Angular distribution
+    if total_fission_given:
+        idx = rx_block.index(fission_MT)
+        angle_group = fission_group.create_group(f'emission_cosine')
+        data = angle_block.angular_distribution_data(idx)
+        util.load_cosine_distribution(data, angle_group)
+    else:
+        for MT in actual_fission_components:
+            idx = rx_block.index(MT)
+            angle_group = fission_group.create_group(f'MT-{MT:03}/emission_cosine')
+            data = angle_block.angular_distribution_data(idx)
+            util.load_cosine_distribution(data, angle_group)
+
+    # Energy distribution
+    if total_fission_given:
+        idx = rx_block.index(fission_MT)
+        data = energy_block.energy_distribution_data(idx)
+        if isinstance(data, ACEtk.continuous.MultiDistributionData):
+            print_error("Multi-distribution fission spectra")
+        else:
+            energy_group = fission_group.create_group(f'energy_out')
+            util.load_energy_distribution(data, energy_group)
+    else:
+        for MT in actual_fission_components:
+            idx = rx_block.index(MT)
+            data = energy_block.energy_distribution_data(idx)
+            if isinstance(data, ACEtk.continuous.MultiDistributionData):
+                print_error("Multi-distribution fission spectra")
+            else:
+                energy_group = fission_group.create_group(f'MT-{MT:03}/energy_out')
+                util.load_energy_distribution(data, energy_group)
+
+    # Delayed neutron energy distribution
+    delayed_spectrum_block = ace_table.delayed_neutron_energy_distribution_block
+    if dnp_block is not None:
+        N_DNP = dnp_block.number_delayed_precursors
+
+        for i in range(N_DNP):
+            idx = 1 + 1
+            data = delayed_spectrum_block.energy_distribution_data(idx)
+
+            if not isinstance(data, ACEtk.continuous.OutgoingEnergyDistributionData):
+                print_error(f'Unsupported delayed fission neutron spectrum: {data}')
+           
+            energy_group = fission_group.create_group(f'delayed_neutron_precursors/energy_out-{i+1}')
+            util.load_energy_distribution(data, energy_group)
     
     # ==================================================================================
     # Finalize

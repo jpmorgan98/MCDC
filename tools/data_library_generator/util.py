@@ -176,6 +176,20 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         dataset = h5_group.create_dataset('restriction_energy', data=restriction_energy)
         dataset.attrs['unit'] = 'MeV'
 
+    elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
+        h5_group.attrs['type'] = 'maxwellian'
+
+        energy = np.array(data.energies)
+        temperature = np.array(data.temperatures)
+        restriction_energy = np.array(data.restriction_energy)
+
+        dataset = h5_group.create_dataset('energy', data=energy)
+        dataset.attrs['unit'] = 'MeV'
+        dataset = h5_group.create_dataset('temperature', data=temperature)
+        dataset.attrs['unit'] = 'MeV'
+        dataset = h5_group.create_dataset('restriction_energy', data=restriction_energy)
+        dataset.attrs['unit'] = 'MeV'
+
     elif isinstance(data, ACEtk.continuous.OutgoingEnergyDistributionData):
         h5_group.attrs['type'] = 'tabulated'
 
