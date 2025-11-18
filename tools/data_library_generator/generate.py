@@ -22,6 +22,11 @@ verbose = args.verbose
 output_dir = os.getenv("MCDC_LIB")
 ace_dir = os.getenv("MCDC_ACELIB")
 
+if output_dir is None:
+    print_error("Environment variable $MCDC_LIB is not set")
+if ace_dir is None:
+    print_error("Environment variable $MCDC_ACELIB is not set")
+
 # Create output directory if needed
 os.makedirs(output_dir, exist_ok=True)
 print(f'\nACE directory: {ace_dir}')
@@ -47,7 +52,7 @@ else:
             target_files.append(file_name)
 
 # Loop over all files
-pbar = tqdm(target_files, disable=verbose)
+pbar = tqdm(target_files, disable=verbose, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}{postfix}")
 for ace_name in pbar:
     # File header
     with open(f"{ace_dir}/{ace_name}", 'r') as f:
@@ -66,7 +71,7 @@ for ace_name in pbar:
     if verbose:
         print("\n"+"="*80+"\n")
         print(f'Create {mcdc_name} from {ace_name}\n')
-    pbar.set_postfix_str(mcdc_name)
+    pbar.set_postfix_str(mcdc_name[:-3])
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
 
     # ==================================================================================

@@ -4,11 +4,11 @@ import numpy as np
 
 
 def print_error(message):
-    print(f"\n  [ERROR]: {message}")
+    print(f"\n  [ERROR]: {message}\n")
     exit()
 
 def print_note(message):
-    print(f"\n  [NOTE]: {message}")
+    print(f"\n  [NOTE]: {message}\n")
 
 def decode_interpolation(code):
     if code not in INTERPOLATION_MAP.keys():
