@@ -1,13 +1,22 @@
 import ACEtk
+import argparse
 import h5py
 import numpy as np
 import os
+
+from tqdm import tqdm
 
 ####
 
 import util
 from util import print_error, print_note
 
+parser = argparse.ArgumentParser(description="MC/DC data generator")
+parser.add_argument("--rewrite", dest="rewrite", action="store_true", default=False)
+parser.add_argument("--verbose", dest="verbose", action="store_true", default=False)
+args, unargs = parser.parse_known_args()
+rewrite = args.rewrite
+verbose = args.verbose
 
 # Directories
 output_dir = os.getenv("MCDC_LIB")
@@ -19,7 +28,7 @@ print(f'\nACE directory: {ace_dir}')
 print(f'Output directory: {output_dir}\n')
 
 # Loop over all files
-for ace_name in os.listdir(ace_dir):
+for ace_name in tqdm(os.listdir(ace_dir), disable=verbose):
     # Load ACE tables
     ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
 
@@ -28,10 +37,14 @@ for ace_name in os.listdir(ace_dir):
     symbol = util.Z_TO_SYMBOL[Z]
     nuclide_name = f"{symbol}{A}"
     mcdc_name = f"{nuclide_name}-{S}-{T}.h5"
+    
+    if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
+        continue
 
     # Create MC/DC file
-    print("\n"+"="*80+"\n")
-    print(f'Create {mcdc_name} from {ace_name}\n')
+    if verbose:
+        print("\n"+"="*80+"\n")
+        print(f'Create {mcdc_name} from {ace_name}\n')
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
 
     # ==================================================================================
@@ -107,12 +120,13 @@ for ace_name in os.listdir(ace_dir):
             print_error(f"Negative multiplicity for MT={MT}")
 
     # Report MT groups
-    print(f"  Reaction group MTs")
-    print(f"    - Elastic scattering MTs: {elastic_MTs}")
-    print(f"    - Capture MTs: {capture_MTs}")
-    print(f"    - Inelastic scattering MTs: {inelastic_MTs}")
-    if fissionable:
-        print(f"    - Fission MTs: {fission_MTs}")
+    if verbose:
+        print(f"  Reaction group MTs")
+        print(f"    - Elastic scattering MTs: {elastic_MTs}")
+        print(f"    - Capture MTs: {capture_MTs}")
+        print(f"    - Inelastic scattering MTs: {inelastic_MTs}")
+        if fissionable:
+            print(f"    - Fission MTs: {fission_MTs}")
 
     # ==================================================================================
     # Cross-sections
@@ -309,7 +323,7 @@ for ace_name in os.listdir(ace_dir):
                     or not len(data.probabilities[:]) == 2
                     or not data.probabilities[0] == data.probabilities[1]
                 ):
-                    print("[ERROR] Non-constant delayed neutron precursor fraction")
+                    print_error("Non-constant delayed neutron precursor fraction")
                     exit()
 
                 fractions[i] = data.probabilities[0]
@@ -368,7 +382,8 @@ for ace_name in os.listdir(ace_dir):
                     if len(pdf) != 2 or pdf[0] != 0.5 or pdf[1] != 0.5:
                         print_error("Anisotropic fission neutron")
 
-                print_note("Tabulated isotropic fission neutron distribution")
+                if verbose:
+                    print_note("Tabulated isotropic fission neutron distribution")
 
     '''
     # Prompt neutron
