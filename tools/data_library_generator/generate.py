@@ -71,7 +71,7 @@ for ace_name in pbar:
     if verbose:
         print("\n"+"="*80+"\n")
         print(f'Create {mcdc_name} from {ace_name}\n')
-    pbar.set_postfix_str(mcdc_name[:-3])
+    pbar.set_postfix_str(f"{mcdc_name[:-3]} from {ace_name}")
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
 
     # ==================================================================================
