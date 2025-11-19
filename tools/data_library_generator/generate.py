@@ -45,17 +45,11 @@ else:
         # Decode ACE name to MC/DC name
         Z, A, S, T = util.decode_ace_name(header.zaid)
         symbol = util.Z_TO_SYMBOL[Z]
-        nuclide_name = f"{symbol}{A}"
-        if S == 0:
-            mcdc_name = f"{nuclide_name}-{T}K.h5"
-        else:
-            mcdc_name = f"{nuclide_name}m{S}-{T}K.h5"
+        nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
+        mcdc_name = f"{nuclide_name}-{T}K.h5"
         
         if not os.path.exists(f"{output_dir}/{mcdc_name}"):
             target_files.append(file_name)
-
-# Summary tallies
-summary = {}
 
 # Loop over all files
 pbar = tqdm(target_files, disable=verbose, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}{postfix}")
@@ -67,20 +61,9 @@ for ace_name in pbar:
     # Decode ACE name to MC/DC name
     Z, A, S, T = util.decode_ace_name(header.zaid)
     symbol = util.Z_TO_SYMBOL[Z]
-    nuclide_name = f"{symbol}{A}"
-    if S == 0:
-        mcdc_name = f"{nuclide_name}-{T}K.h5"
-    else:
-        mcdc_name = f"{nuclide_name}m{S}-{T}K.h5"
+    nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
+    mcdc_name = f"{nuclide_name}-{T}K.h5"
 
-    # Add to summary tally
-    if nuclide_name not in summary.keys():
-        summary[nuclide_name] = {"temperatures": [], "excited_states": []}
-    if not T in summary[nuclide_name]['temperatures']:
-        summary[nuclide_name]['temperatures'].append(T)
-    if not S in summary[nuclide_name]['excited_states']:
-        summary[nuclide_name]['excited_states'].append(S)
-    
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
         continue
 
@@ -470,12 +453,5 @@ for ace_name in pbar:
     # ==================================================================================
     
     file.close()
-
-# Save the summary
-summary_file = h5py.File(f'{output_dir}/summary.h5', 'w')
-for key in summary.keys():
-    group = summary_file.create_group(key)
-    for subkey in summary[key]:
-        group.create_dataset(subkey, data=summary[key][subkey])
 
 print("")
