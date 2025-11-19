@@ -194,7 +194,7 @@ for ace_name in pbar:
     xs_energy = xs0_block.energies
     xs_elastic = xs0_block.elastic
     cross_sections = xs_block.cross_sections
-    energy_offsets = xs_block.energy_index
+    offsets = xs_block.energy_index
 
     # Energy grid
     xs_energy = np.array(xs_energy)
@@ -203,7 +203,7 @@ for ace_name in pbar:
 
     # Elastic scattering
     xs = elastic_group.create_dataset("MT-002/xs", data=xs_elastic)
-    xs.attrs["energy_offset"] = 0
+    xs.attrs["offset"] = 0
     xs.attrs["unit"] = "barns"
     
     # Capture, inelastic scattering, and fission
@@ -215,7 +215,7 @@ for ace_name in pbar:
         for MT in MTs:
             idx = rx_block.index(MT)
             xs = group.create_dataset(f"MT-{MT:03}/xs", data=cross_sections(idx))
-            xs.attrs["energy_offset"] = energy_offsets(idx) - 1
+            xs.attrs["offset"] = offsets(idx) - 1
             xs.attrs["unit"] = "barns"
 
     # ==================================================================================
