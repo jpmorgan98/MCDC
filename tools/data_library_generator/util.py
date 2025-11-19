@@ -346,6 +346,8 @@ ACE_TEMPERATURE_LIB81 = {
     "17c": 273.15,
 }
 
+TEMPERATURE_TO_ACELIB81 = {value: key for key, value in ACE_TEMPERATURE_LIB81.items()}
+
 SYMBOL_TO_Z = {
     "H": 1,
     "He": 2,
