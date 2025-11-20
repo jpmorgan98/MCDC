@@ -262,6 +262,9 @@ for ace_name in pbar:
     # Elastic scattering
     angle_group = elastic_group.create_group('MT-002/angular_cosine_distribution')
     data = angle_block.angular_distribution_data(0)
+    for subdata in data.distributions:
+        if not isinstance(subdata, ACEtk.continuous.TabulatedAngularDistribution):
+            print_error('Unsupported elastic scattering angular distribution')
     util.load_cosine_distribution(data, angle_group)
 
     # Inelastic scattering and fission
