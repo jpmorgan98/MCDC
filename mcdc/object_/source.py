@@ -11,7 +11,7 @@ import mcdc.object_.distribution as distribution
 
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.constant import PARTICLE_NEUTRON
-from mcdc.object_.distribution import DistributionPDF, DistributionPMF
+from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
 
 
@@ -43,7 +43,7 @@ class Source(ObjectNonSingleton):
     energy_group: int
     energy: float
     energy_group_pmf: DistributionPMF
-    energy_pdf: DistributionPDF
+    energy_pdf: DistributionTabulated
     discrete_time: bool
     time: float
     time_range: Annotated[NDArray[float64], (2,)]
@@ -101,7 +101,7 @@ class Source(ObjectNonSingleton):
         self.energy_group = 0
         self.energy = 1.0e6
         self.energy_group_pmf = DistributionPMF(np.array([0.0]), np.array([1.0]))
-        self.energy_pdf = DistributionPDF(
+        self.energy_pdf = DistributionTabulated(
             np.array([1.0e6 - 1.0, 1.0e6 + 1.0]), np.array([1.0, 1.0])
         )
 
@@ -158,7 +158,7 @@ class Source(ObjectNonSingleton):
                 self.energy = energy
             else:
                 self.mono_energetic = False
-                self.energy_pdf = DistributionPDF(energy[0], energy[1])
+                self.energy_pdf = DistributionTabulated(energy[0], energy[1])
 
         # Time
         if type(time) == float:

@@ -22,13 +22,25 @@ import mcdc.mcdc_get.table_data as table_data
 
 import mcdc.mcdc_get.distribution as distribution
 
+import mcdc.mcdc_get.evaporation_distribution as evaporation_distribution
+
+import mcdc.mcdc_get.kalbach_mann_distribution as kalbach_mann_distribution
+
+import mcdc.mcdc_get.level_scattering_distribution as level_scattering_distribution
+
 import mcdc.mcdc_get.maxwellian_distribution as maxwellian_distribution
 
-import mcdc.mcdc_get.multipdf_distribution as multipdf_distribution
+import mcdc.mcdc_get.multi_table_distribution as multi_table_distribution
 
-import mcdc.mcdc_get.pdf_distribution as pdf_distribution
+import mcdc.mcdc_get.nbody_distribution as nbody_distribution
+
+import mcdc.mcdc_get.none_distribution as none_distribution
 
 import mcdc.mcdc_get.pmf_distribution as pmf_distribution
+
+import mcdc.mcdc_get.tabulated_distribution as tabulated_distribution
+
+import mcdc.mcdc_get.tabulated_energy_angle_distribution as tabulated_energy_angle_distribution
 
 import mcdc.mcdc_get.native_material as native_material
 
@@ -49,6 +61,8 @@ import mcdc.mcdc_get.neutron_capture_reaction as neutron_capture_reaction
 import mcdc.mcdc_get.neutron_elastic_scattering_reaction as neutron_elastic_scattering_reaction
 
 import mcdc.mcdc_get.neutron_fission_reaction as neutron_fission_reaction
+
+import mcdc.mcdc_get.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
 
 import mcdc.mcdc_get.particle_bank as particle_bank
 

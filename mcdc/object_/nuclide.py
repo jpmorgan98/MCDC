@@ -12,6 +12,7 @@ from mcdc.object_.reaction import (
     ReactionNeutronCapture,
     ReactionNeutronElasticScattering,
     ReactionNeutronFission,
+    ReactionNeutronInelasticScattering,
     decode_type,
 )
 from mcdc.object_.base import ObjectNonSingleton
@@ -27,48 +28,117 @@ class Nuclide(ObjectNonSingleton):
     label: str = "nuclide"
     #
     name: str
+    temperature: float
     atomic_weight_ratio: float
-    xs_energy_grid: NDArray[float64]
     fissionable: bool
-    reactions: list[ReactionBase]
+    excitation_level: int
+    xs_energy_grid: NDArray[float64]
     total_xs: NDArray[float64]
+    elastic_xs: NDArray[float64]
+    capture_xs: NDArray[float64]
+    inelastic_xs: NDArray[float64]
+    fission_xs: NDArray[float64]
+    elastic_scattering_reactions: list[ReactionNeutronElasticScattering]
+    capture_reactions: list[ReactionNeutronCapture]
+    inelastic_scattering_reactions: list[ReactionNeutronInelasticScattering]
+    fission_reactions: list[ReactionNeutronFission]
 
-    def __init__(self, nuclide_name):
+    def __init__(self, nuclide_name, temperature):
         super().__init__()
 
+        self.name = nuclide_name
+        self.temperature = temperature
+
         # Set attributes from the hdf5 file
-        dir_name = os.getenv("MCDC_XSLIB")
-        file_name = f"{nuclide_name}.h5"
-        with h5py.File(f"{dir_name}/{file_name}", "r") as f:
-            self.name = f["nuclide_name"][()].decode()
-            self.atomic_weight_ratio = f["atomic_weight_ratio"][()]
-            self.xs_energy_grid = f["neutron_reactions/xs_energy_grid"][()]
+        dir_name = os.getenv("MCDC_LIB")
+        file_name = f"{nuclide_name}-{temperature}K.h5"
+        file = h5py.File(f"{dir_name}/{file_name}", "r")
 
-            self.fissionable = False
-            self.reactions = []
-            self.total_xs = np.zeros_like(self.xs_energy_grid)
+        # Basic properties
+        self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
+        self.fissionable = bool(file["fissionable"][()])
+        self.excitation_level = int(file["excitation_level"][()])
 
-            for reaction_type in f["neutron_reactions"]:
-                if reaction_type == "xs_energy_grid":
-                    continue
+        # The reactions
+        rx_names = [
+            "elastic_scattering",
+            "capture",
+            "inelastic_scattering",
+            "fission",
+        ]
 
-                if reaction_type == "capture":
-                    ReactionClass = ReactionNeutronCapture
+        # The reaction MTs
+        MTs = {}
+        for name in rx_names:
+            if name not in file['neutron_reactions']:
+                MTs[name] = []
+                continue
+                
+            MTs[name] = [
+                x for x in file[f"neutron_reactions/{name}"] if x.startswith("MT")
+            ]
 
-                elif reaction_type == "elastic_scattering":
-                    ReactionClass = ReactionNeutronElasticScattering
+        # ==========================================================================
+        # Reaction XS
+        # ==========================================================================
 
-                elif reaction_type == "fission":
-                    self.fissionable = True
-                    ReactionClass = ReactionNeutronFission
+        # Energy grid
+        xs_energy = file["neutron_reactions/xs_energy_grid"][()] * 1e6  # MeV to eV
+        self.xs_energy_grid = xs_energy
 
-                reaction = ReactionClass.from_h5_group(
-                    f[f"neutron_reactions/{reaction_type}"]
-                )
-                self.reactions.append(reaction)
+        # The total XS
+        self.total_xs = np.zeros_like(self.xs_energy_grid)
+        self.elastic_xs = np.zeros_like(self.xs_energy_grid)
+        self.capture_xs = np.zeros_like(self.xs_energy_grid)
+        self.inelastic_xs = np.zeros_like(self.xs_energy_grid)
+        self.fission_xs = np.zeros_like(self.xs_energy_grid)
 
-                # Accumulate total XS
-                self.total_xs += reaction.xs
+        xs_containers = [
+            self.elastic_xs,
+            self.capture_xs,
+            self.inelastic_xs,
+            self.fission_xs,
+        ]
+        for xs_container, rx_name in list(zip(xs_containers, rx_names)):
+            for MT in MTs[rx_name]:
+                xs = file[f"neutron_reactions/{rx_name}/{MT}/xs"]
+                xs_container[xs.attrs["offset"] :] += xs[()]
+
+        self.total_xs = (
+            self.elastic_xs + self.capture_xs + self.inelastic_xs + self.fission_xs
+        )
+
+        # ==========================================================================
+        # The reactions
+        # ==========================================================================
+
+        self.elastic_scattering_reactions = []
+        self.capture_reactions = []
+        self.inelastic_scattering_reactions = []
+        self.fission_reactions = []
+
+        rx_containers = [
+            self.elastic_scattering_reactions,
+            self.capture_reactions,
+            self.inelastic_scattering_reactions,
+            self.fission_reactions,
+        ]
+        rx_classes = [
+            ReactionNeutronElasticScattering,
+            ReactionNeutronCapture,
+            ReactionNeutronInelasticScattering,
+            ReactionNeutronFission,
+        ]
+        for rx_container, rx_name, rx_class in list(
+            zip(rx_containers, rx_names, rx_classes)
+        ):
+            for MT in MTs[rx_name]:
+                h5_group = file[f"neutron_reactions/{rx_name}/{MT}"]
+                parent_h5_group = file[f"neutron_reactions/{rx_name}"]
+                reaction = rx_class.from_h5_group(h5_group, parent_h5_group)
+                rx_container.append(reaction)
+
+        file.close()
 
     def __repr__(self):
         text = "\n"

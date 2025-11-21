@@ -1,8 +1,9 @@
-from types import NoneType
 import numpy as np
+import os
 
 from numpy import float64
 from numpy.typing import NDArray
+from types import NoneType
 from typing import Annotated
 
 ####
@@ -71,9 +72,13 @@ class Material(MaterialBase):
         self,
         name: str = "",
         nuclide_composition: dict[str, float] = {},
+        temperature: float = 293.6,
     ):
         type_ = MATERIAL
         super().__init__(type_, name)
+
+        # Temperature
+        self.temperature = temperature
 
         # Dictionary connecting nuclides to respective densities
         self.nuclide_composition = {}
@@ -82,21 +87,39 @@ class Material(MaterialBase):
         self.nuclides = []
         self.nuclide_densities = np.zeros(len(nuclide_composition))
 
+        # Check if library directory is set
+        lib_dir = os.getenv("MCDC_LIB")
+        if lib_dir is None:
+            print_error("Environment variable MCDC_LIB is not set")
+
         # Loop over the items in the composition
         for i, (key, value) in enumerate(nuclide_composition.items()):
             nuclide_name = key
             nuclide_density = value
 
+            # Get supported temperature
+            nearest_temperature = min(TEMPERATURES, key=lambda x: abs(x - temperature))
+
+            # Check if nuclide-temperature is available in the library
+            file_name = f"{nuclide_name}-{nearest_temperature}K.h5"
+            if not file_name in os.listdir(lib_dir):
+                print_error(
+                    f"Nuclide {nuclide_name} at temperature {nearest_temperature} K is not available in the library"
+                )
+
             # Check if nuclide is already created
             found = False
             for nuclide in simulation.nuclides:
-                if nuclide.name == nuclide_name:
+                if (
+                    nuclide.name == nuclide_name
+                    and nearest_temperature == nuclide.temperature
+                ):
                     found = True
                     break
 
             # Create the nuclide to objects if needed
             if not found:
-                nuclide = Nuclide(nuclide_name)
+                nuclide = Nuclide(nuclide_name, nearest_temperature)
 
             # Register the nuclide composition
             self.nuclides.append(nuclide)
@@ -109,10 +132,15 @@ class Material(MaterialBase):
 
     def __repr__(self):
         text = super().__repr__()
+        text += f"  - Temperature: {self.temperature} K\n"
         text += f"  - Nuclide composition [atoms/barn-cm]\n"
         for nuclide in self.nuclide_composition.keys():
             text += f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
         return text
+
+
+# Currently supported temperatures
+TEMPERATURES = [0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, 2500.0]
 
 
 # ======================================================================================

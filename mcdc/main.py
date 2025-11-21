@@ -229,7 +229,7 @@ def preparation():
     import numba as nb
     import mcdc.config as config
     import mcdc.transport.mpi as mpi
-    
+
     # TODO: Find out why the following is needed to avoid circular import
     import mcdc.transport.particle_bank as particle_bank_module
 

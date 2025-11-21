@@ -4,59 +4,30 @@ from numba import njit
 
 
 @njit
-def delayed_yield_IDs(index, neutron_fission_reaction, data, value):
-    offset = neutron_fission_reaction["delayed_yield_IDs_offset"]
+def delayed_fractions(index, neutron_fission_reaction, data, value):
+    offset = neutron_fission_reaction["delayed_fractions_offset"]
     data[offset + index] = value
 
 
 @njit
-def delayed_yield_IDs_all(neutron_fission_reaction, data, value):
-    start = neutron_fission_reaction["delayed_yield_IDs_offset"]
-    size = neutron_fission_reaction["N_delayed_yield"]
+def delayed_fractions_all(neutron_fission_reaction, data, value):
+    start = neutron_fission_reaction["delayed_fractions_offset"]
+    size = neutron_fission_reaction["delayed_fractions_length"]
     end = start + size
     data[start:end] = value
 
 
 @njit
-def delayed_yield_IDs_last(neutron_fission_reaction, data, value):
-    start = neutron_fission_reaction["delayed_yield_IDs_offset"]
-    size = neutron_fission_reaction["N_delayed_yield"]
+def delayed_fractions_last(neutron_fission_reaction, data, value):
+    start = neutron_fission_reaction["delayed_fractions_offset"]
+    size = neutron_fission_reaction["delayed_fractions_length"]
     end = start + size
     data[end - 1] = value
 
 
 @njit
-def delayed_yield_IDs_chunk(start, length, neutron_fission_reaction, data, value):
-    start += neutron_fission_reaction["delayed_yield_IDs_offset"]
-    end = start + length
-    data[start:end] = value
-
-
-@njit
-def delayed_spectrum_IDs(index, neutron_fission_reaction, data, value):
-    offset = neutron_fission_reaction["delayed_spectrum_IDs_offset"]
-    data[offset + index] = value
-
-
-@njit
-def delayed_spectrum_IDs_all(neutron_fission_reaction, data, value):
-    start = neutron_fission_reaction["delayed_spectrum_IDs_offset"]
-    size = neutron_fission_reaction["N_delayed_spectrum"]
-    end = start + size
-    data[start:end] = value
-
-
-@njit
-def delayed_spectrum_IDs_last(neutron_fission_reaction, data, value):
-    start = neutron_fission_reaction["delayed_spectrum_IDs_offset"]
-    size = neutron_fission_reaction["N_delayed_spectrum"]
-    end = start + size
-    data[end - 1] = value
-
-
-@njit
-def delayed_spectrum_IDs_chunk(start, length, neutron_fission_reaction, data, value):
-    start += neutron_fission_reaction["delayed_spectrum_IDs_offset"]
+def delayed_fractions_chunk(start, length, neutron_fission_reaction, data, value):
+    start += neutron_fission_reaction["delayed_fractions_offset"]
     end = start + length
     data[start:end] = value
 
@@ -86,5 +57,34 @@ def delayed_decay_rates_last(neutron_fission_reaction, data, value):
 @njit
 def delayed_decay_rates_chunk(start, length, neutron_fission_reaction, data, value):
     start += neutron_fission_reaction["delayed_decay_rates_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def delayed_spectrum_IDs(index, neutron_fission_reaction, data, value):
+    offset = neutron_fission_reaction["delayed_spectrum_IDs_offset"]
+    data[offset + index] = value
+
+
+@njit
+def delayed_spectrum_IDs_all(neutron_fission_reaction, data, value):
+    start = neutron_fission_reaction["delayed_spectrum_IDs_offset"]
+    size = neutron_fission_reaction["N_delayed_spectrum"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def delayed_spectrum_IDs_last(neutron_fission_reaction, data, value):
+    start = neutron_fission_reaction["delayed_spectrum_IDs_offset"]
+    size = neutron_fission_reaction["N_delayed_spectrum"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def delayed_spectrum_IDs_chunk(start, length, neutron_fission_reaction, data, value):
+    start += neutron_fission_reaction["delayed_spectrum_IDs_offset"]
     end = start + length
     data[start:end] = value

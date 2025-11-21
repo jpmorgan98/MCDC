@@ -11,6 +11,8 @@ from mcdc.object_.technique import (
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
     from mcdc.object_.material import MaterialBase
+    from mcdc.object_.nuclide import Nuclide
+    from mcdc.object_.reaction import ReactionBase
     from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
     from mcdc.object_.tally import TallyBase
@@ -27,11 +29,9 @@ from numpy.typing import NDArray
 
 from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.data import DataBase
-from mcdc.object_.distribution import DistributionBase
+from mcdc.object_.distribution import DistributionBase, DistributionNone
 from mcdc.object_.mesh import MeshBase
-from mcdc.object_.nuclide import Nuclide
 from mcdc.object_.particle import ParticleBank
-from mcdc.object_.reaction import ReactionBase
 from mcdc.object_.settings import Settings
 from mcdc.object_.universe import Universe, Lattice
 
@@ -133,7 +133,7 @@ class Simulation(ObjectSingleton):
 
         # Physics
         self.data = []
-        self.distributions = []
+        self.distributions = [DistributionNone()]
         self.materials = []
         self.nuclides = []
         self.reactions = []

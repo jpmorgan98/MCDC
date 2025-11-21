@@ -9,18 +9,30 @@ import mcdc.object_.data as data
 import mcdc.object_.distribution as distribution
 
 from mcdc.constant import (
+    ANGLE_DISTRIBUTED,
+    ANGLE_ENERGY_CORRELATED,
+    ANGLE_ISOTROPIC,
     REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_ELASTIC_SCATTERING,
     REACTION_NEUTRON_FISSION,
+    REACTION_NEUTRON_INELASTIC_SCATTERING,
+    REFERENCE_FRAME_COM,
+    REFERENCE_FRAME_LAB,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataBase, DataPolynomial, DataTable
 from mcdc.object_.distribution import (
     DistributionBase,
+    DistributionKalbachMann,
+    DistributionMultiTable,
+    DistributionLevelScattering,
+    DistributionEvaporation,
     DistributionMaxwellian,
-    DistributionMultiPDF,
+    DistributionTabulatedEnergyAngle,
+    DistributionNBody,
 )
-from mcdc.print_ import print_1d_array
+from mcdc.object_.simulation import simulation
+from mcdc.print_ import print_1d_array, print_error
 
 
 # ======================================================================================
@@ -32,46 +44,41 @@ class ReactionBase(ObjectPolymorphic):
     # Annotations for Numba mode
     label: str = "reaction"
     #
+    MT: int
     xs: NDArray[float64]
+    xs_offset_: int # "xs_offset" ir reserved for "xs"
 
-    def __init__(self, type_, xs):
+    def __init__(self, type_, MT, xs, xs_offset):
         super().__init__(type_)
+        self.MT = MT
         self.xs = xs
+        self.xs_offset_ = xs_offset
 
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
         text += f"  - ID: {self.ID}\n"
+        text += f"  - MT: {self.MT}\n"
         text += f"  - XS {print_1d_array(self.xs)} barn\n"
         return text
 
 
 def decode_type(type_):
-    if type_ == REACTION_NEUTRON_CAPTURE:
-        return "Neutron capture"
-    elif type_ == REACTION_NEUTRON_ELASTIC_SCATTERING:
+    if type_ == REACTION_NEUTRON_ELASTIC_SCATTERING:
         return "Neutron elastic scattering"
+    elif type_ == REACTION_NEUTRON_CAPTURE:
+        return "Neutron capture"
+    elif type_ == REACTION_NEUTRON_INELASTIC_SCATTERING:
+        return "Neutron inelastic scattering"
     elif type_ == REACTION_NEUTRON_FISSION:
         return "Neutron fission"
 
 
-# ======================================================================================
-# Neutron capture
-# ======================================================================================
-
-
-class ReactionNeutronCapture(ReactionBase):
-    # Annotations for Numba mode
-    label: str = "neutron_capture_reaction"
-
-    def __init__(self, xs):
-        type_ = REACTION_NEUTRON_CAPTURE
-        super().__init__(type_, xs)
-
-    @classmethod
-    def from_h5_group(cls, h5_group):
-        xs = h5_group["xs"][()]
-        return cls(xs)
+def decode_reference_frame(type_):
+    if type_ == REFERENCE_FRAME_LAB:
+        return "Laboratory"
+    elif type_ == REFERENCE_FRAME_COM:
+        return "Center of mass"
 
 
 # ======================================================================================
@@ -83,31 +90,154 @@ class ReactionNeutronElasticScattering(ReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_elastic_scattering_reaction"
     #
-    mu: DistributionMultiPDF
+    mu: DistributionMultiTable
 
-    def __init__(self, xs, mu):
+    def __init__(self, MT, xs, xs_offset, mu):
         type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
-        super().__init__(type_, xs)
+        super().__init__(type_, MT, xs, xs_offset)
 
         self.mu = mu
 
     @classmethod
-    def from_h5_group(cls, h5_group):
+    def from_h5_group(cls, h5_group, parent_h5_group):
+        MT = h5_group.attrs["MT"][()]
         xs = h5_group["xs"][()]
+        xs_offset = h5_group["xs"].attrs["offset"]
 
-        # Scattering cosine
-        base = "scattering_cosine"
-        grid = h5_group[f"{base}/energy_grid"][()]
-        offset = h5_group[f"{base}/energy_offset"][()]
-        value = h5_group[f"{base}/value"][()]
-        pdf = h5_group[f"{base}/PDF"][()]
-        mu = DistributionMultiPDF(grid, offset, value, pdf)
+        _, mu = set_angular_distribution(h5_group["angular_cosine_distribution"])
 
-        return cls(xs, mu)
+        return cls(MT, xs, xs_offset, mu)
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Scattering cosine: {distribution.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
+        return text
+
+
+# ======================================================================================
+# Neutron capture
+# ======================================================================================
+
+
+class ReactionNeutronCapture(ReactionBase):
+    # Annotations for Numba mode
+    label: str = "neutron_capture_reaction"
+    #
+    reference_frame: int
+
+    def __init__(self, MT, xs, xs_offset, reference_frame):
+        type_ = REACTION_NEUTRON_CAPTURE
+        super().__init__(type_, MT, xs, xs_offset)
+        
+        self.reference_frame = reference_frame
+
+    @classmethod
+    def from_h5_group(cls, h5_group, parent_h5_group):
+        MT = h5_group.attrs["MT"][()]
+        xs = h5_group["xs"][()]
+        xs_offset = h5_group["xs"].attrs["offset"]
+
+        reference_frame = h5_group["reference_frame"][()].decode('utf-8')
+        if reference_frame == "LAB":
+            reference_frame = REFERENCE_FRAME_LAB
+        elif reference_frame == "COM":
+            reference_frame = REFERENCE_FRAME_COM
+
+        return cls(MT, xs, xs_offset, reference_frame)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
+        return text
+
+
+# ======================================================================================
+# Neutron inelastic scattering
+# ======================================================================================
+
+
+class ReactionNeutronInelasticScattering(ReactionBase):
+    # Annotations for Numba mode
+    label: str = "neutron_inelastic_scattering_reaction"
+    #
+    reference_frame: int
+    multiplicity: int
+    angle_type: int
+    mu: DistributionBase
+    spectrum_probability_grid: NDArray[float64]
+    spectrum_probability: NDArray[float64]  # 2D
+    energy_spectra: list[DistributionBase]
+
+    def __init__(
+        self,
+        MT,
+        xs,
+        xs_offset,
+        reference_frame,
+        multiplicity,
+        angle_type,
+        mu,
+        spectrum_probability_grid,
+        spectrum_probability,
+        energy_spectra,
+    ):
+        type_ = REACTION_NEUTRON_INELASTIC_SCATTERING
+        super().__init__(type_, MT, xs, xs_offset)
+
+        self.reference_frame = reference_frame
+        self.multiplicity = multiplicity
+        self.angle_type = angle_type
+        self.mu = mu
+        self.spectrum_probability_grid = spectrum_probability_grid
+        self.spectrum_probability = spectrum_probability
+        self.energy_spectra = energy_spectra
+
+    @classmethod
+    def from_h5_group(cls, h5_group, parent_h5_group):
+        MT = h5_group.attrs["MT"][()]
+        xs = h5_group["xs"][()]
+        xs_offset = h5_group["xs"].attrs["offset"]
+        
+        reference_frame = h5_group["reference_frame"][()].decode('utf-8')
+        if reference_frame == "LAB":
+            reference_frame = REFERENCE_FRAME_LAB
+        elif reference_frame == "COM":
+            reference_frame = REFERENCE_FRAME_COM
+
+        multiplicity = int(h5_group["multiplicity"][()])
+
+        angle_type, mu = set_angular_distribution(
+            h5_group["angular_cosine_distribution"]
+        )
+
+        # Energy spectra
+        spectrum_probability_grid = (
+            h5_group[f"spectrum_probability_grid"][()] * 1e6
+        )  # MeV to eV
+        spectrum_probability = h5_group[f"spectrum_probability"][()]
+        energy_spectra = []
+        spectrum_names = [x for x in h5_group if x.startswith("energy_spectrum-")]
+        for spectrum_name in spectrum_names:
+            energy_spectra.append(set_energy_distribution(h5_group[f"{spectrum_name}"]))
+
+        return cls(
+            MT,
+            xs,
+            xs_offset,
+            reference_frame,
+            multiplicity,
+            angle_type,
+            mu,
+            spectrum_probability_grid,
+            spectrum_probability,
+            energy_spectra,
+        )
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
+        text += f"  - Scattering cosine: {distribution.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
+        # TODO
         return text
 
 
@@ -120,127 +250,86 @@ class ReactionNeutronFission(ReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_fission_reaction"
     #
-    prompt_yield: DataBase
+    prompt_multiplicity: DataBase
+    delayed_multiplicity: DataBase
+    prompt_angle_type: int
+    prompt_mu: DistributionBase
     prompt_spectrum: DistributionBase
     N_delayed: int
-    delayed_yields: list[DataBase]
-    delayed_spectrums: list[DistributionBase]
+    delayed_fractions: NDArray[float64]
     delayed_decay_rates: NDArray[float64]
+    delayed_spectra: list[DistributionBase]
 
     def __init__(
         self,
+        MT,
         xs,
-        prompt_yield,
+        xs_offset,
+        prompt_multiplicity,
+        delayed_multiplicity,
+        prompt_angle_type,
+        prompt_mu,
         prompt_spectrum,
-        delayed_yields,
-        delayed_spectrums,
+        delayed_fractions,
         delayed_decay_rates,
+        delayed_spectra,
     ):
         type_ = REACTION_NEUTRON_FISSION
-        super().__init__(type_, xs)
+        super().__init__(type_, MT, xs, xs_offset)
 
-        self.prompt_yield = prompt_yield
+        self.prompt_multiplicity = prompt_multiplicity
+        self.delayed_multiplicity = delayed_multiplicity
+        self.prompt_angle_type = prompt_angle_type
+        self.prompt_mu = prompt_mu
         self.prompt_spectrum = prompt_spectrum
-        self.N_delayed = len(delayed_yields)
-        self.delayed_yields = delayed_yields
-        self.delayed_spectrums = delayed_spectrums
+        self.N_delayed = len(delayed_fractions)
+        self.delayed_fractions = delayed_fractions
         self.delayed_decay_rates = delayed_decay_rates
+        self.delayed_spectra = delayed_spectra
 
     @classmethod
-    def from_h5_group(cls, h5_group):
+    def from_h5_group(cls, h5_group, parent_h5_group):
+        MT = h5_group.attrs["MT"][()]
         xs = h5_group["xs"][()]
+        xs_offset = h5_group["xs"].attrs["offset"]
 
-        # The products
-        products = h5_group["products"]
-        prompt_product = products["prompt_neutron"]
+        # Multiplicities
+        prompt_multiplicity = set_multiplicity(parent_h5_group["prompt_multiplicity"])
+        delayed_multiplicity = set_multiplicity(parent_h5_group["delayed_multiplicity"])
 
-        # Delayed neutron groups
-        delayed_products = []
-        N_delayed = 0
-        if "delayed_neutrons" in products.keys():
-            delayed_products = products["delayed_neutrons"]
-            N_delayed = len(products["delayed_neutrons"])
+        # Delayed fractions and decay rates
+        delayed_fractions = parent_h5_group['delayed_neutron_precursors/fractions'][()]
+        delayed_decay_rates = parent_h5_group['delayed_neutron_precursors/decay_rates'][()]
 
-        # Prompt neutron: yield
-        prompt_yield = None
-        if prompt_product["yield"].attrs["type"] == "table":
-            x = prompt_product["yield"]["energy_grid"][()]
-            y = prompt_product["yield"]["value"][()]
-            prompt_yield = DataTable(x, y)
-        elif prompt_product["yield"].attrs["type"] == "polynomial":
-            coeffs = prompt_product["yield"]["polynomial_coefficient"][()]
-            prompt_yield = DataPolynomial(coeffs)
+        # Prompt angular distribution
+        prompt_angle_type, prompt_mu = set_angular_distribution(
+            h5_group["angular_cosine_distribution"]
+        )
 
-        # Prompt neutron: energy spectrum
-        prompt_spectrum = None
-        if prompt_product["energy_out"].attrs["type"] == "multi_pdf":
-            grid = prompt_product["energy_out"]["energy_grid"][()]
-            offset = prompt_product["energy_out"]["energy_offset"][()]
-            value = prompt_product["energy_out"]["value"][()]
-            pdf = prompt_product["energy_out"]["PDF"][()]
-            prompt_spectrum = DistributionMultiPDF(grid, offset, value, pdf)
-        elif prompt_product["energy_out"].attrs["type"] == "maxwellian":
-            restriction_energy = prompt_product["energy_out"][
-                "maxwell_restriction_energy"
-            ][()]
-            nuclear_temperature = prompt_product["energy_out"][
-                "maxwell_nuclear_temperature"
-            ]
-            nuclear_temperature_energy_grid = nuclear_temperature["energy_grid"][()]
-            nuclear_temperature_value = nuclear_temperature["value"][()]
-            prompt_spectrum = DistributionMaxwellian(
-                restriction_energy,
-                nuclear_temperature_energy_grid,
-                nuclear_temperature_value,
-            )
+        # Prompt spectrum
+        spectrum_names = [x for x in h5_group if x.startswith("energy_spectrum-")]
+        if len(spectrum_names) > 1:
+            print_error('Unsupported multi-distribution prompt fission spectrum')
+        prompt_spectrum = set_energy_distribution(h5_group[f"energy_spectrum-1"])
 
-        # Delayed products
-        delayed_yields = [None] * N_delayed
-        delayed_spectrums = [None] * N_delayed
-        delayed_decay_rates = np.zeros(N_delayed)
-        for i, name in enumerate(delayed_products):
-            delayed_product = delayed_products[name]
-            # Yield
-            if delayed_product["yield"].attrs["type"] == "table":
-                x = delayed_product["yield"]["energy_grid"][()]
-                y = delayed_product["yield"]["value"][()]
-                delayed_yields[i] = DataTable(x, y)
-            elif delayed_product["yield"].attrs["type"] == "polynomial":
-                coeffs = delayed_product["yield"]["polynomial_coefficient"][()]
-                delayed_yields[i] = DataPolynomial(coeffs)
-
-            # Energy spectrum
-            if delayed_product["energy_out"].attrs["type"] == "multi_pdf":
-                grid = delayed_product["energy_out"]["energy_grid"][()]
-                offset = delayed_product["energy_out"]["energy_offset"][()]
-                value = delayed_product["energy_out"]["value"][()]
-                pdf = delayed_product["energy_out"]["PDF"][()]
-                delayed_spectrums[i] = DistributionMultiPDF(grid, offset, value, pdf)
-            elif delayed_product["energy_out"].attrs["type"] == "maxwellian":
-                restriction_energy = delayed_product["energy_out"][
-                    "reastriction_energy"
-                ][()]
-                nuclear_temperature = delayed_product["energy_out"][
-                    "nuclear_temperature"
-                ][()]
-                nuclear_temperature_energy_grid = nuclear_temperature["energy_grid"][()]
-                nuclear_temperature_value = nuclear_temperature["value"][()]
-                delayed_spectrums[i] = DistributionMaxwellian(
-                    restriction_energy,
-                    nuclear_temperature_energy_grid,
-                    nuclear_temperature_value,
-                )
-
-            # Decay rate
-            delayed_decay_rates[i] = 1.0 / delayed_product["mean_emission_time"][()]
+        # Delayed spectra
+        delayed_spectra = []
+        spectrum_names = [x for x in parent_h5_group['delayed_neutron_precursors'] if x.startswith("energy_spectrum-")]
+        for spectrum_name in spectrum_names:
+            delayed_spectra.append(set_energy_distribution(parent_h5_group[f"delayed_neutron_precursors/{spectrum_name}"]))
 
         return cls(
+            MT,
             xs,
-            prompt_yield,
+            xs_offset,
+            prompt_multiplicity,
+            delayed_multiplicity,
+            prompt_angle_type,
+            prompt_mu,
             prompt_spectrum,
-            delayed_yields,
-            delayed_spectrums,
+            delayed_fractions,
             delayed_decay_rates,
+            delayed_spectra,
         )
 
     def __repr__(self):
@@ -254,7 +343,127 @@ class ReactionNeutronFission(ReactionBase):
         for i in range(self.N_delayed):
             text += f"    - Group {i+1}\n"
             text += f"      - Yield: {data.decode_type(self.delayed_yields[i].type)} [ID: {self.delayed_yields[i].ID}]\n"
-            text += f"      - Spectrum: {data.decode_type(self.delayed_spectrums[i].type)} [ID: {self.delayed_spectrums[i].ID}]\n"
+            text += f"      - Spectrum: {data.decode_type(self.delayed_spectra[i].type)} [ID: {self.delayed_spectra[i].ID}]\n"
             text += f"      - Mean emission time: {1.0 / self.delayed_decay_rates[i]:.5g} s\n"
 
         return text
+
+
+# ======================================================================================
+# Helper functions
+# ======================================================================================
+
+
+def set_angular_distribution(h5_group):
+    mu_type = h5_group.attrs["type"]
+    if mu_type == "isotropic":
+        angle_type = ANGLE_ISOTROPIC
+        mu = simulation.distributions[0]
+    elif mu_type == "energy-correlated":
+        angle_type = ANGLE_ENERGY_CORRELATED
+        mu = simulation.distributions[0]
+    else:
+        angle_type = ANGLE_DISTRIBUTED
+        grid = h5_group[f"energy"][()] * 1E6 # MeV to eV
+        offset = h5_group[f"offset"][()]
+        value = h5_group[f"value"][()]
+        pdf = h5_group[f"pdf"][()]
+        mu = DistributionMultiTable(grid, offset, value, pdf)
+
+    return angle_type, mu
+
+
+def set_energy_distribution(h5_group):
+    spectrum_type = h5_group.attrs["type"]
+
+    if spectrum_type == "tabulated":
+        grid = h5_group[f"energy"][()] * 1E6 # MeV to eV
+        offset = h5_group[f"offset"][()]
+        value = h5_group[f"value"][()] * 1E6 # MeV to eV
+        pdf = h5_group[f"pdf"][()] / 1E6 # /MeV to /eV
+        energy_spectrum = DistributionMultiTable(grid, offset, value, pdf)
+
+    elif spectrum_type == "level-scattering":
+        C1 = h5_group["C1"][()] * 1E6 # MeV to eV
+        C2 = h5_group["C2"][()]
+
+        energy_spectrum = DistributionLevelScattering(C1, C2)
+
+    elif spectrum_type == "evaporation":
+        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
+        temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
+        restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
+        
+        energy_spectrum = DistributionEvaporation(
+            energy, temperature, restriction_energy
+        )
+
+    elif spectrum_type == "maxwellian":
+        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
+        temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
+        restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
+        
+        energy_spectrum = DistributionMaxwellian(
+            energy, temperature, restriction_energy
+        )
+
+    elif spectrum_type == "kalbach-mann":
+        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
+        offset = h5_group[f"offset"][()]
+
+        energy_out = h5_group[f"energy_out"][()] * 1e6  # MeV to eV
+        pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
+
+        precompound_factor = h5_group[f"precompound_factor"][()]
+        angular_slope = h5_group[f"angular_slope"][()]
+
+        energy_spectrum = DistributionKalbachMann(
+            energy, offset, energy_out, pdf, precompound_factor, angular_slope
+        )
+    
+    elif spectrum_type == "energy-angle-tabulated":
+        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
+        offset = h5_group[f"offset"][()]
+
+        energy_out = h5_group[f"energy_out"][()] * 1e6  # MeV to eV
+        pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
+        cosine_offset = h5_group[f"cosine_offset"][()]
+
+        cosine = h5_group[f"cosine"][()]
+        cosine_pdf = h5_group[f"cosine_pdf"][()]
+
+        energy_spectrum = DistributionTabulatedEnergyAngle(
+            energy, offset, energy_out, pdf, cosine_offset, cosine, cosine_pdf
+        )
+
+    elif spectrum_type == "N-body":
+        value = h5_group['value'][()] * 1E6 # MeV to eV
+        pdf = h5_group['pdf'][()] / 1E6 # /MeV to /eV
+
+        energy_spectrum = DistributionNBody(value, pdf)
+
+    else:
+        print_error(f"Unsupported energy spectrum of type {spectrum_type}")
+
+    return energy_spectrum
+
+def set_multiplicity(h5_group):
+    multiplicity_type = h5_group.attrs["type"]
+
+    if multiplicity_type == "tabulated":
+        x = h5_group['energy'][()] * 1E6 # MeV to eV
+        y = h5_group['value'][()]
+        multiplicity = DataTable(x, y)
+
+    elif multiplicity_type == 'polynomial':
+        coefficient = h5_group['coefficient'][()]
+
+        # MeV-based to eV-based
+        for l in range(len(coefficient)):
+            coefficient[l] /= 1E6**l 
+
+        multiplicity = DataPolynomial(coefficient)
+    else:
+        print_error(f"Unsupported multiplicity of type {multiplicity_type}")
+
+    return multiplicity

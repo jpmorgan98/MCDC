@@ -94,7 +94,7 @@ def generate_numba_objects(simulation):
     annotations = {}
     structures = {}
     records = {}
-    data = {'size': 0}
+    data = {"size": 0}
     accessor_targets = {}
 
     for mcdc_class in mcdc_classes:
@@ -251,11 +251,11 @@ def generate_numba_objects(simulation):
     for object_ in objects:
         set_object(object_, annotations, structures, records, data)
     set_object(simulation, annotations, structures, records, data)
-   
-    # Allocate the flattened data and re-set the objects
-    data['array'] = np.zeros(data['size'], dtype=type_map[float])
 
-    data['size'] = 0
+    # Allocate the flattened data and re-set the objects
+    data["array"] = np.zeros(data["size"], dtype=type_map[float])
+
+    data["size"] = 0
     records = {}
     for mcdc_class in mcdc_classes:
         if issubclass(mcdc_class, ObjectNonSingleton):
@@ -388,7 +388,7 @@ def generate_numba_objects(simulation):
                             singular_field
                         ][i][sub_item[0]]
 
-    return mcdc_simulation_arr, data['array']
+    return mcdc_simulation_arr, data["array"]
 
 
 def set_structure(label, structures, accessor_targets, annotations):
@@ -483,7 +483,9 @@ def set_structure(label, structures, accessor_targets, annotations):
             print_error(f"Unknown type hint for {label}/{field}: {hint}")
 
 
-def set_object(object_, annotations, structures, records, data, class_=None, set_data=False):
+def set_object(
+    object_, annotations, structures, records, data, class_=None, set_data=False
+):
     if class_ == None:
         class_ = object_.__class__
 
@@ -492,13 +494,19 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
         for parent_class in polymorphic_bases:
             if issubclass(class_, parent_class):
                 set_object(
-                    object_, annotations, structures, records, data, parent_class, set_data
+                    object_,
+                    annotations,
+                    structures,
+                    records,
+                    data,
+                    parent_class,
+                    set_data,
                 )
 
     annotation = annotations[class_.label]
     structure = structures[class_.label]
     record = {}
-
+    
     if class_.label == "simulation":
         record = records["simulation"]
 
@@ -524,7 +532,6 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
         # Skip if not in annotation
         if attribute_name not in annotation.keys():
             continue
-
         attribute = getattr(object_, attribute_name)
 
         # Convert list of supported types into Numpy array
@@ -535,11 +542,13 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
         # Numpy array
         if type(attribute) == np.ndarray:
             attribute_flatten = attribute.flatten()
-            record[f"{attribute_name}_offset"] = data['size']
+            record[f"{attribute_name}_offset"] = data["size"]
             record[f"{attribute_name}_length"] = len(attribute_flatten)
             if set_data:
-                data['array'][data['size']: data['size'] + len(attribute_flatten)] = attribute_flatten[:]
-            data['size'] += len(attribute_flatten)
+                data["array"][data["size"] : data["size"] + len(attribute_flatten)] = (
+                    attribute_flatten[:]
+                )
+            data["size"] += len(attribute_flatten)
 
         # Non-singleton object
         elif isinstance(attribute, ObjectNonSingleton):
@@ -565,16 +574,20 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
                 )
 
             record[f"N_{singular_name}"] = len(attribute_flatten)
-            record[f"{singular_name}_IDs_offset"] = data['size']
+            record[f"{singular_name}_IDs_offset"] = data["size"]
             if set_data:
                 if (
                     not issubclass(inner_type, ObjectPolymorphic)
                     or inner_type in polymorphic_bases
                 ):
-                    data['array'][data['size']: data['size'] + len(attribute_flatten)] = [x.ID for x in attribute_flatten]
+                    data["array"][
+                        data["size"] : data["size"] + len(attribute_flatten)
+                    ] = [x.ID for x in attribute_flatten]
                 else:
-                    data['array'][data['size']: data['size'] + len(attribute_flatten)] = [x.child_ID for x in attribute_flatten]
-            data['size'] += len(attribute_flatten)            
+                    data["array"][
+                        data["size"] : data["size"] + len(attribute_flatten)
+                    ] = [x.child_ID for x in attribute_flatten]
+            data["size"] += len(attribute_flatten)
 
     # Complete for simulation object
     if class_.label == "simulation":
@@ -600,13 +613,13 @@ def set_object(object_, annotations, structures, records, data, class_=None, set
     # Set tally bins
     if class_ == TallyBase:
         tally_size = np.prod(object_.bin_shape)
-        record[f"bin_offset"] = data['size']
-        record[f"bin_sum_offset"] = data['size'] + tally_size
-        record[f"bin_sum_square_offset"] = data['size'] + tally_size * 2
+        record[f"bin_offset"] = data["size"]
+        record[f"bin_sum_offset"] = data["size"] + tally_size
+        record[f"bin_sum_square_offset"] = data["size"] + tally_size * 2
         record[f"bin_length"] = tally_size
         record[f"bin_sum_length"] = tally_size
         record[f"bin_sum_square_length"] = tally_size
-        data['size'] += 3 * tally_size
+        data["size"] += 3 * tally_size
 
     # Check structure-record compatibility
     missing = set([x[0] for x in structure]) - set(record.keys())
@@ -1013,6 +1026,7 @@ def plural_to_singular(word: str) -> str:
         "matrices": "matrix",
         "criteria": "criterion",
         "data": "data",  # invariant
+        "spectra": "spectrum",
     }
 
     parts = word.lower().split("_")
@@ -1053,6 +1067,7 @@ def singular_to_plural(word: str) -> str:
         "matrix": "matrices",
         "criterion": "criteria",
         "data": "data",  # invariant
+        "spectrum": "spectra",
     }
 
     parts = word.lower().split("_")

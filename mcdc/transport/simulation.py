@@ -257,7 +257,9 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
     idx_census = mcdc["idx_census"]
 
     if idx_census < settings["N_census"] - 1:
-        if particle["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
+        if particle["t"] > mcdc_get.settings.census_time(
+            idx_census + 1, settings, data
+        ):
             hit_census = True
             hit_next_census = True
         elif particle["t"] > mcdc_get.settings.census_time(idx_census, settings, data):
