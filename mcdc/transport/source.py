@@ -6,7 +6,7 @@ import mcdc.transport.rng as rng
 
 from mcdc.transport.distribution import (
     sample_uniform,
-    sample_pdf,
+    sample_tabulated,
     sample_pmf,
     sample_white_direction,
     sample_isotropic_direction,
@@ -65,8 +65,8 @@ def source_particle(P_rec_arr, seed, mcdc, data):
             E = source["energy"]
         else:
             ID = source["energy_pdf_ID"]
-            pdf = mcdc["pdf_distributions"][ID]
-            E = sample_pdf(pdf, P_rec_arr, data)
+            table = mcdc["tabulated_distributions"][ID]
+            E = sample_tabulated(pdf, P_rec_arr, data)
 
     # Time
     if source["discrete_time"]:

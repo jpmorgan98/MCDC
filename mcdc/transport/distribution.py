@@ -7,7 +7,7 @@ from numba import njit
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.rng as rng
 
-from mcdc.constant import DISTRIBUTION_MAXWELLIAN, DISTRIBUTION_MULTIPDF, PI
+from mcdc.constant import DISTRIBUTION_MAXWELLIAN, DISTRIBUTION_MULTITABLE, PI
 from mcdc.transport.data import evaluate_table
 from mcdc.transport.util import find_bin, linear_interpolation
 
@@ -35,9 +35,9 @@ def sample_isotropic_direction(rng_state):
 def sample_distribution(x, distribution, rng_state, mcdc, data, scale=False):
     distribution_type = distribution["child_type"]
     ID = distribution["child_ID"]
-    if distribution_type == DISTRIBUTION_MULTIPDF:
-        multipdf = mcdc["multipdf_distributions"][ID]
-        return sample_multipdf(x, rng_state, multipdf, data, scale)
+    if distribution_type == DISTRIBUTION_MULTITABLE:
+        multi_table = mcdc["multi_table_distributions"][ID]
+        return sample_multi_table(x, rng_state, multi_table, data, scale)
     elif distribution_type == DISTRIBUTION_MAXWELLIAN:
         maxwellian = mcdc["maxwellian_distributions"][ID]
         return sample_maxwellian(x, rng_state, maxwellian, mcdc, data)
@@ -46,13 +46,13 @@ def sample_distribution(x, distribution, rng_state, mcdc, data, scale=False):
 
 
 @njit
-def sample_pdf(pdf, rng_state, data):
+def sample_tabulated(table, rng_state, data):
     xi = rng.lcg(rng_state)
-    idx = find_bin(xi, mcdc_get.pdf_distribution.cdf_all(pdf, data))
-    cdf_low = mcdc_get.pdf_distribution.cdf(idx, pdf, data)
-    cdf_high = mcdc_get.pdf_distribution.cdf(idx + 1, pdf, data)
-    value_low = mcdc_get.pdf_distribution.value(idx, pdf, data)
-    value_high = mcdc_get.pdf_distribution.value(idx + 1, pdf, data)
+    idx = find_bin(xi, mcdc_get.tabulated_distribution.cdf_all(table, data))
+    cdf_low = mcdc_get.tabulated_distribution.cdf(idx, table, data)
+    cdf_high = mcdc_get.tabulated_distribution.cdf(idx + 1, table, data)
+    value_low = mcdc_get.tabulated_distribution.value(idx, table, data)
+    value_high = mcdc_get.tabulated_distribution.value(idx + 1, table, data)
     return linear_interpolation(xi, cdf_low, cdf_high, value_low, value_high)
 
 
@@ -94,8 +94,8 @@ def sample_white_direction(nx, ny, nz, rng_state):
 
 
 @njit
-def sample_multipdf(x, rng_state, multipdf, data, scale=False):
-    grid = mcdc_get.multipdf_distribution.grid_all(multipdf, data)
+def sample_multi_table(x, rng_state, multi_table, data, scale=False):
+    grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
 
     # Edge cases
     if x < grid[0]:
@@ -116,21 +116,21 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
         val_max = 1.0
         if scale:
             # First table
-            start = int(mcdc_get.multipdf_distribution.offset(idx, multipdf, data))
-            end = int(mcdc_get.multipdf_distribution.offset(idx + 1, multipdf, data))
-            val0_min = mcdc_get.multipdf_distribution.value(start, multipdf, data)
-            val0_max = mcdc_get.multipdf_distribution.value(end - 1, multipdf, data)
+            start = int(mcdc_get.multi_table_distribution.offset(idx, multi_table, data))
+            end = int(mcdc_get.multi_table_distribution.offset(idx + 1, multi_table, data))
+            val0_min = mcdc_get.multi_table_distribution.value(start, multi_table, data)
+            val0_max = mcdc_get.multi_table_distribution.value(end - 1, multi_table, data)
 
             # Second table
             start = end
             if idx + 2 == len(grid):
-                end = multipdf["value_length"]
+                end = multi_table["value_length"]
             else:
                 end = int(
-                    mcdc_get.multipdf_distribution.offset(idx + 2, multipdf, data)
+                    mcdc_get.multi_table_distribution.offset(idx + 2, multi_table, data)
                 )
-            val1_min = mcdc_get.multipdf_distribution.value(start, multipdf, data)
-            val1_max = mcdc_get.multipdf_distribution.value(end - 1, multipdf, data)
+            val1_min = mcdc_get.multi_table_distribution.value(start, multi_table, data)
+            val1_max = mcdc_get.multi_table_distribution.value(end - 1, multi_table, data)
 
             # Both
             val_min = val0_min + f * (val1_min - val0_min)
@@ -141,15 +141,15 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
             idx += 1
 
     # Get the table range
-    start = int(mcdc_get.multipdf_distribution.offset(idx, multipdf, data))
+    start = int(mcdc_get.multi_table_distribution.offset(idx, multi_table, data))
     if idx + 1 == len(grid):
-        end = multipdf["value_length"]
+        end = multi_table["value_length"]
     else:
-        end = int(mcdc_get.multipdf_distribution.offset(idx + 1, multipdf, data))
+        end = int(mcdc_get.multi_table_distribution.offset(idx + 1, multi_table, data))
     size = end - start
 
     # The CDF
-    cdf = mcdc_get.multipdf_distribution.cdf_chunk(start, size, multipdf, data)
+    cdf = mcdc_get.multi_table_distribution.cdf_chunk(start, size, multi_table, data)
 
     # Generate random numbers
     xi = rng.lcg(rng_state)
@@ -160,10 +160,10 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
 
     # Get the other values
     idx += start  # Apply the offset as these are not chunk-extracted like the cdf
-    p0 = mcdc_get.multipdf_distribution.pdf(idx, multipdf, data)
-    p1 = mcdc_get.multipdf_distribution.pdf(idx + 1, multipdf, data)
-    val0 = mcdc_get.multipdf_distribution.value(idx, multipdf, data)
-    val1 = mcdc_get.multipdf_distribution.value(idx + 1, multipdf, data)
+    p0 = mcdc_get.multi_table_distribution.pdf(idx, multi_table, data)
+    p1 = mcdc_get.multi_table_distribution.pdf(idx + 1, multi_table, data)
+    val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
+    val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
 
     m = (p1 - p0) / (val1 - val0)
     if m == 0.0:
@@ -175,8 +175,8 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
         return sample
 
     # Scale against the bounds
-    val_low = mcdc_get.multipdf_distribution.value(start, multipdf, data)
-    val_high = mcdc_get.multipdf_distribution.value(end - 1, multipdf, data)
+    val_low = mcdc_get.multi_table_distribution.value(start, multi_table, data)
+    val_high = mcdc_get.multi_table_distribution.value(end - 1, multi_table, data)
     return val_min + (sample - val_low) / (val_high - val_low) * (val_max - val_min)
 
 

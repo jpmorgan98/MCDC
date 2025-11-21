@@ -27,7 +27,7 @@ from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (
     sample_distribution,
     sample_isotropic_direction,
-    sample_multipdf,
+    sample_multi_table,
 )
 from mcdc.transport.physics.util import evaluate_xs_energy_grid, scatter_direction
 from mcdc.transport.util import linear_interpolation
@@ -291,8 +291,8 @@ def elastic_scattering(reaction_base, particle_container, nuclide, prog, data):
     uz = vz / speed
 
     # Sample the scattering cosine from the multi-PDF distribution
-    multipdf = mcdc["multipdf_distributions"][reaction["mu_ID"]]
-    mu0 = sample_multipdf(E, particle_container, multipdf, data)
+    multi_table = mcdc["multi_table_distributions"][reaction["mu_ID"]]
+    mu0 = sample_multi_table(E, particle_container, multi_table, data)
 
     # Scatter the direction in COM
     azi = 2.0 * PI * rng.lcg(particle_container)
