@@ -162,12 +162,27 @@ for ace_name in pbar:
             continue
 
         nu = nu_block.multiplicity(idx)
+
+        if type(nu) != int:
+            print_error(f"Non-integer multiplicity for inelastic scattering")
+
         if nu == 0:
             capture_MTs.append(MT)
         elif nu > 0:
             inelastic_MTs.append(MT)
         else:
             print_error(f"Negative multiplicity for MT-{MT:03}")
+
+    # Create MTs
+    for rx_group, rx_MTs in [
+        (elastic_group, elastic_MTs),
+        (capture_group, capture_MTs),
+        (inelastic_group, inelastic_MTs),
+        (fission_group, fission_MTs),
+    ]:
+        for MT in rx_MTs:
+            MT_group = rx_group.create_group(f"MT-{MT:03}")
+            MT_group.attrs['MT'] = MT
 
     # Report MT groups
     if verbose:
@@ -292,43 +307,58 @@ for ace_name in pbar:
             idx = rx_block.index(MT)
             data = energy_block.energy_distribution_data(idx)
 
-            if isinstance(data, ACEtk.continuous.MultiDistributionData):
-                for i in range(data.number_distributions):
+            if not isinstance(data, ACEtk.continuous.MultiDistributionData):
+                # Probabilities
+                dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability_grid', data=np.array([0.0, 30.0]))
+                dataset.attrs['unit'] = "MeV"
+                dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability', data=np.array([[1.0]]))
+               
+                # The distributions
+                energy_group = group.create_group(f'MT-{MT:03}/energy_spectrum-1')
+                util.load_energy_distribution(data, energy_group)
+
+            else:
+                N_dist = data.number_distributions
+
+                # ======================================================================
+                # Probabilities
+                # ======================================================================
+
+                # Constant probability
+                if all(np.array([x.number_interpolation_regions for x in data.probabilities]) == 0):
+                    probability_grid = np.array([0.0, 30.0])
+                    probability = np.zeros((1, N_dist))
+                    for i in range(N_dist):
+                        probability[0, i] = max(data.probability(i + 1).probabilities)
+                
+                # Histogram probability
+                elif (
+                    all(np.array([x.number_interpolation_regions for x in data.probabilities]) == 1)
+                    and all(np.array([x.interpolants for x in data.probabilities]) == 1)
+                ):
+                    probability_grid = np.array(data.probability(1).energies)
+                    probability = np.zeros((len(probability_grid) - 1, N_dist))
+                    for i in range(N_dist):
+                        if not all(probability_grid == np.array(data.probability(i+1).energies)):
+                            print_error("Unsupported multi-distribution energy spetrum")
+                        probability[:, i] = np.array(data.probability(i + 1).probabilities[:-1])
+
+                else:
+                    print_error("Unsupported multi-distribution energy spetrum")
+                        
+                    dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability_grid', data=probability_grid)
+                    dataset.attrs['unit'] = "MeV"
+                    dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability', data=probability)
+               
+                # ======================================================================
+                # The disributions
+                # ======================================================================
+
+                for i in range(N_dist):
                     energy_group = group.create_group(f'MT-{MT:03}/energy_spectrum-{i+1}')
                     distribution = data.distribution(i+1)
                     util.load_energy_distribution(distribution, energy_group)
 
-                    # ==================================================================
-                    # Probability
-                    # ==================================================================
-
-                    probability = data.probability(i + 1)
-                    # Constant probability
-                    if (probability.number_interpolation_regions == 0):
-                        energies = np.array([0.0, 30.0])
-                        probabilities = max(probability.probabilities)
-                    # Histogram probability
-                    elif (
-                        probability.number_interpolation_regions == 1
-                        and all(np.array(probability.interpolants)) == 1
-                    ):
-                        energies = np.array(probability.energies)
-                        probabilities = np.array(probability.probabilities[:-1])
-                    # Unsupported
-                    else:
-                        print_error("Unsupported multi-energy-distribution probabilities")
-                        
-                    dataset = energy_group.create_dataset("probability_energy", data=energies)
-                    dataset = energy_group.create_dataset("probability", data=probabilities)
-                    dataset.attrs['unit'] = "MeV"                    
-
-            else:
-                energy_group = group.create_group(f'MT-{MT:03}/energy_spectrum-1')
-                util.load_energy_distribution(data, energy_group)
-
-                dataset = energy_group.create_dataset("probability_energy", data=np.array([0.0, 30.0]))
-                dataset = energy_group.create_dataset("probability", data=np.array([1.0]))
-                dataset.attrs['unit'] = "MeV"
 
     # Fissionable zone below
     if not fissionable:

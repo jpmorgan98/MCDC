@@ -283,35 +283,34 @@ def load_energy_distribution(data, h5_group: h5py.Group):
 
         # Tabulated distributions
         offset = np.zeros(NE, dtype=int)
-        pdf = []
         energy_out = []
-        inner_offset = []
-        inner_pdf = []
+        pdf = []
+        cosine_offset = []
         cosine = []
+        cosine_pdf = []
         for i, distribution in enumerate(data.distributions):
             offset[i] = len(pdf)
-            pdf.extend(distribution.pdf)
             energy_out.extend(distribution.outgoing_energies)
+            pdf.extend(distribution.pdf)
 
-            for j, inner_distribution in enumerate(distribution.distributions):
-                inner_offset.append(len(inner_pdf))
+            for inner_distribution in distribution.distributions:
+                cosine_offset.append(len(cosine_pdf))
                 cosine.extend(inner_distribution.cosines)
-                inner_pdf.extend(inner_distribution.pdf)
+                cosine_pdf.extend(inner_distribution.pdf)
 
-        pdf = np.array(pdf)
         energy_out = np.array(energy_out)
-        
-        inner_offset = np.array(inner_offset)
-        inner_pdf = np.array(inner_pdf)
+        pdf = np.array(pdf)
+        cosine_offset = np.array(cosine_offset)
         cosine = np.array(cosine)
+        cosine_pdf = np.array(cosine_pdf)
 
         h5_group.create_dataset('offset', data=offset)
-        h5_group.create_dataset('pdf', data=pdf)
         dataset = h5_group.create_dataset('energy_out', data=energy_out)
         dataset.attrs['unit'] = 'MeV'
-        h5_group.create_dataset('inner_offset', data=inner_offset)
-        h5_group.create_dataset('inner_pdf', data=inner_pdf)
+        h5_group.create_dataset('pdf', data=pdf)
+        h5_group.create_dataset('cosine_offset', data=cosine_offset)
         h5_group.create_dataset('cosine', data=cosine)
+        h5_group.create_dataset('cosine_pdf', data=cosine_pdf)
 
     elif isinstance(data, ACEtk.continuous.NBodyPhaseSpaceDistribution):
         h5_group.attrs['type'] = 'N-Body'
