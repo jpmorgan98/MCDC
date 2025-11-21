@@ -234,7 +234,7 @@ for ace_name in pbar:
             xs.attrs["unit"] = "barns"
 
     # ==================================================================================
-    # Reference frames and multiplicities
+    # Reference frames and inelastic scattering multiplicities
     # ==================================================================================
     # Elastic is always in LAB frame (per ACE standard)
     # Fission is always in LAB frame (per observation, checked here)
@@ -346,9 +346,9 @@ for ace_name in pbar:
                 else:
                     print_error("Unsupported multi-distribution energy spetrum")
                         
-                    dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability_grid', data=probability_grid)
-                    dataset.attrs['unit'] = "MeV"
-                    dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability', data=probability)
+                dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability_grid', data=probability_grid)
+                dataset.attrs['unit'] = "MeV"
+                dataset = group.create_dataset(f'MT-{MT:03}/spectrum_probability', data=probability)
                
                 # ======================================================================
                 # The disributions

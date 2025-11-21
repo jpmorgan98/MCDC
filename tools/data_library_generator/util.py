@@ -79,20 +79,22 @@ def get_ace_name(Z, A, T, S=None):
 def load_fission_multiplicity(data, h5_group: h5py.Group):
     # Polynomial
     if data.type == 1:
-        C = np.array(data.coefficients)
         h5_group.attrs['type'] = 'polynomial'
+
+        C = np.array(data.coefficients)
         dataset = h5_group.create_dataset("coefficient", data=C)
         dataset.attrs['unit-base'] = 'MeV'
 
     # Tabulated
     elif data.type == 2:
+        h5_group.attrs['type'] = 'tabulated'
+
         if not data.interpolation_data.is_linear_linear:
             print(f"[ERROR] Non linear-linear tabulated multiplicity is not supported")
             exit()
        
         energy = np.array(data.energies)
 
-        h5_group.attrs['type'] = 'table'
         h5_group.create_dataset("value", data=data.multiplicities)
         dataset = h5_group.create_dataset("energy", data=energy)
         dataset.attrs['unit'] = 'MeV'
@@ -226,10 +228,6 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         if not data.interpolation_data.is_linear_linear:
             print_error("Non-linearly-interpolated kalbach-mann is not supported")
         
-        for i in range(data.number_incident_energies):
-            distribution = data.distribution(i + 1)
-            distribution.pdf
-
         # Check distribution support: all kalbach-mann
         NE = data.number_incident_energies
 
@@ -238,30 +236,30 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         energy = h5_group.create_dataset('energy', data=energy)
         energy.attrs['unit'] = 'MeV'
 
-        # Tabulated disstributions
+        # Tabulated distributions
         offset = np.zeros(NE, dtype=int)
-        precompound_factor = []
-        angular_slope = []
         energy_out = []
         pdf = []
+        precompound_factor = []
+        angular_slope = []
         for i, distribution in enumerate(data.distributions):
             offset[i] = len(pdf)
-            precompound_factor.extend(distribution.precompound_fraction_values)
-            angular_slope.extend(distribution.angular_distribution_slope_values)
             energy_out.extend(distribution.outgoing_energies)
             pdf.extend(distribution.pdf)
+            precompound_factor.extend(distribution.precompound_fraction_values)
+            angular_slope.extend(distribution.angular_distribution_slope_values)
 
-        precompound_factor = np.array(precompound_factor)
-        angular_slope = np.array(angular_slope)
         energy_out = np.array(energy_out)
         pdf = np.array(pdf)
+        precompound_factor = np.array(precompound_factor)
+        angular_slope = np.array(angular_slope)
 
         h5_group.create_dataset('offset', data=offset)
-        h5_group.create_dataset('precompound_factor', data=precompound_factor)
-        h5_group.create_dataset('angular_slope', data=angular_slope)
         dataset = h5_group.create_dataset('energy_out', data=energy_out)
         dataset.attrs['unit'] = 'MeV'
         h5_group.create_dataset('pdf', data=pdf)
+        h5_group.create_dataset('precompound_factor', data=precompound_factor)
+        h5_group.create_dataset('angular_slope', data=angular_slope)
 
     elif isinstance(data, ACEtk.continuous.EnergyAngleDistributionData):
         h5_group.attrs['type'] = 'energy-angle-tabulated'
@@ -269,10 +267,6 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         if not data.interpolation_data.is_linear_linear:
             print_error("Non-linearly-interpolated correlated-energy-angle is not supported")
         
-        for i in range(data.number_incident_energies):
-            distribution = data.distribution(i + 1)
-            distribution.pdf
-
         # Check distribution support: all kalbach-mann
         NE = data.number_incident_energies
 
@@ -313,7 +307,7 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         h5_group.create_dataset('cosine_pdf', data=cosine_pdf)
 
     elif isinstance(data, ACEtk.continuous.NBodyPhaseSpaceDistribution):
-        h5_group.attrs['type'] = 'N-Body'
+        h5_group.attrs['type'] = 'N-body'
 
         if data.interpolation != 2:
             print_error("Non-linearly-interpolable N-body energy distribution")
