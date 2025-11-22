@@ -19,8 +19,8 @@ from mcdc.constant import (
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataTable
-from mcdc.print_ import print_1d_array
 from mcdc.object_.util import cdf_from_pdf, multi_cdf_from_pdf, cmf_from_pmf
+from mcdc.print_ import print_1d_array
 
 
 # ======================================================================================
@@ -103,7 +103,7 @@ class DistributionPMF(DistributionBase):
         self.value = value
         self.pmf = pmf
 
-        self.pmf, self.cmf = cmf_from_pmf(value, pmf)
+        self.pmf, self.cmf = cmf_from_pmf(pmf)
 
     def __repr__(self):
         text = super().__repr__()
@@ -405,5 +405,3 @@ class DistributionNBody(DistributionBase):
         text += f"  - value {print_1d_array(self.value)}\n"
         text += f"  - pdf {print_1d_array(self.pdf)}\n"
         return text
-
-

@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import DATA_TABLE, DATA_POLYNOMIAL
+from mcdc.constant import DATA_NONE, DATA_TABLE, DATA_POLYNOMIAL
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
 
@@ -17,8 +17,8 @@ class DataBase(ObjectPolymorphic):
     # Annotations for Numba mode
     label: str = "data"
 
-    def __init__(self, type_):
-        super().__init__(type_)
+    def __init__(self, type_, register=True):
+        super().__init__(type_, register)
 
     def __repr__(self):
         text = "\n"
@@ -28,10 +28,29 @@ class DataBase(ObjectPolymorphic):
 
 
 def decode_type(type_):
-    if type_ == DATA_TABLE:
+    if type_ == DATA_NONE:
+        return "Data (None)"
+    elif type_ == DATA_TABLE:
         return "Data (Table)"
     elif type_ == DATA_POLYNOMIAL:
         return "Data (Polynomial function)"
+
+
+# ======================================================================================
+# None
+# ======================================================================================
+# Placeholder for data that does not need to store anything:
+#   - Fission multiplicity and delayed precursor data for non-fissionable nuclide
+
+
+class DataNone(DataBase):
+    # Annotations for Numba mode
+    label: str = "none_data"
+
+    def __init__(self):
+        type_ = DATA_NONE
+        super().__init__(type_, False)
+        self.ID = 0
 
 
 # ======================================================================================

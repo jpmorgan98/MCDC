@@ -16,6 +16,8 @@ import mcdc.mcdc_get.universe as universe
 
 import mcdc.mcdc_get.data as data
 
+import mcdc.mcdc_get.none_data as none_data
+
 import mcdc.mcdc_get.polynomial_data as polynomial_data
 
 import mcdc.mcdc_get.table_data as table_data
@@ -54,8 +56,6 @@ import mcdc.mcdc_get.structured_mesh as structured_mesh
 
 import mcdc.mcdc_get.uniform_mesh as uniform_mesh
 
-import mcdc.mcdc_get.reaction as reaction
-
 import mcdc.mcdc_get.neutron_capture_reaction as neutron_capture_reaction
 
 import mcdc.mcdc_get.neutron_elastic_scattering_reaction as neutron_elastic_scattering_reaction
@@ -65,6 +65,8 @@ import mcdc.mcdc_get.neutron_fission_reaction as neutron_fission_reaction
 import mcdc.mcdc_get.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
 
 import mcdc.mcdc_get.particle_bank as particle_bank
+
+import mcdc.mcdc_get.reaction as reaction
 
 import mcdc.mcdc_get.settings as settings
 

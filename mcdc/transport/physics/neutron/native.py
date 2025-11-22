@@ -16,6 +16,7 @@ from mcdc.constant import (
     PI,
     PI_HALF,
     PI_SQRT,
+    REACTION_NEUTRON_INELASTIC_SCATTERING,
     REACTION_TOTAL,
     REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_ELASTIC_SCATTERING,
@@ -56,15 +57,13 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
     E = particle["E"]
 
     total = 0.0
+
     for i in range(material["N_nuclide"]):
         nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
         nuclide = mcdc["nuclides"][nuclide_ID]
 
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-        if reaction_type == REACTION_TOTAL:
-            xs = total_micro_xs(E, nuclide, data)
-        else:
-            xs = micro_xs(reaction_type, E, nuclide, mcdc, data)
+        xs = total_micro_xs(reaction_type, E, nuclide, data)
 
         total += nuclide_density * xs
 
@@ -72,28 +71,31 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def total_micro_xs(E, nuclide, data):
+def total_micro_xs(reaction_type, E, nuclide, data):
     idx, E0, E1 = evaluate_xs_energy_grid(E, nuclide, data)
-    xs0 = mcdc_get.nuclide.total_xs(idx, nuclide, data)
-    xs1 = mcdc_get.nuclide.total_xs(idx + 1, nuclide, data)
+    if reaction_type == REACTION_TOTAL:
+        xs0 = mcdc_get.nuclide.total_xs(idx, nuclide, data)
+        xs1 = mcdc_get.nuclide.total_xs(idx + 1, nuclide, data)
+    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+        xs0 = mcdc_get.nuclide.elastic_xs(idx, nuclide, data)
+        xs1 = mcdc_get.nuclide.elastic_xs(idx + 1, nuclide, data)
+    elif reaction_type == REACTION_NEUTRON_CAPTURE:
+        xs0 = mcdc_get.nuclide.capture_xs(idx, nuclide, data)
+        xs1 = mcdc_get.nuclide.capture_xs(idx + 1, nuclide, data)
+    elif reaction_type == REACTION_NEUTRON_INELASTIC_SCATTERING:
+        xs0 = mcdc_get.nuclide.inelastic_xs(idx, nuclide, data)
+        xs1 = mcdc_get.nuclide.inelastic_xs(idx + 1, nuclide, data)
+    elif reaction_type == REACTION_NEUTRON_FISSION:
+        xs0 = mcdc_get.nuclide.fission_xs(idx, nuclide, data)
+        xs1 = mcdc_get.nuclide.fission_xs(idx + 1, nuclide, data)
     return linear_interpolation(E, E0, E1, xs0, xs1)
 
 
 @njit
-def micro_xs(reaction_type, E, nuclide, mcdc, data):
-    for i in range(nuclide["N_reaction"]):
-        reaction_ID = int(mcdc_get.nuclide.reaction_IDs(i, nuclide, data))
-        reaction = mcdc["reactions"][reaction_ID]
-        if reaction_type == reaction["child_type"]:
-            return reaction_micro_xs(E, reaction, nuclide, data)
-    return 0.0
-
-
-@njit
-def reaction_micro_xs(E, reaction, nuclide, data):
+def reaction_micro_xs(E, reaction_base, nuclide, data):
     idx, E0, E1 = evaluate_xs_energy_grid(E, nuclide, data)
-    xs0 = mcdc_get.reaction.xs(idx, reaction, data)
-    xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
+    xs0 = mcdc_get.reaction.xs(idx, reaction_base, data)
+    xs1 = mcdc_get.reaction.xs(idx + 1, reaction_base, data)
     return linear_interpolation(E, E0, E1, xs0, xs1)
 
 
@@ -105,16 +107,40 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
     if reaction_type == REACTION_TOTAL:
         elastic_type = REACTION_NEUTRON_ELASTIC_SCATTERING
+        inelastic_type = REACTION_NEUTRON_INELASTIC_SCATTERING
         fission_type = REACTION_NEUTRON_FISSION
         elastic_xs = neutron_production_xs(elastic_type, particle_container, mcdc, data)
+        inelastic_xs = neutron_production_xs(inelastic_type, particle_container, mcdc, data)
         fission_xs = neutron_production_xs(fission_type, particle_container, mcdc, data)
-        return elastic_xs + fission_xs
-
-    elif reaction_type == REACTION_NEUTRON_CAPTURE:
-        return 0.0
+        return elastic_xs + inelastic_xs + fission_xs
 
     elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
         return macro_xs(reaction_type, particle_container, mcdc, data)
+
+    elif reaction_type == REACTION_NEUTRON_CAPTURE:
+        return 0.0
+    
+    elif reaction_type == REACTION_NEUTRON_INELASTIC_SCATTERING:
+        total = 0.0
+        for i in range(material["N_nuclide"]):
+            nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
+            nuclide = mcdc["nuclides"][nuclide_ID]
+
+            E = particle["E"]
+            nuclide_density = mcdc_get.native_material.nuclide_densities(
+                i, material, data
+            )
+
+            for j in range(nuclide["N_inelastic_reaction"]):
+                reaction_ID = int(mcdc_get.nuclide.inelastic_scattering_reaction_IDs(j, nuclide, data))
+                reaction_base = mcdc["reactions"][reaction_ID]
+                reaction = mcdc["neutron_inelastic_reactions"][reaction_base["child_ID"]]
+
+                xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+                nu = reaction['multiplicity']
+                total += nuclide_density * nu * xs
+
+        return total
 
     elif reaction_type == REACTION_NEUTRON_FISSION:
         if not material_base["fissionable"]:
@@ -131,16 +157,19 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
             nuclide_density = mcdc_get.native_material.nuclide_densities(
                 i, material, data
             )
-            xs = micro_xs(reaction_type, E, nuclide, mcdc, data)
 
-            for j in range(nuclide["N_reaction"]):
-                reaction_ID = int(mcdc_get.nuclide.reaction_IDs(j, nuclide, data))
+            for j in range(nuclide["N_fission_reaction"]):
+                reaction_ID = int(mcdc_get.nuclide.fission_reaction_IDs(j, nuclide, data))
                 reaction_base = mcdc["reactions"][reaction_ID]
                 reaction = mcdc["neutron_fission_reactions"][reaction_base["child_ID"]]
+
+                xs = reaction_micro_xs(E, reaction_base, nuclide, data)
                 nu = fission_yield_prompt(E, reaction, mcdc, data)
                 for group in range(reaction["N_delayed"]):
                     nu += fission_yield_delayed(E, group, reaction, mcdc, data)
+
                 total += nuclide_density * nu * xs
+
         return total
 
     else:

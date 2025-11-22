@@ -28,7 +28,7 @@ from numpy.typing import NDArray
 ####
 
 from mcdc.object_.base import ObjectSingleton
-from mcdc.object_.data import DataBase
+from mcdc.object_.data import DataBase, DataNone
 from mcdc.object_.distribution import DistributionBase, DistributionNone
 from mcdc.object_.mesh import MeshBase
 from mcdc.object_.particle import ParticleBank
@@ -132,7 +132,7 @@ class Simulation(ObjectSingleton):
         # ==============================================================================
 
         # Physics
-        self.data = []
+        self.data = [DataNone()]
         self.distributions = [DistributionNone()]
         self.materials = []
         self.nuclides = []

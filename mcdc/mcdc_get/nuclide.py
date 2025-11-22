@@ -291,3 +291,90 @@ def fission_reaction_IDs_chunk(start, length, nuclide, data):
     start += nuclide["fission_reaction_IDs_offset"]
     end = start + length
     return data[start:end]
+
+
+@njit
+def fission_delayed_fractions(index, nuclide, data):
+    offset = nuclide["fission_delayed_fractions_offset"]
+    return data[offset + index]
+
+
+@njit
+def fission_delayed_fractions_all(nuclide, data):
+    start = nuclide["fission_delayed_fractions_offset"]
+    size = nuclide["fission_delayed_fractions_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def fission_delayed_fractions_last(nuclide, data):
+    start = nuclide["fission_delayed_fractions_offset"]
+    size = nuclide["fission_delayed_fractions_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def fission_delayed_fractions_chunk(start, length, nuclide, data):
+    start += nuclide["fission_delayed_fractions_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def fission_delayed_decay_rates(index, nuclide, data):
+    offset = nuclide["fission_delayed_decay_rates_offset"]
+    return data[offset + index]
+
+
+@njit
+def fission_delayed_decay_rates_all(nuclide, data):
+    start = nuclide["fission_delayed_decay_rates_offset"]
+    size = nuclide["fission_delayed_decay_rates_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def fission_delayed_decay_rates_last(nuclide, data):
+    start = nuclide["fission_delayed_decay_rates_offset"]
+    size = nuclide["fission_delayed_decay_rates_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def fission_delayed_decay_rates_chunk(start, length, nuclide, data):
+    start += nuclide["fission_delayed_decay_rates_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def fission_delayed_spectrum_IDs(index, nuclide, data):
+    offset = nuclide["fission_delayed_spectrum_IDs_offset"]
+    return data[offset + index]
+
+
+@njit
+def fission_delayed_spectrum_IDs_all(nuclide, data):
+    start = nuclide["fission_delayed_spectrum_IDs_offset"]
+    size = nuclide["N_fission_delayed_spectrum"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def fission_delayed_spectrum_IDs_last(nuclide, data):
+    start = nuclide["fission_delayed_spectrum_IDs_offset"]
+    size = nuclide["N_fission_delayed_spectrum"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def fission_delayed_spectrum_IDs_chunk(start, length, nuclide, data):
+    start += nuclide["fission_delayed_spectrum_IDs_offset"]
+    end = start + length
+    return data[start:end]
