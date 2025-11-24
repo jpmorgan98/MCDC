@@ -159,7 +159,7 @@ def print_progress(percent, mcdc):
                 )
             else:
                 sys.stdout.write(
-                    "[%-32s] %d%%" % ("=" * int(percent * 32), percent * 100.0)
+                    " [%-32s] %d%%" % ("=" * int(percent * 32), percent * 100.0)
                 )
         sys.stdout.flush()
 

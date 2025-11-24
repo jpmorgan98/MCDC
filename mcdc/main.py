@@ -3,6 +3,10 @@
 # ======================================================================================
 
 
+from mcdc import mcdc_get
+from mcdc.print_ import print_structure
+
+
 def run():
     import mcdc.print_ as print_module
     from mpi4py import MPI

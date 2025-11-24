@@ -183,10 +183,20 @@ class Nuclide(ObjectNonSingleton):
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
         text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
-        text += f"  - XS energy grid {print_1d_array(self.xs_energy_grid)} eV\n"
-        text += f"  - Reactions\n"
-        for reaction in self.reactions:
-            text += f"    - {decode_type(reaction.type)} [ID: {reaction.ID}]\n"
+        text += f"  - Reaction MTs\n"
+        text += f"    - Elastic scattering: {[int(x.MT) for x in self.elastic_scattering_reactions]}\n"
+        text += f"    - Capture: {[int(x.MT) for x in self.capture_reactions]}\n"
+        text += f"    - Inelastic scattering: {[int(x.MT) for x in self.inelastic_scattering_reactions]}\n"
+        if self.fissionable:
+            text += f"    - Fission: {[int(x.MT) for x in self.fission_reactions]}\n"
+        text += f"  - Reaction cross-sections (eV, barns)\n"
+        text += f"    - Energy grid {print_1d_array(self.xs_energy_grid)}\n"
+        text += f"    - Total {print_1d_array(self.total_xs)}\n"
+        text += f"    - Elastic scattering {print_1d_array(self.elastic_xs)}\n"
+        text += f"    - Capture {print_1d_array(self.capture_xs)}\n"
+        text += f"    - Inelastic scattering {print_1d_array(self.inelastic_xs)}\n"
+        if self.fissionable:
+            text += f"    - Fission {print_1d_array(self.fission_xs)}\n"
         return text
 
 

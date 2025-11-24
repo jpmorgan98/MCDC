@@ -66,7 +66,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         else:
             ID = source["energy_pdf_ID"]
             table = mcdc["tabulated_distributions"][ID]
-            E = sample_tabulated(pdf, P_rec_arr, data)
+            E = sample_tabulated(table, P_rec_arr, data)
 
     # Time
     if source["discrete_time"]:

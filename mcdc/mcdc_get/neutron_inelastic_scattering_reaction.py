@@ -33,25 +33,19 @@ def spectrum_probability_grid_chunk(start, length, neutron_inelastic_scattering_
 
 
 @njit
-def spectrum_probability(index, neutron_inelastic_scattering_reaction, data):
+def spectrum_probability_vector(index_1, neutron_inelastic_scattering_reaction, data):
     offset = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
-    return data[offset + index]
-
-
-@njit
-def spectrum_probability_all(neutron_inelastic_scattering_reaction, data):
-    start = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
-    size = neutron_inelastic_scattering_reaction["spectrum_probability_length"]
-    end = start + size
+    stride = neutron_inelastic_scattering_reaction["N_spectrum"]
+    start = offset + index_1 * stride
+    end = start + stride
     return data[start:end]
 
 
 @njit
-def spectrum_probability_last(neutron_inelastic_scattering_reaction, data):
-    start = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
-    size = neutron_inelastic_scattering_reaction["spectrum_probability_length"]
-    end = start + size
-    return data[end - 1]
+def spectrum_probability(index_1, index_2, neutron_inelastic_scattering_reaction, data):
+    offset = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
+    stride = neutron_inelastic_scattering_reaction["N_spectrum"]
+    return data[offset + index_1 * stride + index_2]
 
 
 @njit

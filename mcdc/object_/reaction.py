@@ -1,3 +1,4 @@
+from typing import Annotated
 from numpy import float64
 from numpy.typing import NDArray
 
@@ -43,12 +44,14 @@ class ReactionBase(ObjectPolymorphic):
     MT: int
     xs: NDArray[float64]
     xs_offset_: int # "xs_offset" ir reserved for "xs"
+    reference_frame: int
 
-    def __init__(self, type_, MT, xs, xs_offset):
+    def __init__(self, type_, MT, xs, xs_offset, reference_frame):
         super().__init__(type_)
         self.MT = MT
         self.xs = xs
         self.xs_offset_ = xs_offset
+        self.reference_frame = reference_frame
 
     def __repr__(self):
         text = "\n"
@@ -56,6 +59,7 @@ class ReactionBase(ObjectPolymorphic):
         text += f"  - ID: {self.ID}\n"
         text += f"  - MT: {self.MT}\n"
         text += f"  - XS {print_1d_array(self.xs)} barn\n"
+        text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
         return text
 
 
@@ -86,27 +90,22 @@ class ReactionNeutronElasticScattering(ReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_elastic_scattering_reaction"
     #
-    mu: DistributionMultiTable
+    mu_table: DistributionMultiTable
 
-    def __init__(self, MT, xs, xs_offset, mu):
+    def __init__(self, MT, xs, xs_offset, reference_frame, mu):
         type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
-        super().__init__(type_, MT, xs, xs_offset)
-
-        self.mu = mu
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        self.mu_table = mu
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT = h5_group.attrs["MT"][()]
-        xs = h5_group["xs"][()]
-        xs_offset = h5_group["xs"].attrs["offset"]
-
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
         _, mu = set_angular_distribution(h5_group["angular_cosine_distribution"])
-
-        return cls(MT, xs, xs_offset, mu)
+        return cls(MT, xs, xs_offset, reference_frame, mu)
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Scattering cosine: {distribution.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
+        text += f"  - Scattering cosine: {distribution.decode_type(self.mu_table.type)} [ID: {self.mu_table.ID}]\n"
         return text
 
 
@@ -118,33 +117,15 @@ class ReactionNeutronElasticScattering(ReactionBase):
 class ReactionNeutronCapture(ReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_capture_reaction"
-    #
-    reference_frame: int
 
     def __init__(self, MT, xs, xs_offset, reference_frame):
         type_ = REACTION_NEUTRON_CAPTURE
-        super().__init__(type_, MT, xs, xs_offset)
-        
-        self.reference_frame = reference_frame
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT = h5_group.attrs["MT"][()]
-        xs = h5_group["xs"][()]
-        xs_offset = h5_group["xs"].attrs["offset"]
-
-        reference_frame = h5_group["reference_frame"][()].decode('utf-8')
-        if reference_frame == "LAB":
-            reference_frame = REFERENCE_FRAME_LAB
-        elif reference_frame == "COM":
-            reference_frame = REFERENCE_FRAME_COM
-
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
         return cls(MT, xs, xs_offset, reference_frame)
-
-    def __repr__(self):
-        text = super().__repr__()
-        text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
-        return text
 
 
 # ======================================================================================
@@ -156,12 +137,13 @@ class ReactionNeutronInelasticScattering(ReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_inelastic_scattering_reaction"
     #
-    reference_frame: int
     multiplicity: int
     angle_type: int
     mu: DistributionBase
+    N_spectrum_probability_bin: int
+    N_spectrum: int
     spectrum_probability_grid: NDArray[float64]
-    spectrum_probability: NDArray[float64]  # 2D
+    spectrum_probability: Annotated[NDArray[float64], ("N_spectrum_probability_bin", "N_spectrum")]
     energy_spectra: list[DistributionBase]
 
     def __init__(
@@ -178,28 +160,21 @@ class ReactionNeutronInelasticScattering(ReactionBase):
         energy_spectra,
     ):
         type_ = REACTION_NEUTRON_INELASTIC_SCATTERING
-        super().__init__(type_, MT, xs, xs_offset)
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
 
         self.reference_frame = reference_frame
         self.multiplicity = multiplicity
         self.angle_type = angle_type
         self.mu = mu
+        self.N_spectrum_probability_bin = len(spectrum_probability_grid) - 1
+        self.N_spectrum = len(energy_spectra)
         self.spectrum_probability_grid = spectrum_probability_grid
         self.spectrum_probability = spectrum_probability
         self.energy_spectra = energy_spectra
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT = h5_group.attrs["MT"][()]
-        xs = h5_group["xs"][()]
-        xs_offset = h5_group["xs"].attrs["offset"]
-        
-        reference_frame = h5_group["reference_frame"][()].decode('utf-8')
-        if reference_frame == "LAB":
-            reference_frame = REFERENCE_FRAME_LAB
-        elif reference_frame == "COM":
-            reference_frame = REFERENCE_FRAME_COM
-
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
         multiplicity = int(h5_group["multiplicity"][()])
 
         angle_type, mu = set_angular_distribution(
@@ -231,7 +206,6 @@ class ReactionNeutronInelasticScattering(ReactionBase):
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
         if self.angle_type == ANGLE_ISOTROPIC:
             text += f"  - Scattering cosine: Isotropic\n"
         elif self.angle_type == ANGLE_ENERGY_CORRELATED:
@@ -263,22 +237,20 @@ class ReactionNeutronFission(ReactionBase):
         MT,
         xs,
         xs_offset,
+        reference_frame,
         angle_type,
         mu,
         spectrum,
     ):
         type_ = REACTION_NEUTRON_FISSION
-        super().__init__(type_, MT, xs, xs_offset)
-
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
         self.angle_type = angle_type
         self.mu = mu
         self.spectrum = spectrum
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT = h5_group.attrs["MT"][()]
-        xs = h5_group["xs"][()]
-        xs_offset = h5_group["xs"].attrs["offset"]
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
         # Prompt angular distribution
         angle_type, mu = set_angular_distribution(
@@ -291,7 +263,7 @@ class ReactionNeutronFission(ReactionBase):
             print_error('Unsupported multi-distribution prompt fission spectrum')
         spectrum = set_energy_distribution(h5_group[f"energy_spectrum-1"])
 
-        return cls(MT, xs, xs_offset, angle_type, mu, spectrum)
+        return cls(MT, xs, xs_offset, reference_frame, angle_type, mu, spectrum)
 
     def __repr__(self):
         text = super().__repr__()
@@ -307,9 +279,19 @@ class ReactionNeutronFission(ReactionBase):
         return text
 
 # ======================================================================================
-# Distribution setters
+# Helper functions
 # ======================================================================================
 
+def set_basic_properties(h5_group):
+    MT = h5_group.attrs["MT"][()]
+    xs = h5_group["xs"][()]
+    xs_offset = h5_group["xs"].attrs["offset"]
+    reference_frame = h5_group["reference_frame"][()].decode('utf-8')
+    if reference_frame == "LAB":
+        reference_frame = REFERENCE_FRAME_LAB
+    elif reference_frame == "COM":
+        reference_frame = REFERENCE_FRAME_COM
+    return MT, xs, xs_offset, reference_frame
 
 def set_angular_distribution(h5_group):
     mu_type = h5_group.attrs["type"]
