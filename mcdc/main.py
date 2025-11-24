@@ -46,7 +46,6 @@ input_deck = mcdc_.input_deck
 
 
 def run():
-    print("begin_run")
     # Override input deck with command-line argument, if given
     if config.args.N_particle is not None:
         input_deck.setting["N_particle"] = config.args.N_particle
@@ -531,6 +530,7 @@ def prepare():
     type_.make_type_domain_decomp(input_deck)
     type_.make_type_dd_turnstile_event(input_deck)
     type_.make_type_technique(input_deck)
+    type_.make_type_gpu_meta()
     type_.make_type_global(input_deck)
     type_.make_size_rpn(input_deck)
     kernel.adapt_rng(nb.config.DISABLE_JIT)
@@ -1144,7 +1144,6 @@ def prepare():
         tally_bin_N_copies = 5
 
     tally_shape = (tally_bin_N_copies, tally_bin_size)
-    print(f"TALLY SHAPE: {tally_shape}")
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc
@@ -1175,6 +1174,10 @@ def prepare():
     # =========================================================================
 
     data_tally, data_tally_uint = adapt.create_tally_array(tally_shape[0],tally_shape[1])
+
+    mcdc_arr, mcdc_uint = adapt.create_mcdc_array()
+    mcdc_arr[0] = mcdc
+    mcdc = mcdc_arr[0]
 
     # =========================================================================
     # Setting
@@ -1577,7 +1580,7 @@ def prepare():
                     "w"
                 ]
 
-    loop.setup_gpu(mcdc,data_tally)
+    loop.setup_gpu(mcdc_arr,data_tally)
 
     # =========================================================================
     # Finalize data: wrapping into a tuple

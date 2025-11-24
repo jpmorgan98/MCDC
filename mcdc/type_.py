@@ -48,8 +48,10 @@ cell_tally = None
 cs_tally = None
 technique = None
 
-global_ = None
+gpu_meta = None
 
+global_ = None
+global_size = None
 
 # ==============================================================================
 # MC/DC Member Array Sizes
@@ -241,7 +243,6 @@ def make_type_particle(input_deck):
         G = input_deck.materials[0].G
     iqmc_struct = into_dtype([("w", float64, (G,))])
     struct += [("iqmc", iqmc_struct)]
-    print("STRUCT IS ",struct)
 
     # Save type
     particle = into_dtype(struct)
@@ -1437,12 +1438,28 @@ param_names = ["tag", "ID", "key", "mean", "delta", "distribution", "rng_seed"]
 
 
 # ==============================================================================
+# GPU Metadata
+# ==============================================================================
+
+def make_type_gpu_meta():
+    global gpu_meta
+
+    gpu_meta = into_dtype([
+        ("state_pointer", uintp),
+        ("source_program_pointer", uintp),
+        ("precursor_program_pointer", uintp),
+        ("global_pointer",uintp),
+        ("tally_pointer",uintp),
+    ])
+
+
+# ==============================================================================
 # Global
 # ==============================================================================
 
 
 def make_type_global(input_deck):
-    global global_
+    global global_, global_size
 
     # Get modes
     mode_CE = input_deck.setting["mode_CE"]
@@ -1521,7 +1538,7 @@ def make_type_global(input_deck):
     ) or input_deck.technique["iQMC"]:
         bank_source = particle_bank(N_work)
 
-    # GLobal type
+
     global_ = into_dtype(
         [
             ("nuclides", nuclide, (N_nuclide,)),
@@ -1590,12 +1607,14 @@ def make_type_global(input_deck):
             ("runtime_bank_management", float64),
             ("precursor_strength", float64),
             ("mpi_work_iter", int64, (1,)),
-            ("gpu_state_pointer", uintp),
-            ("source_program_pointer", uintp),
-            ("precursor_program_pointer", uintp),
+            ("gpu_meta",gpu_meta),
             ("source_seed", uint64),
         ]
     )
+
+    # GLobal type
+
+    global_size = global_.itemsize
 
 
 # ==============================================================================

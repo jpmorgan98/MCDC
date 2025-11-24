@@ -414,7 +414,7 @@ def nopython_mode(is_on):
 # =============================================================================
 
 @numba.njit()
-def alloc_managed_bytes_placeholder(size):
+def alloc_bytes_placeholder(size):
     return uintp_to_voidptr(0)
 
 
@@ -423,6 +423,7 @@ SIMPLE_ASYNC = True
 none_type = None
 mcdc_global_type = None
 mcdc_data_type = None
+mcdc_shared_type = None
 state_spec = None
 mcdc_global_gpu = None
 mcdc_data_gpu = None
@@ -436,7 +437,8 @@ find_cell_async = None
 tally_width = None
 tally_length = None
 tally_size   = None
-alloc_managed_bytes = alloc_managed_bytes_placeholder
+alloc_managed_bytes = alloc_bytes_placeholder
+alloc_device_bytes = alloc_bytes_placeholder
 tally_shape_literal  = None
 
 def gpu_forward_declare(args,tally_shape):
@@ -447,7 +449,7 @@ def gpu_forward_declare(args,tally_shape):
     if args.gpu_cuda_path != None:
         harm.config.set_cuda_path(args.gpu_cuda_path)
 
-    global none_type, mcdc_global_type, mcdc_data_type
+    global none_type, mcdc_global_type, mcdc_data_type, mcdc_shared_type
     global state_spec
     global mcdc_global_gpu, mcdc_data_gpu
     global group_gpu, thread_gpu
@@ -461,7 +463,8 @@ def gpu_forward_declare(args,tally_shape):
     tally_shape_literal = tally_shape
 
     none_type = numba.from_dtype(np.dtype([]))
-    mcdc_global_type = numba.from_dtype(type_.global_)
+    mcdc_global_type = numba.types.Array(numba.from_dtype(type_.global_),(1,),'C')
+    #mcdc_global_type = numba.from_dtype(type_.global_)
 
     tally_dims = len(tally_shape)
     mcdc_data_type = numba.types.Array(numba.float64,tally_dims,'C')
@@ -474,8 +477,8 @@ def gpu_forward_declare(args,tally_shape):
         none_type,
     )
     access_fns = harm.RuntimeSpec.access_fns(state_spec)
-    mcdc_global_gpu = access_fns["device"]["global"]
-    mcdc_data_gpu = access_fns["device"]["data"]
+    mcdc_global_gpu = access_fns["device"]["global"]["indirect"]
+    mcdc_data_gpu = access_fns["device"]["data"]["direct"]
     group_gpu = access_fns["group"]
     thread_gpu = access_fns["thread"]
     particle_gpu = numba.from_dtype(type_.particle)
@@ -492,7 +495,9 @@ def gpu_forward_declare(args,tally_shape):
     halt_early = interface["halt_early"]
 
     global alloc_managed_bytes
+    global alloc_device_bytes
     alloc_managed_bytes = harm.alloc_managed_bytes
+    alloc_device_bytes = harm.alloc_device_bytes
 
 
 
@@ -503,17 +508,32 @@ def gpu_forward_declare(args,tally_shape):
 
 @numba.njit()
 def create_tally_array(width,length):
-    print("ARRAY DIMS ",(width,length))
     if config.target == "gpu":
-        data_tally_ptr = alloc_managed_bytes(tally_size)
+        if config.gpu_state_storage == "managed":
+            data_tally_ptr = alloc_managed_bytes(tally_size)
+        else:
+            data_tally_ptr = alloc_device_bytes(tally_size)
         data_tally_uint = voidptr_to_uintp(data_tally_ptr)
-        print("ARRAY IS AT: ",data_tally_uint)
         data_tally = numba.carray(data_tally_ptr,(width,length),type_.float64)
         return data_tally, data_tally_uint
     else:
         data_tally = np.zeros((width,length), dtype=type_.float64)
         return data_tally, 0
 
+
+@numba.njit()
+def create_mcdc_array():
+    if config.target == "gpu":
+        if config.gpu_state_storage == "managed":
+            mcdc_ptr = alloc_managed_bytes(type_.global_size)
+        else:
+            mcdc_ptr = alloc_device_bytes(type_.global_size)
+        mcdc_uint = voidptr_to_uintp(mcdc_ptr)
+        mcdc_array = numba.carray(mcdc_ptr,(1,),type_.global_)
+        return mcdc_array, mcdc_uint
+    else:
+        mcdc_array = np.zeros((1,), dtype=type_.global_)
+        return mcdc_array, 0
 
 # =============================================================================
 # Seperate GPU/CPU Functions to Target Different Platforms
