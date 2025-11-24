@@ -167,6 +167,9 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
         h5_group.attrs['type'] = 'evaporation'
 
+        if not data.interpolation_data.is_linear_linear:
+            print_error("Evaporation distribution temperature is not linearly interpolable")
+
         energy = np.array(data.energies)
         temperature = np.array(data.temperatures)
         restriction_energy = np.array(data.restriction_energy)

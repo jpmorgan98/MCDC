@@ -236,17 +236,20 @@ for ace_name in pbar:
     # ==================================================================================
     # Reference frames and inelastic scattering multiplicities
     # ==================================================================================
-    # Elastic is always in LAB frame (per ACE standard)
-    # Fission is always in LAB frame (per observation, checked here)
+    # Elastic is always in COM frame (per ACE standard)
 
-    # Reference frames
+    # Elastic scattering reference frame
+    for MT in elastic_MTs:
+        elastic_group.create_dataset(f"MT-{MT:03}/reference_frame", data="COM")
+
+    # Reference frames of the others
     for MTs, group in [
         (capture_MTs, capture_group),
         (inelastic_MTs, inelastic_group),
+        (fission_MTs, fission_group),
     ]:
         for MT in MTs:
             idx = rx_block.index(MT)
-
             reference_frame = nu_block.reference_frame(idx)
             if reference_frame == ACEtk.ReferenceFrame.Laboratory:
                 reference_frame = 'LAB'
@@ -262,12 +265,6 @@ for ace_name in pbar:
         nu = nu_block.multiplicity(idx)
         inelastic_group.create_dataset(f"MT-{MT:03}/multiplicity", data=nu)
     
-    # Make sure that fission is in LAB frame
-    for MT in fission_MTs:
-        idx = rx_block.index(MT)
-        if nu_block.reference_frame(idx) != ACEtk.ReferenceFrame.Laboratory:
-            print_error(f"Fission reference frame is not LAB")
-
     # ==================================================================================
     # Angular distributions
     # ==================================================================================
