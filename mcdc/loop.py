@@ -476,26 +476,8 @@ def gpu_sources_spec():
         data_ptr = adapt.mcdc_data(prog)
         data = adapt.harm.array_from_ptr(data_ptr,shape,nb.float64)
         P_arr = adapt.local_array(1, type_.particle)
+        P_arr[0] = P_input
         P = P_arr[0]
-        P["alive"] = P_input["alive"]
-        P["x"] = P_input["x"]
-        P["y"] = P_input["y"]
-        P["z"] = P_input["z"]
-        P["t"] = P_input["t"]
-        P["ux"] = P_input["ux"]
-        P["uy"] = P_input["uy"]
-        P["uz"] = P_input["uz"]
-        P["g"] = P_input["g"]
-        P["E"] = P_input["E"]
-        P["w"] = P_input["w"]
-        P["material_ID"] = P_input["material_ID"]
-        P["cell_ID"] = P_input["cell_ID"]
-        P["surface_ID"] = P_input["surface_ID"]
-        P["alive"] = P_input["alive"]
-        P["fresh"] = P_input["fresh"]
-        P["event"] = P_input["event"]
-        P["rng_seed"] = P_input["rng_seed"]
-        P["iqmc"] = P_input["iqmc"]
         if P["fresh"]:
             prep_particle(P_arr, prog)
         P["fresh"] = False
