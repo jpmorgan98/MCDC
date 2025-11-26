@@ -42,10 +42,6 @@ def sample_distribution(E, distribution, rng_state, mcdc, data, scale=False):
         maxwellian = mcdc["maxwellian_distributions"][ID]
         return sample_maxwellian(E, rng_state, maxwellian, mcdc, data)
     
-    elif distribution_type == DISTRIBUTION_N_BODY:
-        nbody = mcdc["nbody_distributions"][ID]
-        return sample_tabulated(nbody, rng_state, data)
-    
     # TODO: Should not get here
     else:
         return -1.0
@@ -64,6 +60,12 @@ def sample_correlated_distribution(E, distribution, rng_state, mcdc, data, scale
         table = mcdc["tabulated_energy_angle_distributions"][ID]
         return sample_tabulated_energy_angle(E, rng_state, table, data)
     
+    elif distribution_type == DISTRIBUTION_N_BODY:
+        nbody = mcdc["nbody_distributions"][ID]
+        E_out = sample_tabulated(nbody, rng_state, data)
+        mu = sample_isotropic_cosine(rng_state)
+        return E_out, mu
+    
     # TODO: Should not get here
     else:
         return -1.0, -1.0
@@ -80,9 +82,14 @@ def sample_uniform(low, high, rng_state):
 
 
 @njit
+def sample_isotropic_cosine(rng_state):
+    return 2.0 * rng.lcg(rng_state) - 1.0
+
+
+@njit
 def sample_isotropic_direction(rng_state):
     # Sample polar cosine and azimuthal angle uniformly
-    mu = 2.0 * rng.lcg(rng_state) - 1.0
+    mu = sample_isotropic_cosine(rng_state)
     azi = 2.0 * PI * rng.lcg(rng_state)
 
     # Convert to Cartesian coordinates

@@ -16,7 +16,10 @@ from mcdc.constant import (
     ANGLE_DISTRIBUTED,
     ANGLE_ENERGY_CORRELATED,
     ANGLE_ISOTROPIC,
-    E_THERMAL_THRESHOLD,
+    BOLTZMANN_K,
+    THERMAL_THRESHOLD_FACTOR,
+    LIGHT_SPEED,
+    NEUTRON_MASS,
     PI,
     PI_HALF,
     PI_SQRT,
@@ -26,14 +29,12 @@ from mcdc.constant import (
     REACTION_NEUTRON_ELASTIC_SCATTERING,
     REACTION_NEUTRON_FISSION,
     REFERENCE_FRAME_COM,
-    REFERENCE_FRAME_LAB,
-    SQRT_E_TO_SPEED,
-    SQRD_SPEED_TO_E,
 )
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (
     sample_correlated_distribution,
     sample_distribution,
+    sample_isotropic_cosine,
     sample_isotropic_direction,
     sample_multi_table,
 )
@@ -49,7 +50,17 @@ from mcdc.transport.util import find_bin, linear_interpolation
 @njit
 def particle_speed(particle_container):
     particle = particle_container[0]
-    return math.sqrt(particle["E"]) * SQRT_E_TO_SPEED
+    E = particle['E']
+    mass = NEUTRON_MASS
+    return LIGHT_SPEED * math.sqrt(E * (E + 2.0 * mass)) / (E + mass)
+
+
+@njit
+def particle_energy_from_speed(speed):
+    beta = speed / LIGHT_SPEED
+    gamma = 1.0 / math.sqrt(1.0 - beta*beta)
+    mass = NEUTRON_MASS
+    return mass * (gamma - 1.0)
 
 
 # ======================================================================================
@@ -318,7 +329,8 @@ def elastic_scattering(reaction, particle_container, nuclide, prog, data):
 
     # Sample nucleus thermal velocity
     A = nuclide["atomic_weight_ratio"]
-    if E > E_THERMAL_THRESHOLD:
+    temperature = nuclide['temperature']
+    if E > THERMAL_THRESHOLD_FACTOR * BOLTZMANN_K * temperature:
         Vx = 0.0
         Vy = 0.0
         Vz = 0.0
@@ -379,7 +391,7 @@ def elastic_scattering(reaction, particle_container, nuclide, prog, data):
 
     # Final energy - LAB
     speed = math.sqrt(vx * vx + vy * vy + vz * vz)
-    particle["E"] = SQRD_SPEED_TO_E * speed * speed
+    particle["E"] = particle_energy_from_speed(speed)
 
     # Final direction - LAB
     particle["ux"] = vx / speed
@@ -475,7 +487,7 @@ def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
         if angle_type == ANGLE_ENERGY_CORRELATED:
             pass
         elif angle_type == ANGLE_ISOTROPIC:
-            mu = 2.0 * rng.lcg(particle_container_new) - 1.0
+            mu = sample_isotropic_cosine(particle_container_new)
         elif angle_type == ANGLE_DISTRIBUTED:
             distribution_base = mcdc["distributions"][reaction["mu_ID"]]
             multi_table = mcdc["multi_table_distributions"][distribution_base['child_ID']]
@@ -622,7 +634,7 @@ def fission(reaction, particle_container, nuclide, prog, data):
             if angle_type == ANGLE_ENERGY_CORRELATED:
                 pass
             elif angle_type == ANGLE_ISOTROPIC:
-                mu = 2.0 * rng.lcg(particle_container_new) - 1.0
+                mu = sample_isotropic_cosine(particle_container_new)
             elif angle_type == ANGLE_DISTRIBUTED:
                 distribution_base = mcdc["distributions"][reaction["mu_ID"]]
                 multi_table = mcdc["multi_table_distributions"][distribution_base['child_ID']]
