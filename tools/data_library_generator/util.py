@@ -316,7 +316,7 @@ def load_energy_distribution(data, h5_group: h5py.Group):
             print_error("Non-linearly-interpolable N-body energy distribution")
         
         dataset = h5_group.create_dataset('value', data=data.values)
-        dataset.attrs['unit'] = 'eV'
+        dataset.attrs['unit'] = 'MeV'
         h5_group.create_dataset('pdf', data=data.pdf)
 
     else:
