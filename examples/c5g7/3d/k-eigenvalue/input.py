@@ -296,9 +296,9 @@ g_grid = np.array([-0.5, 3.5, 6.5])  # Collapsing to fast (1-4) and slow (5-7)
 mcdc.tally.mesh_tally(scores=["flux"], x=x_grid, y=y_grid, z=z_grid, g=g_grid)
 
 # Setting
-mcdc.setting(N_particle=1e3, census_bank_buff=4)
+mcdc.setting(N_particle=2e4, census_bank_buff=4)
 
-mcdc.eigenmode(N_inactive=50, N_active=150, gyration_radius="all")
+mcdc.eigenmode(N_inactive=5, N_active=15, gyration_radius="all")
 mcdc.population_control()
 
 # Run

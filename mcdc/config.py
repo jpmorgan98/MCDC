@@ -16,6 +16,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--gpu_state_storage",
+    type=str,
+    help="Strategy used in GPU execution (event or async).",
+    choices=["separate","managed", "united"],
+    default="separate",
+)
+
+parser.add_argument(
     "--gpu_strat",
     type=str,
     help="Strategy used in GPU execution (event or async).",
@@ -73,6 +81,7 @@ args, unargs = parser.parse_known_args()
 
 mode = args.mode
 target = args.target
+gpu_state_storage = args.gpu_state_storage
 caching = args.caching
 clear_cache = args.clear_cache
 
