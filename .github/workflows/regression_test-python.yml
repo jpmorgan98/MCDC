@@ -27,6 +27,11 @@ jobs:
       - name: Set up MPI
         uses: mpi4py/setup-mpi@v1
 
+      - name: Install mpi4py against this MPI
+        run: |
+          pip install --upgrade pip
+          pip install --no-binary=mpi4py mpi4py
+
       - name: Install MC/DC
         run: |
           pip install --upgrade pip
