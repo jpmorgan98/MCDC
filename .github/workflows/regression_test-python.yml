@@ -3,28 +3,36 @@ name: Regression Test - Python
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-        fail-fast: false
-        matrix:
-            os: ["ubuntu-22.04"]
+  test-regression-python:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up python 3.11
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.11"
-    - name: debug
-      run: |
-        pwd
-        ls
-    - uses: mpi4py/setup-mpi@v1
-    - name: Install dependencies
-      run: |
-        pip install -e .
-        pip list 
-    - name: Regression Test - Python
-      run: |
-          cd test/regression
-          python run.py
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Show environment info
+        run: |
+          pwd
+          ls
+          python --version
+          pip --version
+
+      - name: Set up MPI
+        uses: mpi4py/setup-mpi@v1
+
+      - name: Install MC/DC
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+          pip list
+
+      - name: Run Python regression tests
+        working-directory: test/regression
+        run: python run.py
