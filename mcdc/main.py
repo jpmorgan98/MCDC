@@ -216,16 +216,6 @@ def preparation():
     importlib.reload(mcdc_set)
 
     # ==================================================================================
-    # Set some Numba object fields
-    # ==================================================================================
-
-    # Particle bank tags
-    mcdc["bank_active"]["tag"] = "active"
-    mcdc["bank_census"]["tag"] = "census"
-    mcdc["bank_source"]["tag"] = "source"
-    mcdc["bank_future"]["tag"] = "future"
-
-    # ==================================================================================
     # Platform Targeting, Adapters, Toggles, etc
     # ==================================================================================
 
@@ -263,6 +253,8 @@ def preparation():
     #   TODO: Use parallel h5py
     # ==================================================================================
 
+    import h5py
+
     # All ranks, take turn
     for i in range(mcdc["mpi_size"]):
         if mcdc["mpi_rank"] == i:
@@ -285,12 +277,8 @@ def preparation():
         MPI.COMM_WORLD.Barrier()
 
     # ==================================================================================
-    # Finalize data: wrapping into a tuple
+    # Adapt functions
     # ==================================================================================
-
-    from mcdc.transport.simulation import setup_gpu
-
-    setup_gpu(mcdc)
 
     # Pick physics model
     import mcdc.transport.physics as physics
@@ -310,7 +298,13 @@ def preparation():
         rng.wrapping_add = rng.wrapping_add_python
         rng.wrapping_mul = rng.wrapping_mul_python
 
-    # TODO: Delete Python objects if running in Numba mode
+    # ==================================================================================
+    # Finalize data: wrapping into a tuple
+    # ==================================================================================
+
+    from mcdc.transport.simulation import setup_gpu
+
+    setup_gpu(mcdc)
 
     return mcdc_arr, data
 

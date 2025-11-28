@@ -44,6 +44,8 @@ import mcdc.mcdc_set.tabulated_distribution as tabulated_distribution
 
 import mcdc.mcdc_set.tabulated_energy_angle_distribution as tabulated_energy_angle_distribution
 
+import mcdc.mcdc_set.gpu_meta as gpu_meta
+
 import mcdc.mcdc_set.native_material as native_material
 
 import mcdc.mcdc_set.multigroup_material as multigroup_material

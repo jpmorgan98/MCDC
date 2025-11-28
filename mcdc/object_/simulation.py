@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 import numpy as np
 
 from mpi4py import MPI
-from numpy import float64, int64, uint64, uintp
+from numpy import float64, int64
 from numpy.typing import NDArray
 
 ####
@@ -30,6 +30,7 @@ from numpy.typing import NDArray
 from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.data import DataBase, DataNone
 from mcdc.object_.distribution import DistributionBase, DistributionNone
+from mcdc.object_.gpu_tools import GPUMeta
 from mcdc.object_.mesh import MeshBase
 from mcdc.object_.particle import ParticleBank
 from mcdc.object_.settings import Settings
@@ -124,6 +125,9 @@ class Simulation(ObjectSingleton):
     runtime_output: float
     runtime_bank_management: float
 
+    # GPU metadata
+    gpu_meta: GPUMeta
+
     def __init__(self):
         super().__init__()
 
@@ -217,6 +221,9 @@ class Simulation(ObjectSingleton):
         self.runtime_simulation = 0.0
         self.runtime_output = 0.0
         self.runtime_bank_management = 0.0
+
+        # GPU metadata
+        self.gpu_meta = GPUMeta()
 
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells

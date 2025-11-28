@@ -315,18 +315,6 @@ def generate_numba_objects(simulation):
 
     structures["simulation"] = new_structure + structures["simulation"]
 
-    # GPU interop.
-    structures["simulation"] += [
-        ("gpu_state_pointer", "u8"),
-        ("source_program_pointer", "u8"),
-        ("precursor_program_pointer", "u8"),
-        ("source_seed", "u8"),
-    ]
-    records["simulation"]["gpu_state_pointer"] = 0
-    records["simulation"]["source_program_pointer"] = 0
-    records["simulation"]["precursor_program_pointer"] = 0
-    records["simulation"]["source_seed"] = 0
-
     # Print the fields
     if MPI.COMM_WORLD.Get_rank() == 0:
         with open(f"{Path(mcdc.__file__).parent}/object_/numba_types.py", "w") as f:
@@ -365,7 +353,7 @@ def generate_numba_objects(simulation):
         if len(item) == 3:
             size = item[2][0]
 
-        # Skip particle banks
+        # Skip particular attributes
         if field in bank_names:
             continue
 
@@ -387,6 +375,11 @@ def generate_numba_objects(simulation):
                         mcdc_simulation[field][i][sub_item[0]] = records[
                             singular_field
                         ][i][sub_item[0]]
+
+
+    # Manually set particle bank attributes
+    for name in bank_names:
+        mcdc_simulation[name]['tag'] = getattr(simulation, name).tag
 
     return mcdc_simulation_arr, data["array"]
 
