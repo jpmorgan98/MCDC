@@ -10,6 +10,8 @@ from mcdc.constant import (
     ANGLE_ISOTROPIC,
     ANGLE_ENERGY_CORRELATED,
     ANGLE_DISTRIBUTED,
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOG,
     REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_ELASTIC_SCATTERING,
     REACTION_NEUTRON_FISSION,
@@ -329,7 +331,7 @@ def set_energy_distribution(h5_group):
         energy_spectrum = DistributionLevelScattering(C1, C2)
 
     elif spectrum_type == "evaporation":
-        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
+        energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
         
@@ -338,12 +340,17 @@ def set_energy_distribution(h5_group):
         )
 
     elif spectrum_type == "maxwellian":
-        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
+        energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
+        interpolation = h5_group[f"temperature_interpolation"][()].decode('utf-8')
+        if interpolation == 'linear':
+            interpolation = INTERPOLATION_LINEAR
+        elif interpolation == 'log':
+            interpolation = INTERPOLATION_LOG
         
         energy_spectrum = DistributionMaxwellian(
-            energy, temperature, restriction_energy
+            energy, temperature, restriction_energy, interpolation
         )
 
     elif spectrum_type == "kalbach-mann":

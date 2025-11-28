@@ -211,8 +211,8 @@ class DistributionEvaporation(DistributionBase):
     # Annotations for Numba mode
     label: str = "evaporation_distribution"
     #
-    U: float
-    T: DataTable
+    nuclear_temperature: DataTable
+    restriction_energy: float
 
     def __init__(
         self,
@@ -223,14 +223,14 @@ class DistributionEvaporation(DistributionBase):
         type_ = DISTRIBUTION_EVAPORATION
         super().__init__(type_)
 
-        self.U = restriction_energy
-        self.T = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value)
+        self.restriction_energy = restriction_energy
+        self.nuclear_temperature = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value)
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - U: {self.U} [eV]\n"
-        text += f"  - T energy_grid {print_1d_array(self.T.x)} [eV]\n"
-        text += f"  - T {print_1d_array(self.T.y)} [eV]\n"
+        text += f"  - Restriction energy: {self.restriction_energy} [eV]\n"
+        text += f"  - Nuclear temperature {print_1d_array(self.nuclear_temperature.y)} [eV]\n"
+        text += f"  - Nuclear temperature energy grid {print_1d_array(self.nuclear_temperature.x)} [eV]\n"
         return text
 
 
@@ -243,26 +243,27 @@ class DistributionMaxwellian(DistributionBase):
     # Annotations for Numba mode
     label: str = "maxwellian_distribution"
     #
-    U: float
-    T: DataTable
+    nuclear_temperature: DataTable
+    restriction_energy: float
 
     def __init__(
         self,
         nuclear_temperature_energy_grid,
         nuclear_temperature_value,
         restriction_energy,
+        temperature_interpolation
     ):
         type_ = DISTRIBUTION_MAXWELLIAN
         super().__init__(type_)
 
-        self.U = restriction_energy
-        self.T = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value)
+        self.restriction_energy = restriction_energy
+        self.nuclear_temperature = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value, temperature_interpolation)
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - U: {self.U} [eV]\n"
-        text += f"  - T energy_grid {print_1d_array(self.T.x)} [eV]\n"
-        text += f"  - T {print_1d_array(self.T.y)} [eV]\n"
+        text += f"  - Restriction energy: {self.restriction_energy} [eV]\n"
+        text += f"  - Nuclear temperature {print_1d_array(self.nuclear_temperature.y)} [eV]\n"
+        text += f"  - Nuclear temperature energy grid {print_1d_array(self.nuclear_temperature.x)} [eV]\n"
         return text
 
 

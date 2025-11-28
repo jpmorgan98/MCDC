@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import DATA_NONE, DATA_TABLE, DATA_POLYNOMIAL
+from mcdc.constant import DATA_NONE, DATA_TABLE, DATA_POLYNOMIAL, INTERPOLATION_LINEAR, INTERPOLATION_LOG
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
 
@@ -64,18 +64,24 @@ class DataTable(DataBase):
     #
     x: NDArray[float64]
     y: NDArray[float64]
+    interpolation: int
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, interpolation=INTERPOLATION_LINEAR):
         type_ = DATA_TABLE
         super().__init__(type_)
 
         self.x = x
         self.y = y
+        self.interpolation = interpolation
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - x {print_1d_array(self.x)}\n"
         text += f"  - y {print_1d_array(self.y)}\n"
+        if self.interpolation == INTERPOLATION_LINEAR:
+            text += f"  - Interpolation: linear\n"
+        elif self.interpolation == INTERPOLATION_LOG:
+            text += f"  - Interpolation: log\n"
         return text
 
 

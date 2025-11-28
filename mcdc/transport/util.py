@@ -1,3 +1,5 @@
+import math
+
 from numba import njit
 from typing import Sequence
 
@@ -96,3 +98,18 @@ def find_bin(
 @njit
 def linear_interpolation(x, x1, x2, y1, y2):
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
+
+
+@njit
+def log_interpolation(x, x1, x2, y1, y2):
+    # Convert to logs
+    lx1, lx2 = math.log(x1), math.log(x2)
+    ly1, ly2 = math.log(y1), math.log(y2)
+    
+    # Slope in log–log space
+    m = (ly2 - ly1) / (lx2 - lx1)
+    
+    # Interpolate log(y)
+    ly = ly1 + m * (math.log(x) - lx1)
+    
+    return math.exp(ly) 

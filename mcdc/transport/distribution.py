@@ -238,9 +238,9 @@ def sample_multi_table(E, rng_state, multi_table, data, scale=False):
 @njit
 def sample_maxwellian(E, rng_state, maxwellian, mcdc, data):
     # Get nuclear temperature
-    table = mcdc["table_data"][maxwellian["T_ID"]]
-    T = evaluate_table(E, table, data)
-    U = maxwellian["U"]
+    table = mcdc["table_data"][maxwellian["nuclear_temperature_ID"]]
+    nuclear_temperature = evaluate_table(E, table, data)
+    restriction_energy = maxwellian["restriction_energy"]
 
     # Rejection sampling
     while True:
@@ -249,10 +249,10 @@ def sample_maxwellian(E, rng_state, maxwellian, mcdc, data):
         xi3 = rng.lcg(rng_state)
         cos = math.cos(0.5 * PI * xi3)
         cos_square = cos * cos
-        sample = -T * (math.log(xi1) + math.log(xi2) * cos_square)
+        sample = -nuclear_temperature * (math.log(xi1) + math.log(xi2) * cos_square)
 
         # Accept sample?
-        if sample >= 0.0 and sample <= E - U:
+        if 0.0 <= sample and sample <= E - restriction_energy:
             break
 
     return sample
@@ -268,20 +268,21 @@ def sample_level_scattering(E, level_scattering):
 @njit
 def sample_evaporation(E, rng_state, evaporation, mcdc, data):
     # Get nuclear temperature
-    table = mcdc["table_data"][evaporation["T_ID"]]
-    T = evaluate_table(E, table, data)
-    U = evaporation["U"]
-    w = (E - U) / T
+    table = mcdc["table_data"][evaporation["nuclear_temperature_ID"]]
+    nuclear_temperature = evaluate_table(E, table, data)
+    restriction_energy = evaporation["restriction_energy"]
+
+    w = (E - restriction_energy) / nuclear_temperature
     g = 1.0 - math.exp(-w)
 
     # Rejection sampling
     while True:
         xi1 = rng.lcg(rng_state)
         xi2 = rng.lcg(rng_state)
-        sample = -T * math.log((1.0 - g * xi1) * (1.0 - g * xi2))
+        sample = -nuclear_temperature * math.log((1.0 - g * xi1) * (1.0 - g * xi2))
 
         # Accept sample?
-        if sample >= 0.0 and sample <= E - U:
+        if 0.0 <= sample and sample <= E - restriction_energy:
             break
 
     return sample
