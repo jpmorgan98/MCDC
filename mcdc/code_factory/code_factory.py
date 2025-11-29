@@ -10,6 +10,7 @@ from mpi4py import MPI
 ####
 
 import mcdc
+import mcdc.code_factory.adapt as adapt
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
 
@@ -253,7 +254,10 @@ def generate_numba_objects(simulation):
     set_object(simulation, annotations, structures, records, data)
 
     # Allocate the flattened data and re-set the objects
-    data["array"] = np.zeros(data["size"], dtype=type_map[float])
+    #data["array"] = np.zeros(data["size"], dtype=type_map[float])
+    data["array"], data["pointer"] = adapt.create_data_array(
+        data['size'], type_map[float]
+    )
 
     data["size"] = 0
     records = {}
@@ -341,7 +345,8 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     # The global structure/variable container
-    mcdc_simulation_arr = np.zeros(1, dtype=into_dtype(structures["simulation"]))
+    #mcdc_simulation_arr = np.zeros(1, dtype=into_dtype(structures["simulation"]))
+    mcdc_simulation_arr, mcdc_simulation_pointer = adapt.create_mcdc_array(into_dtype(structures["simulation"]))
     mcdc_simulation = mcdc_simulation_arr[0]
 
     record = records["simulation"]

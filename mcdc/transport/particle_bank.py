@@ -10,16 +10,12 @@ from numba import (
 
 ####
 
-import mcdc.transport.particle as particle_module
-
+import mcdc.code_factory.adapt as adapt
+import mcdc.object_.numba_types as type_
 import mcdc.transport.mpi as mpi
+import mcdc.transport.particle as particle_module
 import mcdc.transport.technique as technique
 
-import mcdc.code_factory.adapt as adapt
-
-import mcdc.object_.numba_types as type_
-
-from mcdc.code_factory.adapt import for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.print_ import print_error
 
@@ -44,13 +40,13 @@ def add_bank_size(bank, value):
     return adapt.global_add(bank["size"], 0, value)
 
 
-@for_cpu()
+@adapt.for_cpu()
 def full_bank_print(bank):
     with objmode():
         print_error("Particle %s bank is full." % bank["tag"])
 
 
-@for_gpu()
+@adapt.for_gpu()
 def full_bank_print(bank):
     pass
 
@@ -128,7 +124,7 @@ def check_future_bank(mcdc, data):
 
         # Promote the future particle to census bank
         if P["t"] < next_census_time:
-            adapt.add_census(P_arr, mcdc)
+            add_census(P_arr, mcdc)
             add_bank_size(bank_future, -1)
 
             # Consolidate the emptied space in the future bank
@@ -329,3 +325,57 @@ def bank_rebalance(mcdc):
     set_bank_size(mcdc["bank_source"], size)
     for i in range(size):
         mcdc["bank_source"]["particles"][i] = buff[i]
+
+
+# ======================================================================================
+# Adaptive functions
+# ======================================================================================
+
+
+@adapt.for_cpu()
+def add_active(P_arr, prog):
+    add_particle(P_arr, prog["bank_active"])
+
+
+@adapt.for_gpu()
+def add_active(P_rec_arr, prog):
+    P_arr = local_array(1, type_.particle)
+    kernel.recordlike_to_particle(P_arr, P_rec_arr)
+    if SIMPLE_ASYNC:
+        step_async(prog, P_arr[0])
+    else:
+        find_cell_async(prog, P_arr[0])
+
+
+@adapt.for_cpu()
+def add_source(P_arr, prog):
+    add_particle(P_arr, prog["bank_source"])
+
+
+@adapt.for_gpu()
+def add_source(P_arr, prog):
+    mcdc = mcdc_global(prog)
+    add_particle(P_arr, mcdc["bank_source"])
+
+
+@adapt.for_cpu()
+def add_census(P_arr, prog):
+    add_particle(P_arr, prog["bank_census"])
+
+
+@adapt.for_gpu()
+def add_census(P_arr, prog):
+    mcdc = mcdc_global(prog)
+    add_particle(P_arr, mcdc["bank_census"])
+
+
+@adapt.for_cpu()
+def add_future(P_arr, prog):
+    add_particle(P_arr, prog["bank_future"])
+
+
+@adapt.for_gpu()
+def add_future(P_arr, prog):
+    mcdc = mcdc_global(prog)
+    add_particle(P_arr, mcdc["bank_future"])
+

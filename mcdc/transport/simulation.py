@@ -267,13 +267,13 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
 
     # Put into the right bank
     if not hit_census:
-        adapt.add_active(particle_container, prog)
+        particle_bank_module.add_active(particle_container, prog)
     elif not hit_next_census:
         # Particle will participate after the current census
-        adapt.add_census(particle_container, prog)
+        particle_bank_module.add_census(particle_container, prog)
     else:
         # Particle will participate in the future
-        adapt.add_future(particle_container, prog)
+        particle_bank_module.add_future(particle_container, prog)
 
 
 @njit
@@ -497,7 +497,7 @@ def step_particle(particle_container, prog, data):
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
-        adapt.add_census(particle_container, prog)
+        particle_bank_module.add_census(particle_container, prog)
         particle["alive"] = False
 
     # Time boundary crossing

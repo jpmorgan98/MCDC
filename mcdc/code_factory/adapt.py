@@ -1,12 +1,13 @@
 import importlib
-import numpy as np
-from numba import njit, jit, objmode, literal_unroll, types
-from numba.extending import intrinsic
+import inspect
 import numba
 import mcdc.config as config
 import mcdc.object_.numba_types as type_
 import mcdc.transport.particle_bank as particle_bank_module
+import numpy as np
 
+from numba import njit, jit, types
+from numba.extending import intrinsic
 
 if importlib.util.find_spec("harmonize") is None:
     HAS_HARMONIZE = False
@@ -15,13 +16,12 @@ else:
 
     HAS_HARMONIZE = True
 
+####
 
-import math
-import inspect
+
+import mcdc.config as config
 
 from mcdc.print_ import print_error
-
-import mcdc.code_factory.adapt as adapt
 
 
 # =============================================================================
@@ -112,9 +112,9 @@ def leak_overload(arg):
 # =============================================================================
 
 
-"""
 def local_array(shape, dtype):
     return np.zeros(shape, dtype=dtype)
+
 
 @numba.extending.type_callable(local_array)
 def type_local_array(context):
@@ -264,7 +264,7 @@ def builtin_local_array(context, builder, sig, args):
         raise numba.core.errors.UnsupportedError(
             f"Unsupported target context {context}."
         )
-"""
+
 
 # =============================================================================
 # Decorators
@@ -455,7 +455,7 @@ def gpu_forward_declare(args, tally_shape):
     global state_spec
     global mcdc_global_gpu, mcdc_data_gpu
     global group_gpu, thread_gpu
-    global particle_gpu, particle_data_gpu
+    global particle_gpu, particle_record_gpu
     global step_async, find_cell_async, halt_early
     global tally_width, tally_length, tally_size
 
@@ -484,7 +484,7 @@ def gpu_forward_declare(args, tally_shape):
     group_gpu = access_fns["group"]
     thread_gpu = access_fns["thread"]
     particle_gpu = numba.from_dtype(type_.particle)
-    particle_data_gpu = numba.from_dtype(type_.particle_data)
+    particle_record_gpu = numba.from_dtype(type_.particle_record)
 
     def step(prog: numba.uintp, P: particle_gpu):
         pass
@@ -507,8 +507,7 @@ def gpu_forward_declare(args, tally_shape):
 # =============================================================================
 
 
-@numba.njit()
-def create_tally_array(width, length):
+def create_data_array(size, dtype):
     if config.target == "gpu":
         if config.gpu_state_storage == "managed":
             data_tally_ptr = alloc_managed_bytes(tally_size)
@@ -518,12 +517,11 @@ def create_tally_array(width, length):
         data_tally = numba.carray(data_tally_ptr, (width, length), type_.float64)
         return data_tally, data_tally_uint
     else:
-        data_tally = np.zeros((width, length), dtype=type_.float64)
+        data_tally = np.zeros(size, dtype=dtype)
         return data_tally, 0
 
 
-@numba.njit()
-def create_mcdc_array():
+def create_mcdc_array(dtype):
     if config.target == "gpu":
         if config.gpu_state_storage == "managed":
             mcdc_ptr = alloc_managed_bytes(type_.global_size)
@@ -533,7 +531,7 @@ def create_mcdc_array():
         mcdc_array = numba.carray(mcdc_ptr, (1,), type_.global_)
         return mcdc_array, mcdc_uint
     else:
-        mcdc_array = np.zeros((1,), dtype=type_.global_)
+        mcdc_array = np.zeros((1,), dtype=dtype)
         return mcdc_array, 0
 
 
@@ -587,51 +585,14 @@ def thread(prog):
 
 
 @for_cpu()
-def add_active(particle, prog):
-    particle_bank_module.add_particle(particle, prog["bank_active"])
+def add_IC(P_arr, prog):
+    particle_bank.add_particle(P_arr, prog["technique"]["IC_bank_neutron_local"])
 
 
 @for_gpu()
-def add_active(P_reclike, prog):
-    P = local_array(1, type_.particle)
-    particle_bank_module.recordlike_to_particle(P, P_reclike)
-    if SIMPLE_ASYNC:
-        step_async(prog, P_arr[0])
-    else:
-        find_cell_async(prog, P_arr[0])
-
-
-@for_cpu()
-def add_source(particle, prog):
-    particle_bank_module.add_particle(particle, prog["bank_source"])
-
-
-@for_gpu()
-def add_source(P_arr, prog):
+def add_IC(P_arr, prog):
     mcdc = mcdc_global(prog)
-    particle_bank_module.add_particle(particle, mcdc["bank_source"])
-
-
-@for_cpu()
-def add_census(particle, prog):
-    particle_bank_module.add_particle(particle, prog["bank_census"])
-
-
-@for_gpu()
-def add_census(P_arr, prog):
-    mcdc = mcdc_global(prog)
-    particle_bank_module.add_particle(particle, mcdc["bank_census"])
-
-
-@for_cpu()
-def add_future(particle, prog):
-    particle_bank_module.add_particle(particle, prog["bank_future"])
-
-
-@for_gpu()
-def add_future(P_arr, prog):
-    mcdc = mcdc_global(prog)
-    particle_bank_module.add_particle(particle, mcdc["bank_future"])
+    particle_bank.add_particle(P_arr, mcdc["technique"]["IC_bank_neutron_local"])
 
 
 @for_cpu()

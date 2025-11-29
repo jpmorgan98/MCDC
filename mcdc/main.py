@@ -221,6 +221,7 @@ def preparation():
 
     # Adapt kernels
     import numba as nb
+    import mcdc.code_factory.adapt as adapt
     import mcdc.config as config
     import mcdc.transport.mpi as mpi
 
@@ -238,15 +239,14 @@ def preparation():
             print_error(
                 "No module named 'harmonize' - GPU functionality not available. "
             )
-        adapt.gpu_forward_declare(config.args)
+        adapt.gpu_forward_declare(config.args, tally_shape)
 
-    from mcdc.code_factory.adapt import eval_toggle, target_for, nopython_mode
-
-    eval_toggle()
-    target_for(config.target)
+    adapt.eval_toggle()
+    adapt.target_for(config.target)
     if config.target == "gpu":
         build_gpu_progs(input_deck, config.args)
-    nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
+    adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
+
 
     # ==================================================================================
     # Source file
