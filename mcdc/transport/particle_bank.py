@@ -40,17 +40,6 @@ def add_bank_size(bank, value):
     return adapt.global_add(bank["size"], 0, value)
 
 
-@adapt.for_cpu()
-def full_bank_print(bank):
-    with objmode():
-        print_error("Particle %s bank is full." % bank["tag"])
-
-
-@adapt.for_gpu()
-def full_bank_print(bank):
-    pass
-
-
 @njit
 def add_particle(P_arr, bank):
     P = P_arr[0]
@@ -330,6 +319,18 @@ def bank_rebalance(mcdc):
 # ======================================================================================
 # Adaptive functions
 # ======================================================================================
+# TODO: Need review
+
+
+@adapt.for_cpu()
+def full_bank_print(bank):
+    with objmode():
+        print_error("Particle %s bank is full." % bank["tag"])
+
+
+@adapt.for_gpu()
+def full_bank_print(bank):
+    pass
 
 
 @adapt.for_cpu()

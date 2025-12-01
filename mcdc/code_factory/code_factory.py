@@ -10,7 +10,7 @@ from mpi4py import MPI
 ####
 
 import mcdc
-import mcdc.code_factory.adapt as adapt
+import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
 
@@ -254,8 +254,7 @@ def generate_numba_objects(simulation):
     set_object(simulation, annotations, structures, records, data)
 
     # Allocate the flattened data and re-set the objects
-    #data["array"] = np.zeros(data["size"], dtype=type_map[float])
-    data["array"], data["pointer"] = adapt.create_data_array(
+    data["array"], data["pointer"] = create_data_array(
         data['size'], type_map[float]
     )
 
@@ -345,8 +344,7 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     # The global structure/variable container
-    #mcdc_simulation_arr = np.zeros(1, dtype=into_dtype(structures["simulation"]))
-    mcdc_simulation_arr, mcdc_simulation_pointer = adapt.create_mcdc_array(into_dtype(structures["simulation"]))
+    mcdc_simulation_arr, mcdc_simulation_pointer = create_mcdc_array(into_dtype(structures["simulation"]))
     mcdc_simulation = mcdc_simulation_arr[0]
 
     record = records["simulation"]
@@ -629,6 +627,39 @@ def set_object(
         records[class_.label] = record
     elif isinstance(object_, ObjectNonSingleton):
         records[class_.label].append(record)
+
+
+# =============================================================================
+# Global GPU/CPU Arry Variable Constructors
+# =============================================================================
+
+
+def create_data_array(size, dtype):
+    if config.target == "gpu":
+        if config.gpu_state_storage == "managed":
+            data_tally_ptr = alloc_managed_bytes(tally_size)
+        else:
+            data_tally_ptr = alloc_device_bytes(tally_size)
+        data_tally_uint = voidptr_to_uintp(data_tally_ptr)
+        data_tally = numba.carray(data_tally_ptr, (width, length), type_.float64)
+        return data_tally, data_tally_uint
+    else:
+        data_tally = np.zeros(size, dtype=dtype)
+        return data_tally, 0
+
+
+def create_mcdc_array(dtype):
+    if config.target == "gpu":
+        if config.gpu_state_storage == "managed":
+            mcdc_ptr = alloc_managed_bytes(type_.global_size)
+        else:
+            mcdc_ptr = alloc_device_bytes(type_.global_size)
+        mcdc_uint = voidptr_to_uintp(mcdc_ptr)
+        mcdc_array = numba.carray(mcdc_ptr, (1,), type_.global_)
+        return mcdc_array, mcdc_uint
+    else:
+        mcdc_array = np.zeros((1,), dtype=dtype)
+        return mcdc_array, 0
 
 
 # ======================================================================================

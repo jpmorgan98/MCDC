@@ -1,9 +1,7 @@
 import importlib
 import inspect
 import numba
-import mcdc.config as config
 import mcdc.object_.numba_types as type_
-import mcdc.transport.particle_bank as particle_bank_module
 import numpy as np
 
 from numba import njit, jit, types
@@ -503,39 +501,6 @@ def gpu_forward_declare(args, tally_shape):
 
 
 # =============================================================================
-# Global GPU/CPU Arry Variable Constructors
-# =============================================================================
-
-
-def create_data_array(size, dtype):
-    if config.target == "gpu":
-        if config.gpu_state_storage == "managed":
-            data_tally_ptr = alloc_managed_bytes(tally_size)
-        else:
-            data_tally_ptr = alloc_device_bytes(tally_size)
-        data_tally_uint = voidptr_to_uintp(data_tally_ptr)
-        data_tally = numba.carray(data_tally_ptr, (width, length), type_.float64)
-        return data_tally, data_tally_uint
-    else:
-        data_tally = np.zeros(size, dtype=dtype)
-        return data_tally, 0
-
-
-def create_mcdc_array(dtype):
-    if config.target == "gpu":
-        if config.gpu_state_storage == "managed":
-            mcdc_ptr = alloc_managed_bytes(type_.global_size)
-        else:
-            mcdc_ptr = alloc_device_bytes(type_.global_size)
-        mcdc_uint = voidptr_to_uintp(mcdc_ptr)
-        mcdc_array = numba.carray(mcdc_ptr, (1,), type_.global_)
-        return mcdc_array, mcdc_uint
-    else:
-        mcdc_array = np.zeros((1,), dtype=dtype)
-        return mcdc_array, 0
-
-
-# =============================================================================
 # Seperate GPU/CPU Functions to Target Different Platforms
 # =============================================================================
 
@@ -582,17 +547,6 @@ def thread(prog):
 @for_gpu()
 def thread(prog):
     return thread_gpu(prog)
-
-
-@for_cpu()
-def add_IC(P_arr, prog):
-    particle_bank.add_particle(P_arr, prog["technique"]["IC_bank_neutron_local"])
-
-
-@for_gpu()
-def add_IC(P_arr, prog):
-    mcdc = mcdc_global(prog)
-    particle_bank.add_particle(P_arr, mcdc["technique"]["IC_bank_neutron_local"])
 
 
 @for_cpu()
