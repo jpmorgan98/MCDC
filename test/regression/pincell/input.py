@@ -2,7 +2,7 @@ import mcdc
 import numpy as np
 import os
 
-os.environ["MCDC_LIB"] = "../test-nuclear_data/"
+os.environ["MCDC_LIB"] = "../MCDC-regression_test_data/"
 
 # Material
 fuel = mcdc.Material(
