@@ -10,6 +10,7 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.object_.numba_types as type_
 from mcdc.print_ import print_structure
 import mcdc.transport.particle as particle_module
+import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 
 from mcdc.constant import (
@@ -594,7 +595,7 @@ def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
             particle["uz"] = particle_new["uz"]
             particle["E"] = particle_new["E"]
         else:
-            adapt.add_active(particle_container_new, prog)
+            particle_bank_module.add_active(particle_container_new, prog)
 
 
 # ======================================================================================
@@ -733,7 +734,7 @@ def fission(reaction, particle_container, nuclide, prog, data):
 
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
-            adapt.add_census(particle_container_new, prog)
+            particle_bank_module.add_census(particle_container_new, prog)
             continue
         # Below is only relevant for fixed-source problem
 
@@ -768,17 +769,17 @@ def fission(reaction, particle_container, nuclide, prog, data):
                 particle["E"] = particle_new["E"]
                 particle["w"] = particle_new["w"]
             else:
-                adapt.add_active(particle_container_new, prog)
+                particle_bank_module.add_active(particle_container_new, prog)
 
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
-            adapt.add_future(particle_container_new, prog)
+            particle_bank_module.add_future(particle_container_new, prog)
 
         # Hit current census --> add to census bank
         else:
             # Particle will participate after the current census is completed
-            adapt.add_census(particle_container_new, prog)
+            particle_bank_module.add_census(particle_container_new, prog)
 
 
 @njit
