@@ -108,6 +108,7 @@ def register_object(object_):
         object_.child_ID = sum([x.type == object_.type for x in object_list])
     object_list.append(object_)
 
+
 # ======================================================================================
 # Type checker
 # ======================================================================================
@@ -116,6 +117,7 @@ def register_object(object_):
 import re
 import numpy as np
 from typing import get_origin, get_args, Union, Annotated
+
 
 def _name_from_str(s: str) -> str:
     s = _strip_prefixes(s)

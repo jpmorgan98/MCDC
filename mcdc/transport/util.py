@@ -105,11 +105,11 @@ def log_interpolation(x, x1, x2, y1, y2):
     # Convert to logs
     lx1, lx2 = math.log(x1), math.log(x2)
     ly1, ly2 = math.log(y1), math.log(y2)
-    
+
     # Slope in log–log space
     m = (ly2 - ly1) / (lx2 - lx1)
-    
+
     # Interpolate log(y)
     ly = ly1 + m * (math.log(x) - lx1)
-    
-    return math.exp(ly) 
+
+    return math.exp(ly)

@@ -16,7 +16,7 @@ from mcdc.object_.reaction import (
     ReactionNeutronFission,
     ReactionNeutronInelasticScattering,
     decode_type,
-    set_energy_distribution
+    set_energy_distribution,
 )
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
@@ -79,10 +79,10 @@ class Nuclide(ObjectNonSingleton):
         # The reaction MTs
         MTs = {}
         for name in rx_names:
-            if name not in file['neutron_reactions']:
+            if name not in file["neutron_reactions"]:
                 MTs[name] = []
                 continue
-                
+
             MTs[name] = [
                 x for x in file[f"neutron_reactions/{name}"] if x.startswith("MT")
             ]
@@ -158,22 +158,38 @@ class Nuclide(ObjectNonSingleton):
             self.fission_delayed_decay_rates = np.zeros(0)
             self.fission_delayed_spectra = []
         else:
-            fission_group = file['neutron_reactions/fission']
+            fission_group = file["neutron_reactions/fission"]
 
             # Multiplicities
-            self.fission_prompt_multiplicity = set_fission_multiplicity(fission_group["prompt_multiplicity"])
-            self.fission_delayed_multiplicity = set_fission_multiplicity(fission_group["delayed_multiplicity"])
+            self.fission_prompt_multiplicity = set_fission_multiplicity(
+                fission_group["prompt_multiplicity"]
+            )
+            self.fission_delayed_multiplicity = set_fission_multiplicity(
+                fission_group["delayed_multiplicity"]
+            )
 
             # Delayed fractions and decay rates
-            self.fission_delayed_fractions = fission_group['delayed_neutron_precursors/fractions'][()]
-            self.fission_delayed_decay_rates = fission_group['delayed_neutron_precursors/decay_rates'][()]
+            self.fission_delayed_fractions = fission_group[
+                "delayed_neutron_precursors/fractions"
+            ][()]
+            self.fission_delayed_decay_rates = fission_group[
+                "delayed_neutron_precursors/decay_rates"
+            ][()]
             self.N_fission_delayed_precursor = len(self.fission_delayed_fractions)
-        
+
             # Delayed spectra
             self.fission_delayed_spectra = []
-            spectrum_names = [x for x in fission_group['delayed_neutron_precursors'] if x.startswith("energy_spectrum-")]
+            spectrum_names = [
+                x
+                for x in fission_group["delayed_neutron_precursors"]
+                if x.startswith("energy_spectrum-")
+            ]
             for spectrum_name in spectrum_names:
-                self.fission_delayed_spectra.append(set_energy_distribution(fission_group[f"delayed_neutron_precursors/{spectrum_name}"]))
+                self.fission_delayed_spectra.append(
+                    set_energy_distribution(
+                        fission_group[f"delayed_neutron_precursors/{spectrum_name}"]
+                    )
+                )
 
         file.close()
 
@@ -204,20 +220,21 @@ class Nuclide(ObjectNonSingleton):
 # Helper functions
 # ======================================================================================
 
+
 def set_fission_multiplicity(h5_group):
     multiplicity_type = h5_group.attrs["type"]
 
     if multiplicity_type == "tabulated":
-        x = h5_group['energy'][()] * 1E6 # MeV to eV
-        y = h5_group['value'][()]
+        x = h5_group["energy"][()] * 1e6  # MeV to eV
+        y = h5_group["value"][()]
         multiplicity = DataTable(x, y)
 
-    elif multiplicity_type == 'polynomial':
-        coefficient = h5_group['coefficient'][()]
+    elif multiplicity_type == "polynomial":
+        coefficient = h5_group["coefficient"][()]
 
         # MeV-based to eV-based
         for l in range(len(coefficient)):
-            coefficient[l] /= 1E6**l 
+            coefficient[l] /= 1e6**l
 
         multiplicity = DataPolynomial(coefficient)
     else:

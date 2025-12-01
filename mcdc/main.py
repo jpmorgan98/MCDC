@@ -247,7 +247,6 @@ def preparation():
         build_gpu_progs(input_deck, config.args)
     adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
 
-
     # ==================================================================================
     # Source file
     #   TODO: Use parallel h5py

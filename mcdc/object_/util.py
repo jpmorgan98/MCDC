@@ -1,11 +1,12 @@
 import numpy as np
 
+
 def cmf_from_pmf(pmf):
     cmf = np.zeros(len(pmf) + 1)
 
     # Build CMF incrementally
     total = 0.0
-    for  idx in range(len(pmf)):
+    for idx in range(len(pmf)):
         total += pmf[idx]
         cmf[idx + 1] = total
 

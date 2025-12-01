@@ -7,12 +7,14 @@ def print_error(message):
     print(f"\n  [ERROR]: {message}\n")
     exit()
 
+
 def print_note(message):
     print(f"\n  [NOTE]: {message}\n")
 
+
 def decode_interpolation(code):
     if code not in INTERPOLATION_MAP.keys():
-        print_error(f"Unsupported interpolation law: {code}") 
+        print_error(f"Unsupported interpolation law: {code}")
     return INTERPOLATION_MAP[code]
 
 
@@ -79,25 +81,25 @@ def get_ace_name(Z, A, T, S=None):
 def load_fission_multiplicity(data, h5_group: h5py.Group):
     # Polynomial
     if data.type == 1:
-        h5_group.attrs['type'] = 'polynomial'
+        h5_group.attrs["type"] = "polynomial"
 
         C = np.array(data.coefficients)
         dataset = h5_group.create_dataset("coefficient", data=C)
-        dataset.attrs['unit-base'] = 'MeV'
+        dataset.attrs["unit-base"] = "MeV"
 
     # Tabulated
     elif data.type == 2:
-        h5_group.attrs['type'] = 'tabulated'
+        h5_group.attrs["type"] = "tabulated"
 
         if not data.interpolation_data.is_linear_linear:
             print(f"[ERROR] Non linear-linear tabulated multiplicity is not supported")
             exit()
-       
+
         energy = np.array(data.energies)
 
         h5_group.create_dataset("value", data=data.multiplicities)
         dataset = h5_group.create_dataset("energy", data=energy)
-        dataset.attrs['unit'] = 'MeV'
+        dataset.attrs["unit"] = "MeV"
 
     ## Yield - Unsupported
     else:
@@ -106,34 +108,26 @@ def load_fission_multiplicity(data, h5_group: h5py.Group):
 
 
 def load_cosine_distribution(data, h5_group: h5py.Group):
-    if isinstance(
-        data,
-        ACEtk.continuous.FullyIsotropicDistribution
-    ):
-        h5_group.attrs['type'] = 'isotropic'
+    if isinstance(data, ACEtk.continuous.FullyIsotropicDistribution):
+        h5_group.attrs["type"] = "isotropic"
 
-    elif isinstance(
-        data,
-        ACEtk.continuous.DistributionGivenElsewhere
-    ):
-        h5_group.attrs['type'] = 'energy-correlated'
+    elif isinstance(data, ACEtk.continuous.DistributionGivenElsewhere):
+        h5_group.attrs["type"] = "energy-correlated"
 
     else:
-        h5_group.attrs['type'] = 'tabulated'
+        h5_group.attrs["type"] = "tabulated"
 
         # Check distribution support: all tabulated
         NE = data.number_incident_energies
         for i in range(NE):
             idx = i + 1
-            if (
-                data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated
-            ):
+            if data.distribution_type(idx) != ACEtk.AngularDistributionType.Tabulated:
                 print_error("Angular distribution is not all-tabulated")
 
         # Incident energy
         energy = np.array(data.incident_energies)
-        energy = h5_group.create_dataset('energy', data=energy)
-        energy.attrs['unit'] = 'MeV'
+        energy = h5_group.create_dataset("energy", data=energy)
+        energy.attrs["unit"] = "MeV"
 
         # Tabulated disstributions
         interpolation = np.zeros(NE, dtype=int)
@@ -147,72 +141,79 @@ def load_cosine_distribution(data, h5_group: h5py.Group):
             pdf.extend(distribution.pdf)
         cosine = np.array(cosine)
         pdf = np.array(pdf)
-        h5_group.create_dataset('offset', data=offset)
-        h5_group.create_dataset('value', data=cosine)
-        h5_group.create_dataset('pdf', data=pdf)
+        h5_group.create_dataset("offset", data=offset)
+        h5_group.create_dataset("value", data=cosine)
+        h5_group.create_dataset("pdf", data=pdf)
 
         if not all(interpolation == 2):
             print_error("Angular distribution is not linearly-iterpolable")
 
+
 def load_energy_distribution(data, h5_group: h5py.Group):
     if isinstance(data, ACEtk.continuous.LevelScatteringDistribution):
-        h5_group.attrs['type'] = 'level-scattering'
+        h5_group.attrs["type"] = "level-scattering"
 
         C1 = np.array(data.C1)
         C1 = h5_group.create_dataset("C1", data=C1)
-        C1.attrs['unit'] = 'MeV'
+        C1.attrs["unit"] = "MeV"
 
         h5_group.create_dataset("C2", data=data.C2)
 
     elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
-        h5_group.attrs['type'] = 'evaporation'
+        h5_group.attrs["type"] = "evaporation"
 
         if not data.interpolation_data.is_linear_linear:
-            print_error("Evaporation distribution temperature is not linearly interpolable")
+            print_error(
+                "Evaporation distribution temperature is not linearly interpolable"
+            )
 
         energy = np.array(data.energies)
         temperature = np.array(data.temperatures)
         restriction_energy = np.array(data.restriction_energy)
 
-        dataset = h5_group.create_dataset('temperature_energy_grid', data=energy)
-        dataset.attrs['unit'] = 'MeV'
-        dataset = h5_group.create_dataset('temperature', data=temperature)
-        dataset.attrs['unit'] = 'MeV'
-        dataset = h5_group.create_dataset('restriction_energy', data=restriction_energy)
-        dataset.attrs['unit'] = 'MeV'
+        dataset = h5_group.create_dataset("temperature_energy_grid", data=energy)
+        dataset.attrs["unit"] = "MeV"
+        dataset = h5_group.create_dataset("temperature", data=temperature)
+        dataset.attrs["unit"] = "MeV"
+        dataset = h5_group.create_dataset("restriction_energy", data=restriction_energy)
+        dataset.attrs["unit"] = "MeV"
 
     elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
-        h5_group.attrs['type'] = 'maxwellian'
+        h5_group.attrs["type"] = "maxwellian"
 
         if all(np.array(data.interpolation_data.interpolants) == 2):
-            interpolation = 'linear'
+            interpolation = "linear"
         elif all(np.array(data.interpolation_data.interpolants) == 5):
-            interpolation = 'log'
+            interpolation = "log"
         else:
-            print_error("Unsupported temperature interpolation law in Maxwellian distribution")
+            print_error(
+                "Unsupported temperature interpolation law in Maxwellian distribution"
+            )
 
         energy = np.array(data.energies)
         temperature = np.array(data.temperatures)
         restriction_energy = np.array(data.restriction_energy)
 
-        h5_group.create_dataset('temperature_interpolation', data=interpolation)
-        dataset = h5_group.create_dataset('temperature_energy_grid', data=energy)
-        dataset.attrs['unit'] = 'MeV'
-        dataset = h5_group.create_dataset('temperature', data=temperature)
-        dataset.attrs['unit'] = 'MeV'
-        dataset = h5_group.create_dataset('restriction_energy', data=restriction_energy)
-        dataset.attrs['unit'] = 'MeV'
+        h5_group.create_dataset("temperature_interpolation", data=interpolation)
+        dataset = h5_group.create_dataset("temperature_energy_grid", data=energy)
+        dataset.attrs["unit"] = "MeV"
+        dataset = h5_group.create_dataset("temperature", data=temperature)
+        dataset.attrs["unit"] = "MeV"
+        dataset = h5_group.create_dataset("restriction_energy", data=restriction_energy)
+        dataset.attrs["unit"] = "MeV"
 
     elif isinstance(data, ACEtk.continuous.OutgoingEnergyDistributionData):
-        h5_group.attrs['type'] = 'tabulated'
+        h5_group.attrs["type"] = "tabulated"
 
         if not data.interpolation_data.is_linear_linear:
-            print_error("Non-linearly-interpolated energy distribution is not supported")
+            print_error(
+                "Non-linearly-interpolated energy distribution is not supported"
+            )
 
         # Incident energy
         energy = np.array(data.incident_energies)
-        energy = h5_group.create_dataset('energy', data=energy)
-        energy.attrs['unit'] = 'MeV'
+        energy = h5_group.create_dataset("energy", data=energy)
+        energy.attrs["unit"] = "MeV"
 
         # Tabulated disstributions
         NE = data.number_incident_energies
@@ -228,24 +229,24 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         energy_out = np.array(energy_out)
         pdf = np.array(pdf)
 
-        h5_group.create_dataset('offset', data=offset)
-        dataset = h5_group.create_dataset('value', data=energy_out)
-        dataset.attrs['unit'] = ['MeV']
-        h5_group.create_dataset('pdf', data=pdf)
+        h5_group.create_dataset("offset", data=offset)
+        dataset = h5_group.create_dataset("value", data=energy_out)
+        dataset.attrs["unit"] = ["MeV"]
+        h5_group.create_dataset("pdf", data=pdf)
 
     elif isinstance(data, ACEtk.continuous.KalbachMannDistributionData):
-        h5_group.attrs['type'] = 'kalbach-mann'
+        h5_group.attrs["type"] = "kalbach-mann"
 
         if not data.interpolation_data.is_linear_linear:
             print_error("Non-linearly-interpolated kalbach-mann is not supported")
-        
+
         # Check distribution support: all kalbach-mann
         NE = data.number_incident_energies
 
         # Incident energy
         energy = np.array(data.incident_energies)
-        energy = h5_group.create_dataset('energy', data=energy)
-        energy.attrs['unit'] = 'MeV'
+        energy = h5_group.create_dataset("energy", data=energy)
+        energy.attrs["unit"] = "MeV"
 
         # Tabulated distributions
         offset = np.zeros(NE, dtype=int)
@@ -265,26 +266,28 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         precompound_factor = np.array(precompound_factor)
         angular_slope = np.array(angular_slope)
 
-        h5_group.create_dataset('offset', data=offset)
-        dataset = h5_group.create_dataset('energy_out', data=energy_out)
-        dataset.attrs['unit'] = 'MeV'
-        h5_group.create_dataset('pdf', data=pdf)
-        h5_group.create_dataset('precompound_factor', data=precompound_factor)
-        h5_group.create_dataset('angular_slope', data=angular_slope)
+        h5_group.create_dataset("offset", data=offset)
+        dataset = h5_group.create_dataset("energy_out", data=energy_out)
+        dataset.attrs["unit"] = "MeV"
+        h5_group.create_dataset("pdf", data=pdf)
+        h5_group.create_dataset("precompound_factor", data=precompound_factor)
+        h5_group.create_dataset("angular_slope", data=angular_slope)
 
     elif isinstance(data, ACEtk.continuous.EnergyAngleDistributionData):
-        h5_group.attrs['type'] = 'energy-angle-tabulated'
+        h5_group.attrs["type"] = "energy-angle-tabulated"
 
         if not data.interpolation_data.is_linear_linear:
-            print_error("Non-linearly-interpolated correlated-energy-angle is not supported")
-        
+            print_error(
+                "Non-linearly-interpolated correlated-energy-angle is not supported"
+            )
+
         # Check distribution support: all kalbach-mann
         NE = data.number_incident_energies
 
         # Incident energy
         energy = np.array(data.incident_energies)
-        dataset = h5_group.create_dataset('energy', data=energy)
-        dataset.attrs['unit'] = 'MeV'
+        dataset = h5_group.create_dataset("energy", data=energy)
+        dataset.attrs["unit"] = "MeV"
 
         # Tabulated distributions
         offset = np.zeros(NE, dtype=int)
@@ -309,23 +312,23 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         cosine = np.array(cosine)
         cosine_pdf = np.array(cosine_pdf)
 
-        h5_group.create_dataset('offset', data=offset)
-        dataset = h5_group.create_dataset('energy_out', data=energy_out)
-        dataset.attrs['unit'] = 'MeV'
-        h5_group.create_dataset('pdf', data=pdf)
-        h5_group.create_dataset('cosine_offset', data=cosine_offset)
-        h5_group.create_dataset('cosine', data=cosine)
-        h5_group.create_dataset('cosine_pdf', data=cosine_pdf)
+        h5_group.create_dataset("offset", data=offset)
+        dataset = h5_group.create_dataset("energy_out", data=energy_out)
+        dataset.attrs["unit"] = "MeV"
+        h5_group.create_dataset("pdf", data=pdf)
+        h5_group.create_dataset("cosine_offset", data=cosine_offset)
+        h5_group.create_dataset("cosine", data=cosine)
+        h5_group.create_dataset("cosine_pdf", data=cosine_pdf)
 
     elif isinstance(data, ACEtk.continuous.NBodyPhaseSpaceDistribution):
-        h5_group.attrs['type'] = 'N-body'
+        h5_group.attrs["type"] = "N-body"
 
         if data.interpolation != 2:
             print_error("Non-linearly-interpolable N-body energy distribution")
-        
-        dataset = h5_group.create_dataset('value', data=data.values)
-        dataset.attrs['unit'] = 'MeV'
-        h5_group.create_dataset('pdf', data=data.pdf)
+
+        dataset = h5_group.create_dataset("value", data=data.values)
+        dataset.attrs["unit"] = "MeV"
+        h5_group.create_dataset("pdf", data=data.pdf)
 
     else:
         print_error(f"Unsupported energy distribution: {data}")
@@ -335,9 +338,7 @@ def load_energy_distribution(data, h5_group: h5py.Group):
 # Constants
 # ======================================================================================
 
-INTERPOLATION_MAP = {
-    2: "linear-linear"
-}
+INTERPOLATION_MAP = {2: "linear-linear"}
 
 ACE_TEMPERATURE_LIB81 = {
     "10c": 293.6,

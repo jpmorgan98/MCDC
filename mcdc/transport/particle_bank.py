@@ -379,4 +379,3 @@ def add_future(P_arr, prog):
 def add_future(P_arr, prog):
     mcdc = mcdc_global(prog)
     add_particle(P_arr, mcdc["bank_future"])
-

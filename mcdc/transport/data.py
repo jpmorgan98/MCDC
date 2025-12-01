@@ -4,7 +4,12 @@ from numba import njit
 
 import mcdc.mcdc_get as mcdc_get
 
-from mcdc.constant import DATA_POLYNOMIAL, DATA_TABLE, INTERPOLATION_LINEAR, INTERPOLATION_LOG
+from mcdc.constant import (
+    DATA_POLYNOMIAL,
+    DATA_TABLE,
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOG,
+)
 from mcdc.transport.util import find_bin, linear_interpolation, log_interpolation
 
 
@@ -31,9 +36,9 @@ def evaluate_table(x, table, data):
     y1 = mcdc_get.table_data.y(idx, table, data)
     y2 = mcdc_get.table_data.y(idx + 1, table, data)
 
-    if table['interpolation'] == INTERPOLATION_LINEAR:
+    if table["interpolation"] == INTERPOLATION_LINEAR:
         return linear_interpolation(x, x1, x2, y1, y2)
-    elif table['interpolation'] == INTERPOLATION_LOG:
+    elif table["interpolation"] == INTERPOLATION_LOG:
         return log_interpolation(x, x1, x2, y1, y2)
 
 

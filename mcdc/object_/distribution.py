@@ -15,7 +15,7 @@ from mcdc.constant import (
     DISTRIBUTION_MAXWELLIAN,
     DISTRIBUTION_KALBACH_MANN,
     DISTRIBUTION_TABULATED_ENERGY_ANGLE,
-    DISTRIBUTION_N_BODY
+    DISTRIBUTION_N_BODY,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataTable
@@ -224,7 +224,9 @@ class DistributionEvaporation(DistributionBase):
         super().__init__(type_)
 
         self.restriction_energy = restriction_energy
-        self.nuclear_temperature = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value)
+        self.nuclear_temperature = DataTable(
+            nuclear_temperature_energy_grid, nuclear_temperature_value
+        )
 
     def __repr__(self):
         text = super().__repr__()
@@ -251,13 +253,17 @@ class DistributionMaxwellian(DistributionBase):
         nuclear_temperature_energy_grid,
         nuclear_temperature_value,
         restriction_energy,
-        temperature_interpolation
+        temperature_interpolation,
     ):
         type_ = DISTRIBUTION_MAXWELLIAN
         super().__init__(type_)
 
         self.restriction_energy = restriction_energy
-        self.nuclear_temperature = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value, temperature_interpolation)
+        self.nuclear_temperature = DataTable(
+            nuclear_temperature_energy_grid,
+            nuclear_temperature_value,
+            temperature_interpolation,
+        )
 
     def __repr__(self):
         text = super().__repr__()
@@ -326,7 +332,7 @@ class DistributionTabulatedEnergyAngle(DistributionBase):
     energy_out: NDArray[float64]
     pdf: NDArray[float64]
     cdf: NDArray[float64]
-    cosine_offset_: NDArray[int64] # "cosine_offset" is reserved to describe "cosine"
+    cosine_offset_: NDArray[int64]  # "cosine_offset" is reserved to describe "cosine"
     cosine: NDArray[float64]
     cosine_pdf: NDArray[float64]
     cosine_cdf: NDArray[float64]
@@ -365,7 +371,9 @@ class DistributionTabulatedEnergyAngle(DistributionBase):
                 end = len(cosine)
 
             inner_offset_local = inner_offset - inner_offset[0]
-            self.cosine_pdf[start:end], self.cosine_cdf[start:end] = multi_cdf_from_pdf(inner_offset_local, cosine[start:end], cosine_pdf[start:end])
+            self.cosine_pdf[start:end], self.cosine_cdf[start:end] = multi_cdf_from_pdf(
+                inner_offset_local, cosine[start:end], cosine_pdf[start:end]
+            )
 
     def __repr__(self):
         text = super().__repr__()

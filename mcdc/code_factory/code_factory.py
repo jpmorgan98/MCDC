@@ -254,9 +254,7 @@ def generate_numba_objects(simulation):
     set_object(simulation, annotations, structures, records, data)
 
     # Allocate the flattened data and re-set the objects
-    data["array"], data["pointer"] = create_data_array(
-        data['size'], type_map[float]
-    )
+    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
 
     data["size"] = 0
     records = {}
@@ -344,7 +342,9 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     # The global structure/variable container
-    mcdc_simulation_arr, mcdc_simulation_pointer = create_mcdc_array(into_dtype(structures["simulation"]))
+    mcdc_simulation_arr, mcdc_simulation_pointer = create_mcdc_array(
+        into_dtype(structures["simulation"])
+    )
     mcdc_simulation = mcdc_simulation_arr[0]
 
     record = records["simulation"]
@@ -379,10 +379,9 @@ def generate_numba_objects(simulation):
                             singular_field
                         ][i][sub_item[0]]
 
-
     # Manually set particle bank attributes
     for name in bank_names:
-        mcdc_simulation[name]['tag'] = getattr(simulation, name).tag
+        mcdc_simulation[name]["tag"] = getattr(simulation, name).tag
 
     return mcdc_simulation_arr, data["array"]
 
@@ -502,7 +501,7 @@ def set_object(
     annotation = annotations[class_.label]
     structure = structures[class_.label]
     record = {}
-    
+
     if class_.label == "simulation":
         record = records["simulation"]
 

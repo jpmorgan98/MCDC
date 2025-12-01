@@ -5,6 +5,7 @@ from numpy import uint64
 
 from mcdc.object_.base import ObjectSingleton
 
+
 @dataclass
 class GPUMeta(ObjectSingleton):
     # Annotations for Numba mode

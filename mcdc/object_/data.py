@@ -3,7 +3,13 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import DATA_NONE, DATA_TABLE, DATA_POLYNOMIAL, INTERPOLATION_LINEAR, INTERPOLATION_LOG
+from mcdc.constant import (
+    DATA_NONE,
+    DATA_TABLE,
+    DATA_POLYNOMIAL,
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOG,
+)
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
 

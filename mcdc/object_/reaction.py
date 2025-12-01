@@ -28,7 +28,7 @@ from mcdc.object_.distribution import (
     DistributionMaxwellian,
     DistributionKalbachMann,
     DistributionTabulatedEnergyAngle,
-    DistributionNBody
+    DistributionNBody,
 )
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
@@ -45,7 +45,7 @@ class ReactionBase(ObjectPolymorphic):
     #
     MT: int
     xs: NDArray[float64]
-    xs_offset_: int # "xs_offset" ir reserved for "xs"
+    xs_offset_: int  # "xs_offset" ir reserved for "xs"
     reference_frame: int
 
     def __init__(self, type_, MT, xs, xs_offset, reference_frame):
@@ -145,7 +145,9 @@ class ReactionNeutronInelasticScattering(ReactionBase):
     N_spectrum_probability_bin: int
     N_spectrum: int
     spectrum_probability_grid: NDArray[float64]
-    spectrum_probability: Annotated[NDArray[float64], ("N_spectrum_probability_bin", "N_spectrum")]
+    spectrum_probability: Annotated[
+        NDArray[float64], ("N_spectrum_probability_bin", "N_spectrum")
+    ]
     energy_spectra: list[DistributionBase]
 
     def __init__(
@@ -262,7 +264,7 @@ class ReactionNeutronFission(ReactionBase):
         # Prompt spectrum
         spectrum_names = [x for x in h5_group if x.startswith("energy_spectrum-")]
         if len(spectrum_names) > 1:
-            print_error('Unsupported multi-distribution prompt fission spectrum')
+            print_error("Unsupported multi-distribution prompt fission spectrum")
         spectrum = set_energy_distribution(h5_group[f"energy_spectrum-1"])
 
         return cls(MT, xs, xs_offset, reference_frame, angle_type, mu, spectrum)
@@ -280,20 +282,23 @@ class ReactionNeutronFission(ReactionBase):
 
         return text
 
+
 # ======================================================================================
 # Helper functions
 # ======================================================================================
+
 
 def set_basic_properties(h5_group):
     MT = h5_group.attrs["MT"][()]
     xs = h5_group["xs"][()]
     xs_offset = h5_group["xs"].attrs["offset"]
-    reference_frame = h5_group["reference_frame"][()].decode('utf-8')
+    reference_frame = h5_group["reference_frame"][()].decode("utf-8")
     if reference_frame == "LAB":
         reference_frame = REFERENCE_FRAME_LAB
     elif reference_frame == "COM":
         reference_frame = REFERENCE_FRAME_COM
     return MT, xs, xs_offset, reference_frame
+
 
 def set_angular_distribution(h5_group):
     mu_type = h5_group.attrs["type"]
@@ -305,7 +310,7 @@ def set_angular_distribution(h5_group):
         mu = simulation.distributions[0]
     else:
         angle_type = ANGLE_DISTRIBUTED
-        grid = h5_group[f"energy"][()] * 1E6 # MeV to eV
+        grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
         offset = h5_group[f"offset"][()]
         value = h5_group[f"value"][()]
         pdf = h5_group[f"pdf"][()]
@@ -318,14 +323,14 @@ def set_energy_distribution(h5_group):
     spectrum_type = h5_group.attrs["type"]
 
     if spectrum_type == "tabulated":
-        grid = h5_group[f"energy"][()] * 1E6 # MeV to eV
+        grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
         offset = h5_group[f"offset"][()]
-        value = h5_group[f"value"][()] * 1E6 # MeV to eV
-        pdf = h5_group[f"pdf"][()] / 1E6 # /MeV to /eV
+        value = h5_group[f"value"][()] * 1e6  # MeV to eV
+        pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
         energy_spectrum = DistributionMultiTable(grid, offset, value, pdf)
 
     elif spectrum_type == "level-scattering":
-        C1 = h5_group["C1"][()] * 1E6 # MeV to eV
+        C1 = h5_group["C1"][()] * 1e6  # MeV to eV
         C2 = h5_group["C2"][()]
 
         energy_spectrum = DistributionLevelScattering(C1, C2)
@@ -334,7 +339,7 @@ def set_energy_distribution(h5_group):
         energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        
+
         energy_spectrum = DistributionEvaporation(
             energy, temperature, restriction_energy
         )
@@ -343,12 +348,12 @@ def set_energy_distribution(h5_group):
         energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        interpolation = h5_group[f"temperature_interpolation"][()].decode('utf-8')
-        if interpolation == 'linear':
+        interpolation = h5_group[f"temperature_interpolation"][()].decode("utf-8")
+        if interpolation == "linear":
             interpolation = INTERPOLATION_LINEAR
-        elif interpolation == 'log':
+        elif interpolation == "log":
             interpolation = INTERPOLATION_LOG
-        
+
         energy_spectrum = DistributionMaxwellian(
             energy, temperature, restriction_energy, interpolation
         )
@@ -366,7 +371,7 @@ def set_energy_distribution(h5_group):
         energy_spectrum = DistributionKalbachMann(
             energy, offset, energy_out, pdf, precompound_factor, angular_slope
         )
-    
+
     elif spectrum_type == "energy-angle-tabulated":
         energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
         offset = h5_group[f"offset"][()]
@@ -383,8 +388,8 @@ def set_energy_distribution(h5_group):
         )
 
     elif spectrum_type == "N-body":
-        value = h5_group['value'][()] * 1E6 # MeV to eV
-        pdf = h5_group['pdf'][()] / 1E6 # /MeV to /eV
+        value = h5_group["value"][()] * 1e6  # MeV to eV
+        pdf = h5_group["pdf"][()] / 1e6  # /MeV to /eV
 
         energy_spectrum = DistributionNBody(value, pdf)
 
@@ -392,5 +397,3 @@ def set_energy_distribution(h5_group):
         print_error(f"Unsupported energy spectrum of type {spectrum_type}")
 
     return energy_spectrum
-
-
