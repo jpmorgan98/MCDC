@@ -24,7 +24,11 @@ skip = args.skip
 if name == "ALL":
     names = []
     for item in os.listdir():
-        if os.path.isdir(item) and item != "MCDC-regression_test_data" and item != "tmp":
+        if (
+            os.path.isdir(item)
+            and item != "MCDC-regression_test_data"
+            and item != "tmp"
+        ):
             names.append(item)
 else:
     names = [item for item in os.listdir() if fnmatch.fnmatch(item, name)]
