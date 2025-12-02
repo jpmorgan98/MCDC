@@ -629,18 +629,20 @@ def set_object(
 
 
 # =============================================================================
-# Global GPU/CPU Arry Variable Constructors
+# Global GPU/CPU Array Variable Constructors
 # =============================================================================
 
 
 def create_data_array(size, dtype):
     if config.target == "gpu":
+        import harmonize, numba
+
         if config.gpu_state_storage == "managed":
-            data_tally_ptr = alloc_managed_bytes(tally_size)
+            data_tally_ptr = harmonize.alloc_managed_bytes(size)
         else:
-            data_tally_ptr = alloc_device_bytes(tally_size)
+            data_tally_ptr = harmonize.alloc_device_bytes(size)
         data_tally_uint = voidptr_to_uintp(data_tally_ptr)
-        data_tally = numba.carray(data_tally_ptr, (width, length), type_.float64)
+        data_tally = numba.carray(data_tally_ptr, (size,), dtype)
         return data_tally, data_tally_uint
     else:
         data_tally = np.zeros(size, dtype=dtype)
@@ -649,12 +651,14 @@ def create_data_array(size, dtype):
 
 def create_mcdc_array(dtype):
     if config.target == "gpu":
+        import harmonize, numba
+
         if config.gpu_state_storage == "managed":
-            mcdc_ptr = alloc_managed_bytes(type_.global_size)
+            mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
         else:
-            mcdc_ptr = alloc_device_bytes(type_.global_size)
+            mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
         mcdc_uint = voidptr_to_uintp(mcdc_ptr)
-        mcdc_array = numba.carray(mcdc_ptr, (1,), type_.global_)
+        mcdc_array = numba.carray(mcdc_ptr, (1,), dtype)
         return mcdc_array, mcdc_uint
     else:
         mcdc_array = np.zeros((1,), dtype=dtype)

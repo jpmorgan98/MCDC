@@ -412,11 +412,6 @@ def nopython_mode(is_on):
 # =============================================================================
 
 
-@numba.njit()
-def alloc_bytes_placeholder(size):
-    return uintp_to_voidptr(0)
-
-
 SIMPLE_ASYNC = True
 
 none_type = None
@@ -436,8 +431,6 @@ find_cell_async = None
 tally_width = None
 tally_length = None
 tally_size = None
-alloc_managed_bytes = alloc_bytes_placeholder
-alloc_device_bytes = alloc_bytes_placeholder
 tally_shape_literal = None
 
 
@@ -493,11 +486,6 @@ def gpu_forward_declare(args, tally_shape):
     step_async, find_cell_async = adapt.harm.RuntimeSpec.async_dispatch(step, find_cell)
     interface = adapt.harm.RuntimeSpec.program_interface()
     halt_early = interface["halt_early"]
-
-    global alloc_managed_bytes
-    global alloc_device_bytes
-    alloc_managed_bytes = harm.alloc_managed_bytes
-    alloc_device_bytes = harm.alloc_device_bytes
 
 
 # =============================================================================
