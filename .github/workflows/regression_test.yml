@@ -43,7 +43,7 @@ jobs:
         working-directory: test/regression
         run: |
           git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
-          python run.py
+          python run.py --include_native_physics
 
   python-regression-mpi:
     name: Python regression (MPI)
@@ -84,8 +84,8 @@ jobs:
         working-directory: test/regression
         run: |
           git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
-          python run.py --mpiexec=4
-          python run.py --mpiexec=16 --name=slab_reed_dd_3d
+          python run.py --include_native_physics --mpiexec=4
+          python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
   
   numba-regression-serial:
     name: Numba regression (serial)
@@ -126,7 +126,7 @@ jobs:
         working-directory: test/regression
         run: |
           git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
-          python run.py --mode numba
+          python run.py --include_native_physics --mode numba
 
   numba-regression-mpi:
     name: Numba regression (MPI)
@@ -167,5 +167,5 @@ jobs:
         working-directory: test/regression
         run: |
           git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
-          python run.py --mode numba --mpiexec=4
-          python run.py --mode numba --mpiexec=16 --name=slab_reed_dd_3d
+          python run.py --include_native_physics --mode numba --mpiexec=4
+          python run.py --include_native_physics --mode numba --mpiexec=16 --name=slab_reed_dd_3d
