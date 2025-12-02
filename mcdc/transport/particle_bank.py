@@ -260,8 +260,8 @@ def bank_rebalance(mcdc):
     less_right = idx_end < work_end
 
     # Offside?
-    offside_left = idx_end <= work_start
-    offside_right = idx_start >= work_end
+    offside_left = idx_end <= work_start and work_start != work_end
+    offside_right = idx_start >= work_end and work_start != work_end
 
     # MPI nearest-neighbor send/receive
     buff = np.zeros(
