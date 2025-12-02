@@ -635,13 +635,13 @@ def set_object(
 
 def create_data_array(size, dtype):
     if config.target == "gpu":
-        import harmonize, numba
+        import harmonize, numba, adapt
 
         if config.gpu_state_storage == "managed":
             data_tally_ptr = harmonize.alloc_managed_bytes(size)
         else:
             data_tally_ptr = harmonize.alloc_device_bytes(size)
-        data_tally_uint = voidptr_to_uintp(data_tally_ptr)
+        data_tally_uint = adapt.voidptr_to_uintp(data_tally_ptr)
         data_tally = numba.carray(data_tally_ptr, (size,), dtype)
         return data_tally, data_tally_uint
     else:
@@ -651,13 +651,13 @@ def create_data_array(size, dtype):
 
 def create_mcdc_array(dtype):
     if config.target == "gpu":
-        import harmonize, numba
+        import harmonize, numba, adapt
 
         if config.gpu_state_storage == "managed":
             mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
         else:
             mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
-        mcdc_uint = voidptr_to_uintp(mcdc_ptr)
+        mcdc_uint = adapt.voidptr_to_uintp(mcdc_ptr)
         mcdc_array = numba.carray(mcdc_ptr, (1,), dtype)
         return mcdc_array, mcdc_uint
     else:
