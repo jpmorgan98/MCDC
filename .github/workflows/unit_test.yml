@@ -36,7 +36,7 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .
+          pip install -e .[dev]
           pip list
 
       - name: Run unit tests
