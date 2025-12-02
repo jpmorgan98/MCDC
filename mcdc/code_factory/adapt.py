@@ -1,7 +1,6 @@
 import importlib
 import inspect
 import numba
-import mcdc.object_.numba_types as type_
 import numpy as np
 
 from numba import njit, jit, types
@@ -434,7 +433,9 @@ tally_size = None
 tally_shape_literal = None
 
 
-def gpu_forward_declare(args, tally_shape):
+def gpu_forward_declare(
+    args, data_shape, global_type, particle_type, particle_data_type
+):
 
     if args.gpu_rocm_path != None:
         harm.config.set_rocm_path(args.gpu_rocm_path)
@@ -450,16 +451,16 @@ def gpu_forward_declare(args, tally_shape):
     global step_async, find_cell_async, halt_early
     global tally_width, tally_length, tally_size
 
-    tally_size = tally_shape[0] * tally_shape[1] * 8
+    tally_size = data_shape[0] * 8
 
     global tally_shape_literal
-    tally_shape_literal = tally_shape
+    tally_shape_literal = data_shape
 
     none_type = numba.from_dtype(np.dtype([]))
-    mcdc_global_type = numba.types.Array(numba.from_dtype(type_.global_), (1,), "C")
-    # mcdc_global_type = numba.from_dtype(type_.global_)
+    mcdc_global_type = numba.types.Array(numba.from_dtype(global_type), (1,), "C")
+    # mcdc_global_type = numba.from_dtype(global_type)
 
-    tally_dims = len(tally_shape)
+    tally_dims = len(data_shape)
     mcdc_data_type = numba.types.Array(numba.float64, tally_dims, "C")
     state_spec = (
         {
@@ -474,8 +475,8 @@ def gpu_forward_declare(args, tally_shape):
     mcdc_data_gpu = access_fns["device"]["data"]["direct"]
     group_gpu = access_fns["group"]
     thread_gpu = access_fns["thread"]
-    particle_gpu = numba.from_dtype(type_.particle)
-    particle_record_gpu = numba.from_dtype(type_.particle_record)
+    particle_gpu = numba.from_dtype(particle_type)
+    particle_record_gpu = numba.from_dtype(particle_data_type)
 
     def step(prog: numba.uintp, P: particle_gpu):
         pass
@@ -483,8 +484,10 @@ def gpu_forward_declare(args, tally_shape):
     def find_cell(prog: numba.uintp, P: particle_gpu):
         pass
 
-    step_async, find_cell_async = adapt.harm.RuntimeSpec.async_dispatch(step, find_cell)
-    interface = adapt.harm.RuntimeSpec.program_interface()
+    import harmonize
+
+    step_async, find_cell_async = harmonize.RuntimeSpec.async_dispatch(step, find_cell)
+    interface = harmonize.RuntimeSpec.program_interface()
     halt_early = interface["halt_early"]
 
 

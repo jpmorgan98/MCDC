@@ -4,7 +4,7 @@
 
 
 from mcdc import mcdc_get
-from mcdc.print_ import print_structure
+from mcdc.print_ import print_error, print_structure
 
 
 def run():
@@ -231,6 +231,8 @@ def preparation():
     settings.target_gpu = True if config.target == "gpu" else False
 
     if config.target == "gpu":
+        import object_.numba_types as type_
+
         if MPI.COMM_WORLD.Get_rank() != 0:
             adapt.harm.config.should_compile(adapt.harm.config.ShouldCompile.NEVER)
         elif config.caching == False:
@@ -239,7 +241,13 @@ def preparation():
             print_error(
                 "No module named 'harmonize' - GPU functionality not available. "
             )
-        adapt.gpu_forward_declare(config.args, tally_shape)
+        adapt.gpu_forward_declare(
+            config.args,
+            data.shape,
+            type_.simulation,
+            type_.particle,
+            type_.particle_data,
+        )
 
     adapt.eval_toggle()
     adapt.target_for(config.target)

@@ -10,6 +10,7 @@ from mpi4py import MPI
 ####
 
 import mcdc
+import mcdc.code_factory.adapt as adapt
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
@@ -635,7 +636,7 @@ def set_object(
 
 def create_data_array(size, dtype):
     if config.target == "gpu":
-        import harmonize, numba, adapt
+        import harmonize, numba
 
         if config.gpu_state_storage == "managed":
             data_tally_ptr = harmonize.alloc_managed_bytes(size)
@@ -651,7 +652,7 @@ def create_data_array(size, dtype):
 
 def create_mcdc_array(dtype):
     if config.target == "gpu":
-        import harmonize, numba, adapt
+        import harmonize, numba
 
         if config.gpu_state_storage == "managed":
             mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
