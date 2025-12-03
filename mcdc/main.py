@@ -200,11 +200,13 @@ def preparation():
     # Generate Numba-supported "Objects"
     # ==================================================================================
 
-    import mcdc.code_factory.code_factory as code_factory
+    from mcdc.code_factory.numba_objects_generator import generate_numba_objects
 
     if MPI.COMM_WORLD.Get_rank() == 0:
-        code_factory.make_literals(simulation)
-    mcdc_arr, data = code_factory.generate_numba_objects(simulation)
+        from mcdc.code_factory.numba_objects_generator import make_literals
+
+        make_literals(simulation)
+    mcdc_arr, data = generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
 
     # Reload mcdc getters and setters
@@ -231,7 +233,7 @@ def preparation():
     settings.target_gpu = True if config.target == "gpu" else False
 
     if config.target == "gpu":
-        import object_.numba_types as type_
+        import mcdc.numba_types as type_
 
         if MPI.COMM_WORLD.Get_rank() != 0:
             adapt.harm.config.should_compile(adapt.harm.config.ShouldCompile.NEVER)
@@ -363,7 +365,7 @@ def visualize(
     mcdc_container, data = preparation()
     mcdc = mcdc_container[0]
 
-    import mcdc.object_.numba_types as type_
+    import mcdc.numba_types as type_
 
     # Color assignment for materials (by material ID)
     if colors is not None:
