@@ -2,9 +2,6 @@ name: Test Build the Docs
 
 on:
   push:
-    branches:
-      - main
-      - dev
   pull_request:
   workflow_dispatch:
 
