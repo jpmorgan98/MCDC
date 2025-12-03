@@ -235,6 +235,18 @@ def total_weight(bank):
 
 
 @njit
+def total_size(bank):
+    # Local total weight
+    local_size = np.ones(1, np.int64) * bank["size"]
+
+    # MPI Allreduce
+    buff = np.zeros(1, np.int64)
+    with objmode():
+        MPI.COMM_WORLD.Allreduce(local_size, buff, MPI.SUM)
+    return buff[0]
+
+
+@njit
 def bank_rebalance(mcdc):
     # Scan the bank
     idx_start, N_local, N = bank_scanning(mcdc["bank_source"], mcdc)
