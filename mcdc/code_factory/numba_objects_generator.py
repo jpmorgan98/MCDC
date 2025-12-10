@@ -446,7 +446,6 @@ def set_structure(label, structures, accessor_targets, annotations):
             # Only treat real classes that are registered polymorphic bases
             return isinstance(x, type) and x in polymorphic_bases
 
-
         # List of MC/DC classes
         list_of_non_polymorphics = hint_origin == list and non_polymorphic(hint_args[0])
         list_of_polymorphic_bases = hint_origin == list and polymorphic_base(
@@ -780,7 +779,7 @@ class _FwdRefDict(dict):
         return ForwardRef(key)
 
 
-_SAFE_GLOBALS = {} # no builtins
+_SAFE_GLOBALS = {}  # no builtins
 _SAFE_LOCALS = _FwdRefDict(
     {
         # builtins

@@ -277,6 +277,8 @@ do_nothing_id = 0
 
 
 do_nothing_id = 0
+
+
 def generate_do_nothing(arg_count, crash_on_call=None):
     """
     Create a no-op function (or one that always asserts) that takes
