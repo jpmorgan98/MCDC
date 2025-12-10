@@ -55,12 +55,17 @@ global_ = None
 # MC/DC Member Array Sizes
 # ==============================================================================
 
-
 def literalize(value):
-    jit_str = f"@njit\ndef impl():\n    return {value}\n"
-    exec(jit_str, globals(), locals())
-    return eval("impl")
+    jit_str = (
+        "@njit\n"
+        "def impl():\n"
+        f"    return {value}\n"
+    )
 
+    # Execute into a dedicated namespace so we can reliably retrieve impl
+    ns = {}
+    exec(jit_str, globals(), ns)
+    return ns["impl"]
 
 def material_g_size():
     pass
