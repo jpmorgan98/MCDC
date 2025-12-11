@@ -57,7 +57,7 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: Unix",
   "Operating System :: MacOS",
-  "Operating System :: Windows",
+  #"Operating System :: Windows",
 ]
 
 dependencies = [
