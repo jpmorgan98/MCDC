@@ -41,6 +41,7 @@ sys.modules.update((mod_name, MagicMock()) for mod_name in MOCK_MODULES)
 
 # If you still need MPI.COMM_WORLD in docs build:
 from mpi4py import MPI
+
 MPI.COMM_WORLD.Get_size.return_value = 1
 MPI.COMM_WORLD.Get_rank.return_value = 0
 
