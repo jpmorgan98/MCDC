@@ -6,7 +6,7 @@ on:
 
 jobs:
   regression-test:
-    name: Regression test - ${{ matrix.mode }} - py${{ matrix.python-version }}
+    name: ${{ matrix.mode }} (py${{ matrix.python-version }})
     runs-on: ubuntu-22.04
     timeout-minutes: ${{ matrix.timeout }}
 
