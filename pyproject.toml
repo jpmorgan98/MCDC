@@ -36,7 +36,7 @@ maintainers = [
 
 description = "MC/DC (Monte Carlo Dynamic Code): a performant, scalable, and machine-portable Python-based Monte Carlo neutron transport package"
 readme = "README.md"
-requires-python = ">=3.9.1"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 
 keywords = [
