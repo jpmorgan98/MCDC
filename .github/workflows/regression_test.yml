@@ -6,18 +6,23 @@ on:
 
 jobs:
   python-regression-serial:
-    name: Python regression (serial)
+    name: Python regression (serial) - py${{ matrix.python-version }}
     runs-on: ubuntu-22.04
     timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Show environment info
@@ -37,7 +42,7 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
       - name: Run Python regression tests (serial)
@@ -47,18 +52,23 @@ jobs:
           python run.py --include_native_physics
 
   python-regression-mpi:
-    name: Python regression (MPI)
+    name: Python regression (MPI) - py${{ matrix.python-version }}
     runs-on: ubuntu-22.04
     timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Show environment info
@@ -78,7 +88,7 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
       - name: Run Python regression tests (MPI)
@@ -87,20 +97,25 @@ jobs:
           git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
           python run.py --include_native_physics --mpiexec=4
           python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
-  
+
   numba-regression-serial:
-    name: Numba regression (serial)
+    name: Numba regression (serial) - py${{ matrix.python-version }}
     runs-on: ubuntu-22.04
     timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Show environment info
@@ -120,7 +135,7 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
       - name: Run Numba regression tests (serial)
@@ -130,18 +145,23 @@ jobs:
           python run.py --include_native_physics --mode numba
 
   numba-regression-mpi:
-    name: Numba regression (MPI)
+    name: Numba regression (MPI) - py${{ matrix.python-version }}
     runs-on: ubuntu-22.04
     timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Show environment info
@@ -161,7 +181,7 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
       - name: Run Numba regression tests (MPI)
