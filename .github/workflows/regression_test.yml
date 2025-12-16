@@ -7,7 +7,7 @@ on:
 jobs:
   regression-test:
     name: ${{ matrix.mode }} (py${{ matrix.python-version }})
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
 
     strategy:
