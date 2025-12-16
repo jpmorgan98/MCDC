@@ -7,7 +7,7 @@ on:
 jobs:
   python-regression-serial:
     name: Python regression (serial)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
@@ -46,7 +46,7 @@ jobs:
 
   python-regression-mpi:
     name: Python regression (MPI)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
@@ -87,7 +87,7 @@ jobs:
   
   numba-regression-serial:
     name: Numba regression (serial)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 120
 
     steps:
@@ -126,7 +126,7 @@ jobs:
 
   numba-regression-mpi:
     name: Numba regression (MPI)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 120
 
     steps:
