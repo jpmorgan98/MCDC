@@ -341,9 +341,9 @@ for ace_name in pbar:
 
                 # The distributions
                 energy_group = group.create_group(f"MT-{MT:03}/energy_spectrum-1")
-                util.load_energy_distribution(data, energy_group, incident_grid=xs_energy)
-
-                
+                util.load_energy_distribution(
+                    data, energy_group, incident_grid=xs_energy
+                )
 
             else:
                 N_dist = data.number_distributions
@@ -403,8 +403,9 @@ for ace_name in pbar:
                         f"MT-{MT:03}/energy_spectrum-{i+1}"
                     )
                     distribution = data.distribution(i + 1)
-                    util.load_energy_distribution(data, energy_group, incident_grid=xs_energy)
-
+                    util.load_energy_distribution(
+                        data, energy_group, incident_grid=xs_energy
+                    )
 
     # Fissionable zone below
     if not fissionable:
@@ -473,7 +474,6 @@ for ace_name in pbar:
                 f"delayed_neutron_precursors/energy_spectrum-{i+1}"
             )
             util.load_energy_distribution(data, energy_group, incident_grid=xs_energy)
-
 
     # ==================================================================================
     # Finalize

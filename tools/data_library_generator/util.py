@@ -101,8 +101,7 @@ def _endf_interp(x, x1, x2, y1, y2, law):
         return y1 + (y2 - y1) * (math.log(x / x1) / math.log(x2 / x1))
     if law == 4:
         return math.exp(
-            math.log(y1)
-            + (math.log(y2) - math.log(y1)) * (x - x1) / (x2 - x1)
+            math.log(y1) + (math.log(y2) - math.log(y1)) * (x - x1) / (x2 - x1)
         )
     if law == 5:
         return math.exp(
@@ -245,7 +244,10 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
 
             xg = np.asarray(incident_grid, dtype=float)
             temperature = np.array(
-                [_tab1_eval(x, energy_raw, temperature_raw, boundaries, interpolants) for x in xg],
+                [
+                    _tab1_eval(x, energy_raw, temperature_raw, boundaries, interpolants)
+                    for x in xg
+                ],
                 dtype=float,
             )
             energy = xg
@@ -256,15 +258,23 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
             h5_group.create_dataset("temperature_interpolation_resampled", data=False)
 
         # Save raw + interpolation info (traceability)
-        h5_group.create_dataset("temperature_energy_grid_raw", data=energy_raw).attrs["unit"] = "MeV"
-        h5_group.create_dataset("temperature_raw", data=temperature_raw).attrs["unit"] = "MeV"
+        h5_group.create_dataset("temperature_energy_grid_raw", data=energy_raw).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("temperature_raw", data=temperature_raw).attrs[
+            "unit"
+        ] = "MeV"
         h5_group.create_dataset("temperature_interp_boundaries", data=boundaries)
         h5_group.create_dataset("temperature_interp_interpolants", data=interpolants)
 
         # Save the “effective” temperature grid/value used by the generator
-        h5_group.create_dataset("temperature_energy_grid", data=energy).attrs["unit"] = "MeV"
+        h5_group.create_dataset("temperature_energy_grid", data=energy).attrs[
+            "unit"
+        ] = "MeV"
         h5_group.create_dataset("temperature", data=temperature).attrs["unit"] = "MeV"
-        h5_group.create_dataset("restriction_energy", data=restriction_energy).attrs["unit"] = "MeV"
+        h5_group.create_dataset("restriction_energy", data=restriction_energy).attrs[
+            "unit"
+        ] = "MeV"
 
     elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
         h5_group.attrs["type"] = "maxwellian"
@@ -274,22 +284,30 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
         elif all(_as_np(data.interpolation_data.interpolants) == 5):
             interpolation = "log"
         else:
-            print_error("Unsupported temperature interpolation law in Maxwellian distribution")
+            print_error(
+                "Unsupported temperature interpolation law in Maxwellian distribution"
+            )
 
         energy = _as_np(data.energies)
         temperature = _as_np(data.temperatures)
         restriction_energy = _as_np(data.restriction_energy)
 
         h5_group.create_dataset("temperature_interpolation", data=interpolation)
-        h5_group.create_dataset("temperature_energy_grid", data=energy).attrs["unit"] = "MeV"
+        h5_group.create_dataset("temperature_energy_grid", data=energy).attrs[
+            "unit"
+        ] = "MeV"
         h5_group.create_dataset("temperature", data=temperature).attrs["unit"] = "MeV"
-        h5_group.create_dataset("restriction_energy", data=restriction_energy).attrs["unit"] = "MeV"
+        h5_group.create_dataset("restriction_energy", data=restriction_energy).attrs[
+            "unit"
+        ] = "MeV"
 
     elif isinstance(data, ACEtk.continuous.OutgoingEnergyDistributionData):
         h5_group.attrs["type"] = "tabulated"
 
         if not data.interpolation_data.is_linear_linear:
-            print_error("Non-linearly-interpolated energy distribution is not supported")
+            print_error(
+                "Non-linearly-interpolated energy distribution is not supported"
+            )
 
         energy = _as_np(data.incident_energies)
         h5_group.create_dataset("energy", data=energy).attrs["unit"] = "MeV"
@@ -334,7 +352,9 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
             angular_slope.extend(distribution.angular_distribution_slope_values)
 
         h5_group.create_dataset("offset", data=offset)
-        h5_group.create_dataset("energy_out", data=np.array(energy_out)).attrs["unit"] = "MeV"
+        h5_group.create_dataset("energy_out", data=np.array(energy_out)).attrs[
+            "unit"
+        ] = "MeV"
         h5_group.create_dataset("pdf", data=np.array(pdf))
         h5_group.create_dataset("precompound_factor", data=np.array(precompound_factor))
         h5_group.create_dataset("angular_slope", data=np.array(angular_slope))
@@ -343,7 +363,9 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
         h5_group.attrs["type"] = "energy-angle-tabulated"
 
         if not data.interpolation_data.is_linear_linear:
-            print_error("Non-linearly-interpolated correlated-energy-angle is not supported")
+            print_error(
+                "Non-linearly-interpolated correlated-energy-angle is not supported"
+            )
 
         NE = data.number_incident_energies
         energy = _as_np(data.incident_energies)
@@ -366,7 +388,9 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
                 cosine_pdf.extend(inner_distribution.pdf)
 
         h5_group.create_dataset("offset", data=offset)
-        h5_group.create_dataset("energy_out", data=np.array(energy_out)).attrs["unit"] = "MeV"
+        h5_group.create_dataset("energy_out", data=np.array(energy_out)).attrs[
+            "unit"
+        ] = "MeV"
         h5_group.create_dataset("pdf", data=np.array(pdf))
         h5_group.create_dataset("cosine_offset", data=np.array(cosine_offset))
         h5_group.create_dataset("cosine", data=np.array(cosine))
@@ -558,7 +582,9 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
             g.create_dataset("interp_interpolants", data=it)
 
             # Optional convenience: resample probability onto incident_grid if given
-            if incident_grid is not None and (not p.interpolation_data.is_linear_linear):
+            if incident_grid is not None and (
+                not p.interpolation_data.is_linear_linear
+            ):
                 xg = np.asarray(incident_grid, dtype=float)
                 pres = np.array([_tab1_eval(x, E, P, b, it) for x in xg], dtype=float)
                 g.create_dataset("probability_on_incident_grid", data=pres)
@@ -567,7 +593,9 @@ def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
         dist_group = h5_group.create_group("distributions")
         for i in range(N):
             sub = dist_group.create_group(f"distribution-{i+1}")
-            load_energy_distribution(data.distribution(i + 1), sub, incident_grid=incident_grid)
+            load_energy_distribution(
+                data.distribution(i + 1), sub, incident_grid=incident_grid
+            )
 
     else:
         print_error(f"Unsupported energy distribution: {data}")
